@@ -110,3 +110,7 @@ build/
 .react-router/
 temp/
 scripts/
+
+.claude
+.direnv
+.devenv
