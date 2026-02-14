@@ -6,6 +6,7 @@
 
 import { observer } from "mobx-react";
 import { X } from "lucide-react";
+import { useTranslation } from "@plane/i18n";
 import { Button } from "@plane/propel/button";
 // components
 import { PropertyList } from "./property-list";
@@ -26,6 +27,8 @@ export const IssueTypeSidePanel = observer(function IssueTypeSidePanel(props: Pr
   const { workspaceSlug, issueType, isAdmin, onClose, onEdit } = props;
   // store hooks
   const { issuePropertyStore } = useRootStore();
+  // i18n
+  const { t } = useTranslation();
 
   // Filter properties for this issue type
   // Note: Definitions are fetched by root component on mount, so we just filter locally
@@ -51,10 +54,14 @@ export const IssueTypeSidePanel = observer(function IssueTypeSidePanel(props: Pr
           {/* Badges */}
           <div className="flex items-center gap-2 flex-wrap">
             {issueType.is_default && (
-              <span className="text-xs px-2 py-0.5 rounded-full bg-accent-primary/10 text-accent-primary">Default</span>
+              <span className="text-xs px-2 py-0.5 rounded-full bg-accent-primary/10 text-accent-primary">
+                {t("workspace_settings.settings.issue_types.default")}
+              </span>
             )}
             <span className="text-xs px-2 py-0.5 rounded-full bg-surface-2 text-secondary">
-              {issueType.is_active ? "Active" : "Inactive"}
+              {issueType.is_active
+                ? t("workspace_settings.settings.issue_types.active")
+                : t("workspace_settings.settings.issue_types.inactive")}
             </span>
           </div>
         </div>
@@ -76,7 +83,7 @@ export const IssueTypeSidePanel = observer(function IssueTypeSidePanel(props: Pr
         {issueType.description && <p className="text-sm text-secondary mb-3">{issueType.description}</p>}
         {isAdmin && (
           <Button variant="secondary" size="sm" onClick={onEdit}>
-            Edit type
+            {t("workspace_settings.settings.issue_types.update")}
           </Button>
         )}
       </div>

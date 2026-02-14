@@ -111,6 +111,7 @@ export const PropertyList = observer(function PropertyList(props: Props) {
                   isAdmin={isAdmin}
                   onEdit={() => setEditingPropertyId(property.id)}
                   onDelete={() => handleDelete(property.id)}
+                  t={t}
                 />
               )}
             </div>
@@ -130,10 +131,11 @@ type PropertyRowProps = {
   isAdmin: boolean;
   onEdit: () => void;
   onDelete: () => void;
+  t: (key: string) => string;
 };
 
 function PropertyRow(props: PropertyRowProps) {
-  const { property, isAdmin, onEdit, onDelete } = props;
+  const { property, isAdmin, onEdit, onDelete, t } = props;
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -217,7 +219,7 @@ function PropertyRow(props: PropertyRowProps) {
                 }}
                 className="w-full text-left px-4 py-2 text-sm hover:bg-surface-1 transition-colors first:rounded-t-md"
               >
-                Edit
+                {t("edit")}
               </button>
               <button
                 type="button"
@@ -228,7 +230,7 @@ function PropertyRow(props: PropertyRowProps) {
                 }}
                 className="w-full text-left px-4 py-2 text-sm text-red-500 hover:bg-red-500/10 transition-colors last:rounded-b-md"
               >
-                Delete
+                {t("delete")}
               </button>
             </div>
           )}

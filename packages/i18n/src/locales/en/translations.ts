@@ -1606,7 +1606,8 @@ export default {
         update_success: "Issue type updated successfully",
         delete_success: "Issue type deleted successfully",
         delete_error: "Issue type could not be deleted. Please try again.",
-        delete_confirmation: "Are you sure you want to delete {name}? This will remove the issue type from all work items that reference it.",
+        delete_confirmation:
+          "Are you sure you want to delete {name}? This will remove the issue type from all work items that reference it.",
         no_types: "No issue types exist yet",
         properties: "Properties",
         add_property: "Add property",

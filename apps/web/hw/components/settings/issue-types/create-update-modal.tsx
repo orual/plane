@@ -105,7 +105,8 @@ export const CreateUpdateIssueTypeModal = observer(function CreateUpdateIssueTyp
         handleClose();
       } catch (error) {
         setIsSubmitting(false);
-        const errorMessage = error instanceof Error ? error.message : "Failed to save issue type";
+        const errorMessage =
+          error instanceof Error ? error.message : t("workspace_settings.settings.issue_types.delete_error");
         setToast({
           type: TOAST_TYPE.ERROR,
           title: t("error"),

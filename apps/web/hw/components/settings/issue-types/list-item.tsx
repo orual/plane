@@ -6,6 +6,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { EllipsisVertical } from "lucide-react";
+import { useTranslation } from "@plane/i18n";
 // types
 import type { TIssueType } from "@/plane-web/types/issue-types";
 // ui
@@ -22,6 +23,7 @@ type Props = {
 
 export const IssueTypeListItem = function IssueTypeListItem(props: Props) {
   const { issueType, isSelected, isAdmin, onClick, onEdit, onDelete } = props;
+  const { t } = useTranslation();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -68,7 +70,9 @@ export const IssueTypeListItem = function IssueTypeListItem(props: Props) {
       {/* Badges */}
       <div className="flex items-center gap-2 flex-shrink-0">
         {issueType.is_default && (
-          <span className="text-xs px-2 py-0.5 rounded-full bg-accent-primary/10 text-accent-primary">Default</span>
+          <span className="text-xs px-2 py-0.5 rounded-full bg-accent-primary/10 text-accent-primary">
+            {t("workspace_settings.settings.issue_types.default")}
+          </span>
         )}
 
         {/* Kebab menu */}
@@ -112,7 +116,7 @@ export const IssueTypeListItem = function IssueTypeListItem(props: Props) {
                   }}
                   className="w-full text-left px-4 py-2 text-sm hover:bg-surface-1 transition-colors first:rounded-t-md"
                 >
-                  Edit
+                  {t("edit")}
                 </button>
                 <button
                   type="button"
@@ -123,7 +127,7 @@ export const IssueTypeListItem = function IssueTypeListItem(props: Props) {
                   }}
                   className="w-full text-left px-4 py-2 text-sm text-red-500 hover:bg-red-500/10 transition-colors last:rounded-b-md"
                 >
-                  Delete
+                  {t("delete")}
                 </button>
               </div>
             )}

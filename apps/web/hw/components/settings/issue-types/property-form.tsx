@@ -147,7 +147,8 @@ export const PropertyForm = observer(function PropertyForm(props: Props) {
         onSave();
       } catch (error) {
         setIsSubmitting(false);
-        const errorMessage = error instanceof Error ? error.message : "Failed to save property";
+        const errorMessage =
+          error instanceof Error ? error.message : t("workspace_settings.settings.issue_types.property_delete_error");
         setToast({
           type: TOAST_TYPE.ERROR,
           title: t("error"),
