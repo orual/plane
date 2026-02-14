@@ -27,10 +27,13 @@
 
 **Step 1: Create `flake.nix` at the repository root**
 
-This flake provides all system-level dependencies needed for the Plane dev environment. The configuration includes:
-- System libraries required by Python C extensions (psycopg3, cryptography, lxml)
-- NIX_LD / NIX_LD_LIBRARY_PATH setup so dynamically linked binaries work
-- Playwright browser configuration matching the pattern from `~/Projects/weaver.sh`
+This flake provides all system-level dependencies needed for the Plane dev environment. The design follows the recommended Nix + uv pattern (see [NixOS Wiki: Python quickstart using uv](https://wiki.nixos.org/wiki/Python_quickstart_using_uv)):
+
+- **uv manages Python packages** — creates the venv, installs from requirements.txt, resolves dependencies. Nix does not manage Python packages.
+- **Nix provides system libraries** — C headers and shared objects needed by Python packages with compiled extensions (psycopg3, cryptography, lxml).
+- **NIX_LD / LD_LIBRARY_PATH** — required so that pip/uv-installed wheels with compiled C extensions can find shared libraries at runtime. On NixOS with `programs.nix-ld.enable = true`, the system handles this globally; we set it in the flake so it also works for non-NixOS Nix users (e.g., Nix-on-Ubuntu).
+- **UV_PYTHON_DOWNLOADS=never** — forces uv to use the Nix-provided Python interpreter instead of downloading its own, keeping the environment deterministic.
+- **UV_LINK_MODE=copy** — uv defaults to hardlinking files into the venv, which fails across filesystem boundaries (the Nix store is on a separate mount). Copy mode avoids this.
 
 ```nix
 {
@@ -46,6 +49,18 @@ This flake provides all system-level dependencies needed for the Plane dev envir
       let
         pkgs = nixpkgs.legacyPackages.${system};
         inherit (pkgs) lib;
+
+        # System libraries needed by Python C extensions at both compile time
+        # (headers) and runtime (shared objects). Referenced in both buildInputs
+        # and NIX_LD_LIBRARY_PATH to avoid duplication.
+        pythonLibs = with pkgs; [
+          openssl     # cryptography
+          libffi      # cryptography, ctypes
+          libpq       # psycopg3 / psycopg-c
+          libxml2     # lxml
+          libxslt     # lxml
+          zlib        # compression (transitive dep of many packages)
+        ];
       in
       {
         devShells.default = pkgs.mkShell {
@@ -58,71 +73,53 @@ This flake provides all system-level dependencies needed for the Plane dev envir
 
             # Python and Python tooling
             python312
+            uv
             ruff
 
-            # System libraries for Python C extensions
-            # psycopg3 / psycopg-c (PostgreSQL adapter)
+            # PostgreSQL client (provides pg_config for psycopg-c compilation)
             postgresql
-            libpq
-
-            # cryptography (needs OpenSSL and libffi)
-            openssl
-            libffi
-
-            # lxml (XML/HTML parsing)
-            libxml2
-            libxslt
 
             # Build tools for compiling C extensions
             pkg-config
             gcc
 
-            # Playwright browser dependencies
-            playwright-driver
-
-            # Docker (for infrastructure services)
+            # Docker (for infrastructure services: PostgreSQL, Redis, RabbitMQ, MinIO)
             docker
             docker-compose
-          ];
+          ] ++ pythonLibs;
 
-          nativeBuildInputs = [
-            pkgs.playwright-driver.browsers
-          ];
-
-          # Dynamic linker configuration for Nix
-          # Required so Python C extensions and Playwright can find shared libraries
-          NIX_LD_LIBRARY_PATH = with pkgs; lib.makeLibraryPath [
-            stdenv.cc.cc
-            openssl
-            libffi
-            libpq
-            libxml2
-            libxslt
-            zlib
-          ];
+          # Dynamic linker configuration for Nix environments.
+          # uv installs pre-compiled manylinux wheels that expect to dlopen()
+          # system libraries (libssl, libpq, etc.). NIX_LD tells the dynamic
+          # linker where these Nix-provided libraries live.
+          NIX_LD_LIBRARY_PATH = lib.makeLibraryPath ([ pkgs.stdenv.cc.cc ] ++ pythonLibs);
           NIX_LD = lib.fileContents "${pkgs.stdenv.cc}/nix-support/dynamic-linker";
 
-          # Playwright configuration
+          # Playwright: use Nix-provided browsers instead of downloading them
           PLAYWRIGHT_BROWSERS_PATH = "${pkgs.playwright-driver.browsers}";
           PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD = "1";
           PLAYWRIGHT_SKIP_VALIDATE_HOST_REQUIREMENTS = true;
-          PLAYWRIGHT_HOST_PLATFORM_OVERRIDE = "ubuntu-24.04";
+
+          # uv: use Nix-provided Python, copy instead of hardlink
+          UV_PYTHON_DOWNLOADS = "never";
+          UV_LINK_MODE = "copy";
 
           shellHook = ''
-            # Extend LD_LIBRARY_PATH with Nix library paths
-            export LD_LIBRARY_PATH="$LD_LIBRARY_PATH:$NIX_LD_LIBRARY_PATH"
+            # Put Nix library paths first so they take priority
+            export LD_LIBRARY_PATH="$NIX_LD_LIBRARY_PATH''${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
 
-            # Python venv setup for Django development
+            # Create and activate Python venv via uv
             if [ ! -d .venv ]; then
               echo "Creating Python virtual environment..."
-              python -m venv .venv
+              uv venv .venv
             fi
             source .venv/bin/activate
 
             echo "Plane HW dev shell ready."
             echo "  Node.js: $(node --version)"
-            echo "  pnpm: $(pnpm --version)"
-            echo "  Python: $(python --version)"
+            echo "  pnpm:    $(pnpm --version)"
+            echo "  Python:  $(python --version)"
+            echo "  uv:      $(uv --version)"
           '';
         };
       }
@@ -173,6 +170,7 @@ Expected: Drops into a shell. Verify tool versions:
 node --version    # Should print v22.x.x (>= 22.18.0)
 pnpm --version    # Should print 10.x.x
 python --version  # Should print Python 3.12.x
+uv --version      # Should print uv 0.x.x
 ruff --version    # Should print ruff 0.x.x
 ```
 
@@ -187,18 +185,30 @@ git commit -m "chore: add Nix flake dev environment with Node.js, Python, and Pl
 <!-- START_TASK_2 -->
 ### Task 2: Install Python dependencies in the venv
 
-**Prerequisite:** Inside the Nix dev shell (`nix develop`).
+**Prerequisite:** Inside the Nix dev shell (`nix develop`). The venv should already exist and be activated (the shellHook creates it with `uv venv` if missing).
 
-**Step 1: Install Python dependencies**
+**Step 1: Install Python dependencies using uv**
+
+We use `uv pip install` instead of `pip install` — it reads standard `requirements.txt` files and is 10-100x faster. The `UV_LINK_MODE=copy` env var (set in the flake) ensures uv copies files into the venv instead of hardlinking, avoiding cross-filesystem issues on NixOS.
 
 ```bash
 cd apps/api
-pip install -r requirements/local.txt
+uv pip install -r requirements/local.txt
 ```
 
-Expected: Installs Django 4.2, DRF, Celery, and all other dependencies without errors.
+Expected: Installs Django 4.2, DRF, Celery, and all other dependencies without errors. uv will resolve and install all packages from `local.txt` (which includes `base.txt` via `-r base.txt`).
 
-**Step 2: Verify Django starts**
+If `psycopg-c` fails to compile (it requires `pg_config` from the Nix-provided `postgresql` package), this is acceptable — `psycopg-binary` is also installed and psycopg will use whichever backend is available. You can safely ignore compilation warnings for `psycopg-c` as long as the overall install succeeds.
+
+**Step 2: Install test dependencies**
+
+```bash
+uv pip install -r requirements/test.txt
+```
+
+Expected: Installs pytest, pytest-django, factory-boy, and other test dependencies.
+
+**Step 3: Verify Django starts**
 
 ```bash
 python manage.py check
@@ -206,7 +216,7 @@ python manage.py check
 
 Expected: `System check identified no issues.` (Some warnings about unapplied migrations are acceptable since we're using `--nomigrations` for tests.)
 
-**Step 3: Return to repo root**
+**Step 4: Return to repo root**
 
 ```bash
 cd ../..
