@@ -5,7 +5,7 @@
 import pytest
 from rest_framework import status
 
-from plane.db.models import Issue, Project, ProjectMember, State, WorkspaceMember
+from plane.db.models import Issue, Project, ProjectMember, State
 from plane.hw.models import IssuePropertyDefinition, IssuePropertyValue
 
 
@@ -92,9 +92,7 @@ class TestPropertyDefinitionListCreate:
         assert response.status_code == status.HTTP_201_CREATED
         assert response.data["name"] == "Status"
         assert response.data["property_type"] == "select"
-        assert IssuePropertyDefinition.objects.filter(
-            workspace=workspace, name="Status"
-        ).exists()
+        assert IssuePropertyDefinition.objects.filter(workspace=workspace, name="Status").exists()
 
     @pytest.mark.django_db
     def test_create_property_definition_missing_name(self, session_client, workspace):
@@ -237,9 +235,7 @@ class TestPropertyValueListCreate:
         response = session_client.post(url, data, format="json")
 
         assert response.status_code == status.HTTP_201_CREATED
-        assert IssuePropertyValue.objects.filter(
-            issue=issue, property_definition=prop_def
-        ).exists()
+        assert IssuePropertyValue.objects.filter(issue=issue, property_definition=prop_def).exists()
 
     @pytest.mark.django_db
     def test_bulk_upsert_property_values(self, session_client, workspace, project, issue):
@@ -285,7 +281,9 @@ class TestPropertyValueDelete:
             value={"value": "test"},
         )
 
-        url = f"/api/workspaces/{workspace.slug}/projects/{project.id}/issues/{issue.id}/property-values/{prop_value.id}/"
+        url = (
+            f"/api/workspaces/{workspace.slug}/projects/{project.id}/issues/{issue.id}/property-values/{prop_value.id}/"
+        )
         response = session_client.delete(url)
 
         assert response.status_code == status.HTTP_204_NO_CONTENT

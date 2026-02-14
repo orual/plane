@@ -34,17 +34,13 @@ class PropertyDefinitionSerializer(BaseSerializer):
         # For select/multi_select types, options must be a non-empty list
         if property_type in ["select", "multi_select"]:
             if not options or not isinstance(options, list):
-                raise serializers.ValidationError(
-                    f"Property type '{property_type}' requires a non-empty options list."
-                )
+                raise serializers.ValidationError(f"Property type '{property_type}' requires a non-empty options list.")
         elif property_type and property_type not in ["text", "number", "url", "date", "boolean"]:
             raise serializers.ValidationError(f"Invalid property type: {property_type}")
 
         # For non-select types, options should be empty
         if property_type and property_type not in ["select", "multi_select"] and options:
-            raise serializers.ValidationError(
-                f"Property type '{property_type}' does not support options."
-            )
+            raise serializers.ValidationError(f"Property type '{property_type}' does not support options.")
 
         return data
 
@@ -79,50 +75,32 @@ class IssuePropertyValueSerializer(BaseSerializer):
         # Type-specific validation
         if property_type == "text":
             if actual_value is not None and not isinstance(actual_value, str):
-                raise serializers.ValidationError(
-                    "Text property value must be a string."
-                )
+                raise serializers.ValidationError("Text property value must be a string.")
         elif property_type == "number":
             if actual_value is not None and not isinstance(actual_value, (int, float)):
-                raise serializers.ValidationError(
-                    "Number property value must be numeric."
-                )
+                raise serializers.ValidationError("Number property value must be numeric.")
         elif property_type == "url":
             if actual_value is not None and not isinstance(actual_value, str):
-                raise serializers.ValidationError(
-                    "URL property value must be a string."
-                )
+                raise serializers.ValidationError("URL property value must be a string.")
         elif property_type == "date":
             if actual_value is not None and not isinstance(actual_value, str):
-                raise serializers.ValidationError(
-                    "Date property value must be an ISO 8601 date string."
-                )
+                raise serializers.ValidationError("Date property value must be an ISO 8601 date string.")
         elif property_type == "boolean":
             if actual_value is not None and not isinstance(actual_value, bool):
-                raise serializers.ValidationError(
-                    "Boolean property value must be true or false."
-                )
+                raise serializers.ValidationError("Boolean property value must be true or false.")
         elif property_type == "select":
             if actual_value is not None:
                 if not isinstance(actual_value, str):
-                    raise serializers.ValidationError(
-                        "Select property value must be a string."
-                    )
+                    raise serializers.ValidationError("Select property value must be a string.")
                 if actual_value not in property_definition.options:
-                    raise serializers.ValidationError(
-                        f"'{actual_value}' is not a valid option for this property."
-                    )
+                    raise serializers.ValidationError(f"'{actual_value}' is not a valid option for this property.")
         elif property_type == "multi_select":
             if actual_value is not None:
                 if not isinstance(actual_value, list):
-                    raise serializers.ValidationError(
-                        "Multi-select property value must be a list."
-                    )
+                    raise serializers.ValidationError("Multi-select property value must be a list.")
                 for val in actual_value:
                     if val not in property_definition.options:
-                        raise serializers.ValidationError(
-                            f"'{val}' is not a valid option for this property."
-                        )
+                        raise serializers.ValidationError(f"'{val}' is not a valid option for this property.")
 
         return data
 
@@ -130,9 +108,7 @@ class IssuePropertyValueSerializer(BaseSerializer):
 class IssuePropertyValueDetailSerializer(BaseSerializer):
     """Read-only serializer that nests property definition data."""
 
-    property_definition_detail = PropertyDefinitionSerializer(
-        source="property_definition", read_only=True
-    )
+    property_definition_detail = PropertyDefinitionSerializer(source="property_definition", read_only=True)
 
     class Meta:
         model = IssuePropertyValue

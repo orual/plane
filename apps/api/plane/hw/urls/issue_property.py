@@ -15,9 +15,7 @@ urlpatterns = [
     ),
     path(
         "workspaces/<str:slug>/property-definitions/<uuid:pk>/",
-        PropertyDefinitionViewSet.as_view(
-            {"get": "retrieve", "patch": "partial_update", "delete": "destroy"}
-        ),
+        PropertyDefinitionViewSet.as_view({"get": "retrieve", "patch": "partial_update", "delete": "destroy"}),
         name="workspace-property-definition",
     ),
     # Issue-scoped property value CRUD
