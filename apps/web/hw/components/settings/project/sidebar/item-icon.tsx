@@ -5,12 +5,13 @@
  */
 
 import type { LucideIcon } from "lucide-react";
-import { ArrowUpToLine, BookCheck, FolderKanban, FolderOpen, FolderTree, Square, Tag, Timer, Users } from "lucide-react";
+import { BookCheck, FolderKanban, FolderOpen, FolderTree, Square, Tag, Timer, Users } from "lucide-react";
 // plane imports
 import type { ISvgIcons } from "@plane/propel/icons";
-import type { TProjectSettingsTabs } from "@plane/types";
 
-export const PROJECT_SETTINGS_ICONS: Record<TProjectSettingsTabs | "issue_types", LucideIcon | React.FC<ISvgIcons>> = {
+type ProjectSettingsIconKey = "general" | "members" | "features_cycles" | "features_modules" | "features_views" | "features_pages" | "features_intake" | "states" | "labels" | "estimates" | "automations" | "issue_types";
+
+export const PROJECT_SETTINGS_ICONS: Record<ProjectSettingsIconKey, LucideIcon | React.FC<ISvgIcons>> = {
   general: FolderOpen,
   members: Users,
   features_cycles: FolderTree,

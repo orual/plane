@@ -8,9 +8,10 @@ import type { LucideIcon } from "lucide-react";
 import { ArrowUpToLine, Building, CreditCard, Users, Webhook } from "lucide-react";
 // plane imports
 import type { ISvgIcons } from "@plane/propel/icons";
-import type { TWorkspaceSettingsTabs } from "@plane/types";
 
-export const WORKSPACE_SETTINGS_ICONS: Record<TWorkspaceSettingsTabs | "workspace_issue_types", LucideIcon | React.FC<ISvgIcons>> = {
+type WorkspaceSettingsIconKey = "general" | "members" | "export" | "billing-and-plans" | "webhooks" | "workspace_issue_types";
+
+export const WORKSPACE_SETTINGS_ICONS: Record<WorkspaceSettingsIconKey, LucideIcon | React.FC<ISvgIcons>> = {
   general: Building,
   members: Users,
   export: ArrowUpToLine,

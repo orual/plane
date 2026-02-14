@@ -13,10 +13,8 @@ import {
   GROUPED_PROJECT_SETTINGS,
   PROJECT_SETTINGS_CATEGORIES,
   PROJECT_SETTINGS_CATEGORY,
-  PROJECT_SETTINGS,
 } from "@plane/constants";
 import { EUserProjectRoles } from "@plane/types";
-import type { TProjectSettingsItem, TProjectSettingsTabs } from "@plane/types";
 import { useTranslation } from "@plane/i18n";
 // components
 import { SettingsSidebarItem } from "@/components/settings/sidebar/item";
@@ -26,15 +24,15 @@ import { useUserPermissions } from "@/hooks/store/user";
 import { PROJECT_SETTINGS_ICONS } from "./item-icon";
 
 // Extended project settings with issue types
-const EXTENDED_PROJECT_SETTINGS_ITEM: TProjectSettingsItem = {
-  key: "issue_types" as any,
+const EXTENDED_PROJECT_SETTINGS_ITEM = {
+  key: "issue_types",
   i18n_label: "project_settings.issue_types.title",
   href: "/issue-types",
   access: [EUserProjectRoles.ADMIN, EUserProjectRoles.MEMBER, EUserProjectRoles.GUEST],
   highlight: (pathname: string, baseUrl: string) => pathname === `${baseUrl}/issue-types/`,
-};
+} as const;
 
-const EXTENDED_GROUPED_PROJECT_SETTINGS: Record<PROJECT_SETTINGS_CATEGORY, TProjectSettingsItem[]> = {
+const EXTENDED_GROUPED_PROJECT_SETTINGS: Record<PROJECT_SETTINGS_CATEGORY, any[]> = {
   ...GROUPED_PROJECT_SETTINGS,
   [PROJECT_SETTINGS_CATEGORY.FEATURES]: [
     ...(GROUPED_PROJECT_SETTINGS[PROJECT_SETTINGS_CATEGORY.FEATURES] || []),
