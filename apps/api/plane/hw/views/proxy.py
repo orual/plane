@@ -51,18 +51,14 @@ def proxy_minio_upload(request, path):
             upstream = http_client.head(minio_url, timeout=PROXY_TIMEOUT)
             response = HttpResponse(status=upstream.status_code)
         else:
-            upstream = http_client.get(
-                minio_url, stream=True, timeout=PROXY_TIMEOUT
-            )
+            upstream = http_client.get(minio_url, stream=True, timeout=PROXY_TIMEOUT)
             if upstream.status_code == 200:
                 response = StreamingHttpResponse(
                     upstream.iter_content(chunk_size=8192),
                     status=200,
                 )
             else:
-                response = HttpResponse(
-                    upstream.content, status=upstream.status_code
-                )
+                response = HttpResponse(upstream.content, status=upstream.status_code)
 
         for header in PASSTHROUGH_HEADERS:
             value = upstream.headers.get(header)
