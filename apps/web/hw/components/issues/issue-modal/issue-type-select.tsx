@@ -37,15 +37,15 @@ export type TIssueTypeSelectProps<T extends Partial<TIssueFields>> = {
 export function IssueTypeSelect<T extends Partial<TIssueFields>>(props: TIssueTypeSelectProps<T>) {
   const {
     control,
-    _projectId,
-    _editorRef,
+    projectId: _projectId,
+    editorRef: _editorRef,
     disabled = false,
-    _variant = "sm",
+    variant: _variant = "sm",
     placeholder = "Select issue type",
-    _isRequired = false,
+    isRequired: _isRequired = false,
     renderChevron = true,
     dropDownContainerClassName,
-    _showMandatoryFieldInfo = false,
+    showMandatoryFieldInfo: _showMandatoryFieldInfo = false,
     handleFormChange,
   } = props;
 
