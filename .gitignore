@@ -113,5 +113,11 @@ temp/
 scripts/
 
 .claude
-.direnv
+# Nix
+result
+.direnv/
+
+# Python venv
+.venv/
+
 .devenv
