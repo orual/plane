@@ -307,12 +307,12 @@ class TestProjectIssueTypeListCreate:
         assert response.status_code == status.HTTP_409_CONFLICT
 
     @pytest.mark.django_db
-    def test_link_issue_type_as_member_forbidden(self, member_client, workspace, project, issue_type):
+    def test_link_issue_type_as_member_forbidden(self, member_client, member_user, workspace, project, issue_type):
         """Members should not be able to link issue types to projects."""
         # Add the member user to the project as a member
         ProjectMember.objects.create(
             project=project,
-            member=member_client.handler._force_user,
+            member=member_user,
             role=15,
             is_active=True,
         )

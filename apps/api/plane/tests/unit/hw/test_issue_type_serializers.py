@@ -7,7 +7,6 @@ import pytest
 from plane.db.models import IssueType, ProjectIssueType, Project
 from plane.hw.serializers import (
     IssueTypeSerializer,
-    ProjectIssueTypeSerializer,
     ProjectIssueTypeDetailSerializer,
 )
 

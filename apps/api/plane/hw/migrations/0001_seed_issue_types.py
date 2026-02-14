@@ -59,10 +59,14 @@ def seed_issue_types(apps, schema_editor):
 
 
 def reverse_seed(apps, schema_editor):
-    """Remove seeded issue types (only those matching default names)."""
+    """Remove seeded issue types (only those matching default names and descriptions)."""
     IssueType = apps.get_model("db", "IssueType")
-    default_names = [t["name"] for t in DEFAULT_ISSUE_TYPES]
-    IssueType.objects.filter(name__in=default_names).delete()
+    from django.db.models import Q
+
+    conditions = Q()
+    for t in DEFAULT_ISSUE_TYPES:
+        conditions |= Q(name=t["name"], description=t["description"])
+    IssueType.objects.filter(conditions).delete()
 
 
 class Migration(migrations.Migration):

@@ -94,6 +94,8 @@ class ProjectIssueTypeViewSet(BaseViewSet):
                 workspace__slug=self.kwargs.get("slug"),
                 project_id=self.kwargs.get("project_id"),
             )
+            # Defense-in-depth: filter by project membership in addition to
+            # the @allow_permission decorator check
             .filter(
                 project__project_projectmember__member=self.request.user,
                 project__project_projectmember__is_active=True,
@@ -111,10 +113,10 @@ class ProjectIssueTypeViewSet(BaseViewSet):
     @allow_permission([ROLE.ADMIN])
     def create(self, request, slug, project_id):
         try:
-            workspace = Workspace.objects.get(slug=slug)
             serializer = ProjectIssueTypeSerializer(data=request.data)
             if serializer.is_valid():
-                serializer.save(project_id=project_id, workspace=workspace)
+                # workspace is auto-set by ProjectBaseModel.save() from the project
+                serializer.save(project_id=project_id)
                 return Response(serializer.data, status=status.HTTP_201_CREATED)
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
         except IntegrityError:
