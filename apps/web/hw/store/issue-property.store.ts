@@ -206,4 +206,101 @@ export class IssuePropertyStore implements IIssuePropertyStore {
       });
     }
   }
+
+  /**
+   * Create a new property definition.
+   */
+  async createDefinition(
+    workspaceSlug: string,
+    data: Partial<IIssuePropertyDefinition>
+  ): Promise<IIssuePropertyDefinition> {
+    try {
+      const definition = await this.service.createPropertyDefinition(workspaceSlug, data);
+      runInAction(() => {
+        this.definitionsMap.set(definition.id, definition);
+      });
+      return definition;
+    } catch (error: unknown) {
+      runInAction(() => {
+        if (error instanceof Error) {
+          this.error = error.message;
+        } else if (error && typeof error === "object" && "message" in error) {
+          this.error = String((error as { message: unknown }).message) || "Failed to create property definition";
+        } else {
+          this.error = "Failed to create property definition";
+        }
+      });
+      throw error;
+    }
+  }
+
+  /**
+   * Update an existing property definition with optimistic updates.
+   */
+  async updateDefinition(
+    workspaceSlug: string,
+    propertyId: string,
+    data: Partial<IIssuePropertyDefinition>
+  ): Promise<IIssuePropertyDefinition> {
+    const originalData = this.definitionsMap.get(propertyId);
+    try {
+      // Optimistic update
+      if (originalData) {
+        runInAction(() => {
+          this.definitionsMap.set(propertyId, { ...originalData, ...data } as IIssuePropertyDefinition);
+        });
+      }
+
+      const definition = await this.service.updatePropertyDefinition(workspaceSlug, propertyId, data);
+      runInAction(() => {
+        this.definitionsMap.set(propertyId, definition);
+      });
+      return definition;
+    } catch (error: unknown) {
+      // Rollback on error
+      runInAction(() => {
+        if (originalData) {
+          this.definitionsMap.set(propertyId, originalData);
+        }
+        if (error instanceof Error) {
+          this.error = error.message;
+        } else if (error && typeof error === "object" && "message" in error) {
+          this.error = String((error as { message: unknown }).message) || "Failed to update property definition";
+        } else {
+          this.error = "Failed to update property definition";
+        }
+      });
+      throw error;
+    }
+  }
+
+  /**
+   * Delete a property definition with optimistic updates.
+   */
+  async deleteDefinition(workspaceSlug: string, propertyId: string): Promise<void> {
+    const originalData = this.definitionsMap.get(propertyId);
+    try {
+      // Optimistic delete
+      runInAction(() => {
+        this.definitionsMap.delete(propertyId);
+      });
+
+      await this.service.deletePropertyDefinition(workspaceSlug, propertyId);
+    } catch (error: unknown) {
+      // Rollback on error
+      runInAction(() => {
+        if (originalData) {
+          this.definitionsMap.set(propertyId, originalData);
+        }
+        if (error instanceof Error) {
+          this.error = error.message;
+        } else if (error && typeof error === "object" && "message" in error) {
+          this.error = String((error as { message: unknown }).message) || "Failed to delete property definition";
+        } else {
+          this.error = "Failed to delete property definition";
+        }
+      });
+      throw error;
+    }
+  }
 }
