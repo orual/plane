@@ -40,8 +40,8 @@ def proxy_minio_upload(request, path):
     if not settings.DEBUG:
         return HttpResponseForbidden()
 
-    if request.method not in ("GET", "HEAD"):
-        return HttpResponseNotAllowed(["GET", "HEAD"])
+    if request.method not in ("GET", "HEAD", "POST", "PUT", "DELETE"):
+        return HttpResponseNotAllowed(["GET", "HEAD", "POST", "PUT", "DELETE"])
 
     bucket = getattr(settings, "AWS_S3_BUCKET_NAME", "uploads")
     minio_url = f"{settings.AWS_S3_ENDPOINT_URL}/{bucket}/{path}"
@@ -50,8 +50,16 @@ def proxy_minio_upload(request, path):
         if request.method == "HEAD":
             upstream = http_client.head(minio_url, timeout=PROXY_TIMEOUT)
             response = HttpResponse(status=upstream.status_code)
-        else:
-            upstream = http_client.get(minio_url, stream=True, timeout=PROXY_TIMEOUT)
+        elif request.method in ("POST", "PUT", "DELETE"):
+            # Forward request with streaming
+            upstream = http_client.request(
+                request.method,
+                minio_url,
+                data=request.body,
+                stream=True,
+                timeout=PROXY_TIMEOUT,
+                headers={k: v for k, v in request.headers.items() if k.lower() != "host"},
+            )
             if upstream.status_code == 200:
                 response = StreamingHttpResponse(
                     upstream.iter_content(chunk_size=8192),
