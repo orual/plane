@@ -40,6 +40,7 @@
 
             # PostgreSQL client (provides pg_config for psycopg-c compilation)
             postgresql
+            postgresql.dev
 
             # Build tools for compiling C extensions
             pkg-config
