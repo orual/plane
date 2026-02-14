@@ -6,6 +6,7 @@
 
 /* eslint-disable @typescript-eslint/no-unsafe-return, @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access */
 import { useContext, useEffect, useMemo } from "react";
+import type { TIssueServiceType } from "@plane/types";
 import { StoreContext } from "@/lib/store-context";
 import type { IIssuePropertyStore } from "../store/issue-property.store";
 import type { IIssuePropertyValueDetail, IIssuePropertyValueUpsertItem } from "../types";
@@ -84,4 +85,17 @@ export const useIssuePropertyValues = (
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [issueId, store.isLoading, store.error, store.valuesMap.size, upsertValues]
   );
+};
+
+/**
+ * Hook stub matching the CE signature for consumers that import this export.
+ * In the HW fork, property loading is handled by useIssuePropertyValues and the store.
+ */
+export const useWorkItemProperties = (
+  _projectId: string | null | undefined,
+  _workspaceSlug: string | null | undefined,
+  _workItemId: string | null | undefined,
+  _issueServiceType: TIssueServiceType
+) => {
+  // No-op in HW fork — custom properties are loaded via the property store
 };

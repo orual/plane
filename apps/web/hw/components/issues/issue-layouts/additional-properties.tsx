@@ -6,6 +6,7 @@
 
 /* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-assignment */
 import { useMemo } from "react";
+import { useParams } from "next/navigation";
 import { observer } from "mobx-react";
 import { useRootStore } from "@/hooks/store/use-root-store";
 import { useIssuePropertyValues } from "@/plane-web/hooks/use-issue-properties";
@@ -23,10 +24,11 @@ export const WorkItemLayoutAdditionalProperties = observer(function WorkItemLayo
   props: TWorkItemLayoutAdditionalProperties
 ) {
   const { displayProperties, issue } = props;
+  const { workspaceSlug } = useParams();
   const { issueTypeStore, issuePropertyStore } = useRootStore() as any;
 
   const { values: propertyValues } = useIssuePropertyValues(
-    issue.workspace_id as string,
+    workspaceSlug as string | undefined,
     issue.project_id as string,
     issue.id
   );
