@@ -4,6 +4,8 @@
 
 """DEBUG-only reverse proxy for MinIO uploads."""
 
+# Pattern: Imperative Shell (proxy view - performs I/O operations)
+
 import logging
 
 import requests as http_client
