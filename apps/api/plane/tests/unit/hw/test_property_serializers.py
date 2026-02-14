@@ -4,10 +4,11 @@
 
 import pytest
 
-from plane.hw.models import IssuePropertyDefinition
+from plane.hw.models import IssuePropertyDefinition, IssuePropertyValue
 from plane.hw.serializers import (
     PropertyDefinitionSerializer,
     IssuePropertyValueSerializer,
+    IssuePropertyValueDetailSerializer,
 )
 
 
@@ -298,3 +299,68 @@ class TestIssuePropertyValueSerializer:
         }
         serializer = IssuePropertyValueSerializer(data=data)
         assert not serializer.is_valid()
+
+
+@pytest.mark.unit
+class TestIssuePropertyValueDetailSerializer:
+    """Test IssuePropertyValueDetailSerializer output shape."""
+
+    @pytest.mark.django_db
+    def test_output_shape_with_nested_property_definition(self, workspace, project, create_user):
+        """DetailSerializer includes nested property_definition_detail field."""
+        from plane.db.models import Issue, State
+
+        # Create a state for the issue
+        state = State.objects.create(
+            name="Todo",
+            project=project,
+            workspace=workspace,
+            group="backlog",
+        )
+
+        # Create an issue
+        issue = Issue.objects.create(
+            name="Test Issue",
+            project=project,
+            workspace=workspace,
+            state=state,
+            created_by=create_user,
+        )
+
+        # Create a property definition
+        prop_def = IssuePropertyDefinition.objects.create(
+            workspace=workspace,
+            name="Priority",
+            property_type="select",
+            options=["High", "Medium", "Low"],
+        )
+
+        # Create a property value
+        prop_value = IssuePropertyValue.objects.create(
+            issue=issue,
+            property_definition=prop_def,
+            workspace=workspace,
+            value={"value": "High"},
+        )
+
+        # Serialize with DetailSerializer
+        serializer = IssuePropertyValueDetailSerializer(prop_value)
+        data = serializer.data
+
+        # Verify basic fields are present
+        assert "id" in data
+        assert "issue_id" in data
+        assert "property_definition_id" in data
+        assert "value" in data
+        assert "workspace_id" in data
+
+        # Verify property_definition_detail is present and contains nested data
+        assert "property_definition_detail" in data
+        prop_def_detail = data["property_definition_detail"]
+        assert "id" in prop_def_detail
+        assert "name" in prop_def_detail
+        assert "property_type" in prop_def_detail
+        assert "options" in prop_def_detail
+        assert prop_def_detail["name"] == "Priority"
+        assert prop_def_detail["property_type"] == "select"
+        assert prop_def_detail["options"] == ["High", "Medium", "Low"]

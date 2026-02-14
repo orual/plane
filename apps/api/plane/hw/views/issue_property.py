@@ -154,9 +154,7 @@ class IssuePropertyValueViewSet(BaseViewSet):
 
             try:
                 # Look up property definition to ensure it exists and belongs to this workspace
-                prop_def = IssuePropertyDefinition.objects.get(
-                    id=prop_def_id, workspace=workspace
-                )
+                prop_def = IssuePropertyDefinition.objects.get(id=prop_def_id, workspace=workspace)
 
                 # Validate the value against the property definition type
                 validate_property_value(value, prop_def)

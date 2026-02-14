@@ -4,3 +4,10 @@
 
 from .issue_type import IssueTypeViewSet, ProjectIssueTypeViewSet
 from .issue_property import PropertyDefinitionViewSet, IssuePropertyValueViewSet
+
+__all__ = [
+    "IssueTypeViewSet",
+    "ProjectIssueTypeViewSet",
+    "PropertyDefinitionViewSet",
+    "IssuePropertyValueViewSet",
+]
