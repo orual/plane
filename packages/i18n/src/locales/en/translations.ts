@@ -1925,6 +1925,7 @@ export default {
     },
     issue_types: {
       title: "Issue types",
+      description: "Manage which issue types are available in this project.",
     },
   },
   project_cycles: {
