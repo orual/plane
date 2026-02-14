@@ -100,7 +100,7 @@ The component should:
 
 1. Be an observer-wrapped named export: `IssueTypesSettingsHeader`
 2. Use `SettingsPageHeader` with `leftItem` containing `Breadcrumbs`
-3. Since "issue-types" is not in the upstream `WORKSPACE_SETTINGS` constant (and AC2.10 forbids modifying it), hardcode the label as `"Issue types"` and use an appropriate Lucide icon (`Layers` from `lucide-react` is a reasonable choice for categorized types)
+3. Use the i18n key `workspace_settings.settings.issue_types.title` for the breadcrumb label (via `const { t } = useTranslation()` from `@plane/i18n`), and use an appropriate Lucide icon (`Layers` from `lucide-react` is a reasonable choice for categorized types). The i18n key was added in Phase 2.
 4. No `rightItem` — the create button goes in the page content, not the header (matching the members page pattern where the "Add member" button is in the page body)
 
 **Key imports:**
@@ -108,10 +108,13 @@ The component should:
 ```typescript
 import { observer } from "mobx-react";
 import { Layers } from "lucide-react";
+import { useTranslation } from "@plane/i18n";
 import { Breadcrumbs } from "@plane/ui";
 import { BreadcrumbLink } from "@/components/common/breadcrumb-link";
 import { SettingsPageHeader } from "@/components/settings/page-header";
 ```
+
+Use `t("workspace_settings.settings.issue_types.title")` for the breadcrumb label instead of a hardcoded string.
 
 **Verification:**
 
@@ -349,7 +352,7 @@ The component should:
    };
    ```
 3. Render:
-   - Header row with title "Issue types" and a count badge
+   - Header row with title from `t("workspace_settings.settings.issue_types.title")` and a count badge
    - "Add issue type" button (visible only when `isAdmin`) with `data-test="issue-type-create-btn"`
    - List of `IssueTypeListItem` components, one per issue type
    - Empty state message when no issue types exist

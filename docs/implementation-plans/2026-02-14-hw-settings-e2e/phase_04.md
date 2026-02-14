@@ -82,7 +82,7 @@ The component should:
 
 1. Be an observer-wrapped named export: `ProjectIssueTypesSettingsHeader`
 2. Use `SettingsPageHeader` with `leftItem` containing `Breadcrumbs`
-3. Hardcode the label as `"Issue types"` and use `Layers` icon from `lucide-react` (same icon as workspace issue types header from Phase 3)
+3. Use the i18n key `project_settings.issue_types.title` for the breadcrumb label (via `const { t } = useTranslation()` from `@plane/i18n`), and use `Layers` icon from `lucide-react` (same icon as workspace issue types header from Phase 3). The i18n key was added in Phase 2.
 4. No `rightItem` — there's no "create" action on this page; linking is done via toggle
 
 **Key imports:**
@@ -90,6 +90,7 @@ The component should:
 ```typescript
 import { observer } from "mobx-react";
 import { Layers } from "lucide-react";
+import { useTranslation } from "@plane/i18n";
 import { Breadcrumbs } from "@plane/ui";
 import { BreadcrumbLink } from "@/components/common/breadcrumb-link";
 import { SettingsPageHeader } from "@/components/settings/page-header";
@@ -99,6 +100,8 @@ import { SettingsPageHeader } from "@/components/settings/page-header";
 
 ```typescript
 export const ProjectIssueTypesSettingsHeader = observer(function ProjectIssueTypesSettingsHeader() {
+  const { t } = useTranslation();
+
   return (
     <SettingsPageHeader
       leftItem={
@@ -106,7 +109,12 @@ export const ProjectIssueTypesSettingsHeader = observer(function ProjectIssueTyp
           <Breadcrumbs>
             <Breadcrumbs.BreadcrumbItem
               type="text"
-              link={<BreadcrumbLink label="Issue types" icon={<Layers className="size-4 text-tertiary" />} />}
+              link={
+                <BreadcrumbLink
+                  label={t("project_settings.issue_types.title")}
+                  icon={<Layers className="size-4 text-tertiary" />}
+                />
+              }
             />
           </Breadcrumbs>
         </div>
@@ -421,7 +429,7 @@ The page should:
 4. Otherwise render `SettingsContentWrapper` with:
    - `header={<ProjectIssueTypesSettingsHeader />}`
    - `PageHead` with page title derived from `currentProjectDetails?.name`
-   - `SettingsHeading` with title "Issue types" and description "Manage which issue types are available in this project."
+   - `SettingsHeading` with title from `t("project_settings.issue_types.title")` and description from `t("project_settings.issue_types.description")`. The description i18n key needs to be added to `packages/i18n/src/locales/en/translations.ts` under `project_settings.issue_types` with value `"Manage which issue types are available in this project."` (and to all other locale files with English as placeholder, per CONTRIBUTING.md).
    - `ProjectIssueTypesRoot` with `workspaceSlug`, `projectId`, and `canPerformActions` props
 5. Use `useProject()` to get `currentProjectDetails` for the page title
 
@@ -430,6 +438,7 @@ The page should:
 ```typescript
 import { observer } from "mobx-react";
 import { EUserPermissions, EUserPermissionsLevel } from "@plane/constants";
+import { useTranslation } from "@plane/i18n";
 import { NotAuthorizedView } from "@/components/auth-screens/not-authorized-view";
 import { PageHead } from "@/components/core/page-title";
 import { SettingsContentWrapper } from "@/components/settings/content-wrapper";
@@ -452,6 +461,7 @@ const ProjectIssueTypesSettingsPage = observer(function ProjectIssueTypesSetting
   const { workspaceSlug, projectId } = params;
   const { currentProjectDetails } = useProject();
   const { workspaceUserInfo, allowPermissions } = useUserPermissions();
+  const { t } = useTranslation();
 
   const pageTitle = currentProjectDetails?.name ? `${currentProjectDetails.name} - Issue types` : undefined;
 
@@ -464,7 +474,10 @@ const ProjectIssueTypesSettingsPage = observer(function ProjectIssueTypesSetting
   return (
     <SettingsContentWrapper header={<ProjectIssueTypesSettingsHeader />}>
       <PageHead title={pageTitle} />
-      <SettingsHeading title="Issue types" description="Manage which issue types are available in this project." />
+      <SettingsHeading
+        title={t("project_settings.issue_types.title")}
+        description={t("project_settings.issue_types.description")}
+      />
       <div className="mt-6">
         <ProjectIssueTypesRoot
           workspaceSlug={workspaceSlug}
