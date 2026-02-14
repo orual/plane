@@ -56,7 +56,6 @@ export const DeleteIssueTypeModal = observer(function DeleteIssueTypeModal(props
         "error" in error &&
         typeof (error as Record<string, unknown>).error === "string"
       ) {
-         
         errorMessage = (error as Record<string, unknown>).error as string;
       }
       setToast({
