@@ -4,8 +4,9 @@
  * See the LICENSE file for details.
  */
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { observer } from "mobx-react";
+import { useTranslation } from "@plane/i18n";
 import { EllipsisVertical } from "lucide-react";
 import { TOAST_TYPE, setToast } from "@plane/propel/toast";
 import { Button } from "@plane/propel/button";
@@ -14,7 +15,18 @@ import { PropertyForm } from "./property-form";
 // hooks
 import { useRootStore } from "@/hooks/store/use-root-store";
 // types
-import type { IIssuePropertyDefinition } from "@/plane-web/types/issue-property-definitions";
+import type { IIssuePropertyDefinition, TPropertyType } from "@/plane-web/types/issue-property-definitions";
+
+// Property type label mapping
+const PROPERTY_TYPE_LABELS: Record<TPropertyType, string> = {
+  text: "Text",
+  number: "Number",
+  select: "Select",
+  multi_select: "Multi Select",
+  url: "URL",
+  date: "Date",
+  boolean: "Boolean",
+};
 
 type Props = {
   workspaceSlug: string;
@@ -27,6 +39,8 @@ export const PropertyList = observer(function PropertyList(props: Props) {
   const { workspaceSlug, issueTypeId, properties, isAdmin } = props;
   // store hooks
   const { issuePropertyStore } = useRootStore();
+  // i18n
+  const { t } = useTranslation();
   // states
   const [editingPropertyId, setEditingPropertyId] = useState<string | null>(null);
   const [isCreating, setIsCreating] = useState(false);
@@ -37,31 +51,33 @@ export const PropertyList = observer(function PropertyList(props: Props) {
         await issuePropertyStore.deleteDefinition(workspaceSlug, propertyId);
         setToast({
           type: TOAST_TYPE.SUCCESS,
-          title: "Success",
-          message: "Property deleted successfully",
+          title: t("workspace_settings.settings.issue_types.property_deleted"),
+          message: "",
         });
       } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : "Failed to delete property";
+        const errorMessage =
+          error instanceof Error ? error.message : t("workspace_settings.settings.issue_types.property_delete_error");
         setToast({
           type: TOAST_TYPE.ERROR,
-          title: "Error",
+          title: t("error"),
           message: errorMessage,
         });
       }
     };
 
-    // eslint-disable-next-line @typescript-eslint/no-floating-promises
-    performDelete();
+    void performDelete();
   };
 
   return (
     <div data-test="property-list" className="space-y-4">
       {/* Header */}
       <div className="flex items-center justify-between gap-3">
-        <h4 className="text-h5-medium text-primary">Properties ({properties.length})</h4>
+        <h4 className="text-h5-medium text-primary">
+          {t("workspace_settings.settings.issue_types.properties")} ({properties.length})
+        </h4>
         {isAdmin && (
           <Button variant="secondary" size="sm" onClick={() => setIsCreating(true)} data-test="property-add-btn">
-            Add property
+            {t("workspace_settings.settings.issue_types.add_property")}
           </Button>
         )}
       </div>
@@ -102,7 +118,7 @@ export const PropertyList = observer(function PropertyList(props: Props) {
         </div>
       ) : (
         <div className="text-center py-4 text-tertiary text-sm">
-          {isCreating ? null : "No properties defined for this type."}
+          {isCreating ? null : t("workspace_settings.settings.issue_types.no_properties")}
         </div>
       )}
     </div>
@@ -121,6 +137,22 @@ function PropertyRow(props: PropertyRowProps) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
+  // Close menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        setIsMenuOpen(false);
+      }
+    };
+
+    if (isMenuOpen) {
+      document.addEventListener("mousedown", handleClickOutside);
+      return () => {
+        document.removeEventListener("mousedown", handleClickOutside);
+      };
+    }
+  }, [isMenuOpen]);
+
   return (
     <div
       data-test="property-item"
@@ -133,7 +165,9 @@ function PropertyRow(props: PropertyRowProps) {
           {property.is_required && <span className="text-xs text-red-500 font-semibold">*</span>}
         </div>
         <div className="flex items-center gap-2 mt-1">
-          <span className="text-xs px-2 py-0.5 rounded-full bg-surface-3 text-secondary">{property.property_type}</span>
+          <span className="text-xs px-2 py-0.5 rounded-full bg-surface-3 text-secondary">
+            {PROPERTY_TYPE_LABELS[property.property_type]}
+          </span>
           {property.options.length > 0 && (
             <span className="text-xs text-tertiary">
               {property.options.length} option{property.options.length > 1 ? "s" : ""}
@@ -161,12 +195,18 @@ function PropertyRow(props: PropertyRowProps) {
           </button>
 
           {isMenuOpen && (
-            // eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions
             <div
               className="absolute right-0 mt-1 bg-surface-0 border border-subtle rounded-md shadow-lg z-10 min-w-max"
               onClick={(e) => {
                 e.stopPropagation();
               }}
+              onKeyDown={(e) => {
+                if (e.key === "Escape") {
+                  setIsMenuOpen(false);
+                }
+              }}
+              role="menu"
+              tabIndex={-1}
             >
               <button
                 type="button"

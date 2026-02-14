@@ -40,9 +40,7 @@ export const IssueTypesSettingsRoot = observer(function IssueTypesSettingsRoot(p
 
   // fetch data on mount and when workspace changes
   useEffect(() => {
-     
     void issueTypeStore.fetchIssueTypes(workspaceSlug);
-     
     void issuePropertyStore.fetchDefinitions(workspaceSlug);
   }, [workspaceSlug, issueTypeStore, issuePropertyStore]);
 

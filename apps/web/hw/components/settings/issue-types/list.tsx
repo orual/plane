@@ -70,8 +70,7 @@ export const IssueTypeList = observer(function IssueTypeList(props: Props) {
         ) : (
           <div className="flex items-center justify-center h-full text-center text-tertiary p-4">
             <div>
-              <p className="text-sm">No issue types exist yet</p>
-              {isAdmin && <p className="text-xs mt-2">Click &quot;Add&quot; to create your first issue type</p>}
+              <p className="text-sm">{t("workspace_settings.settings.issue_types.no_types")}</p>
             </div>
           </div>
         )}

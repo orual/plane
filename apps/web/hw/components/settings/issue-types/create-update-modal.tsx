@@ -6,6 +6,7 @@
 
 import { useEffect, useState } from "react";
 import { observer } from "mobx-react";
+import { useTranslation } from "@plane/i18n";
 // types
 import { TOAST_TYPE, setToast } from "@plane/propel/toast";
 import { Button } from "@plane/propel/button";
@@ -27,6 +28,8 @@ export const CreateUpdateIssueTypeModal = observer(function CreateUpdateIssueTyp
   const { isOpen, onClose, workspaceSlug, data } = props;
   // store hooks
   const { issueTypeStore } = useRootStore();
+  // i18n
+  const { t } = useTranslation();
   // states
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState({
@@ -72,8 +75,8 @@ export const CreateUpdateIssueTypeModal = observer(function CreateUpdateIssueTyp
     if (!formData.name.trim()) {
       setToast({
         type: TOAST_TYPE.ERROR,
-        title: "Error",
-        message: "Issue type name is required",
+        title: t("error"),
+        message: t("workspace_settings.settings.issue_types.property_name_required"),
       });
       return;
     }
@@ -87,16 +90,16 @@ export const CreateUpdateIssueTypeModal = observer(function CreateUpdateIssueTyp
           await issueTypeStore.updateIssueType(workspaceSlug, data.id, formData);
           setToast({
             type: TOAST_TYPE.SUCCESS,
-            title: "Success",
-            message: "Issue type updated successfully",
+            title: t("workspace_settings.settings.issue_types.update_success"),
+            message: "",
           });
         } else {
           // Create mode
           await issueTypeStore.createIssueType(workspaceSlug, formData);
           setToast({
             type: TOAST_TYPE.SUCCESS,
-            title: "Success",
-            message: "Issue type created successfully",
+            title: t("workspace_settings.settings.issue_types.create_success"),
+            message: "",
           });
         }
         handleClose();
@@ -105,26 +108,29 @@ export const CreateUpdateIssueTypeModal = observer(function CreateUpdateIssueTyp
         const errorMessage = error instanceof Error ? error.message : "Failed to save issue type";
         setToast({
           type: TOAST_TYPE.ERROR,
-          title: "Error",
+          title: t("error"),
           message: errorMessage,
         });
       }
     };
 
-    // eslint-disable-next-line @typescript-eslint/no-floating-promises
-    performSubmit();
+    void performSubmit();
   };
 
   return (
     <ModalCore isOpen={isOpen} handleClose={handleClose}>
       <form onSubmit={handleSubmit} data-test="issue-type-form">
         <div className="space-y-5 p-5">
-          <h3 className="text-h4-medium">{data?.id ? "Update issue type" : "Create issue type"}</h3>
+          <h3 className="text-h4-medium">
+            {data?.id
+              ? t("workspace_settings.settings.issue_types.update")
+              : t("workspace_settings.settings.issue_types.create")}
+          </h3>
 
           {/* Name input */}
           <div>
             <label htmlFor="name" className="mb-2 block text-secondary text-sm">
-              Name <span className="text-red-500">*</span>
+              {t("name")} <span className="text-red-500">*</span>
             </label>
             <Input
               id="name"
@@ -141,7 +147,7 @@ export const CreateUpdateIssueTypeModal = observer(function CreateUpdateIssueTyp
           {/* Description input */}
           <div>
             <label htmlFor="description" className="mb-2 block text-secondary text-sm">
-              Description
+              {t("description")}
             </label>
             <TextArea
               id="description"
@@ -159,7 +165,7 @@ export const CreateUpdateIssueTypeModal = observer(function CreateUpdateIssueTyp
           {/* Color picker row */}
           <div>
             <label htmlFor="color-picker" className="mb-2 block text-secondary text-sm">
-              Color
+              {t("workspace_settings.settings.issue_types.color")}
             </label>
             <div className="flex items-center gap-3">
               <div id="color-picker">
@@ -183,7 +189,7 @@ export const CreateUpdateIssueTypeModal = observer(function CreateUpdateIssueTyp
               className="cursor-pointer"
             />
             <label htmlFor="is-default" className="text-secondary text-sm">
-              Make this the default issue type
+              {t("workspace_settings.settings.issue_types.make_default")}
             </label>
           </div>
         </div>
@@ -191,7 +197,7 @@ export const CreateUpdateIssueTypeModal = observer(function CreateUpdateIssueTyp
         {/* Button row */}
         <div className="flex justify-end gap-2 border-t border-subtle px-5 py-4">
           <Button variant="secondary" onClick={handleClose} disabled={isSubmitting}>
-            Cancel
+            {t("cancel")}
           </Button>
           <Button
             variant="primary"
@@ -200,7 +206,11 @@ export const CreateUpdateIssueTypeModal = observer(function CreateUpdateIssueTyp
             loading={isSubmitting}
             data-test="issue-type-form-submit"
           >
-            {isSubmitting ? "Saving..." : data?.id ? "Update" : "Create"}
+            {isSubmitting
+              ? t("saving")
+              : data?.id
+                ? t("workspace_settings.settings.issue_types.update")
+                : t("workspace_settings.settings.issue_types.create")}
           </Button>
         </div>
       </form>

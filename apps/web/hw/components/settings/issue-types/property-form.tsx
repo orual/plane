@@ -6,6 +6,7 @@
 
 import { useEffect, useState } from "react";
 import { observer } from "mobx-react";
+import { useTranslation } from "@plane/i18n";
 import { X } from "lucide-react";
 import { TOAST_TYPE, setToast } from "@plane/propel/toast";
 import { Button } from "@plane/propel/button";
@@ -30,6 +31,8 @@ export const PropertyForm = observer(function PropertyForm(props: Props) {
   const { workspaceSlug, issueTypeId, data, onSave, onCancel } = props;
   // store hooks
   const { issuePropertyStore } = useRootStore();
+  // i18n
+  const { t } = useTranslation();
   // states
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState({
@@ -87,8 +90,8 @@ export const PropertyForm = observer(function PropertyForm(props: Props) {
     if (!formData.name.trim()) {
       setToast({
         type: TOAST_TYPE.ERROR,
-        title: "Error",
-        message: "Property name is required",
+        title: t("error"),
+        message: t("workspace_settings.settings.issue_types.property_name_required"),
       });
       return;
     }
@@ -100,8 +103,8 @@ export const PropertyForm = observer(function PropertyForm(props: Props) {
     ) {
       setToast({
         type: TOAST_TYPE.ERROR,
-        title: "Error",
-        message: "At least one option is required for select/multi_select types",
+        title: t("error"),
+        message: t("workspace_settings.settings.issue_types.property_options_required"),
       });
       return;
     }
@@ -123,8 +126,8 @@ export const PropertyForm = observer(function PropertyForm(props: Props) {
           });
           setToast({
             type: TOAST_TYPE.SUCCESS,
-            title: "Success",
-            message: "Property updated successfully",
+            title: t("workspace_settings.settings.issue_types.property_updated"),
+            message: "",
           });
         } else {
           // Create mode
@@ -137,8 +140,8 @@ export const PropertyForm = observer(function PropertyForm(props: Props) {
           });
           setToast({
             type: TOAST_TYPE.SUCCESS,
-            title: "Success",
-            message: "Property created successfully",
+            title: t("workspace_settings.settings.issue_types.property_created"),
+            message: "",
           });
         }
         onSave();
@@ -147,14 +150,13 @@ export const PropertyForm = observer(function PropertyForm(props: Props) {
         const errorMessage = error instanceof Error ? error.message : "Failed to save property";
         setToast({
           type: TOAST_TYPE.ERROR,
-          title: "Error",
+          title: t("error"),
           message: errorMessage,
         });
       }
     };
 
-    // eslint-disable-next-line @typescript-eslint/no-floating-promises
-    performSubmit();
+    void performSubmit();
   };
 
   return (
@@ -166,7 +168,7 @@ export const PropertyForm = observer(function PropertyForm(props: Props) {
       {/* Name input */}
       <div>
         <label htmlFor="property-name" className="mb-2 block text-secondary text-sm">
-          Name <span className="text-red-500">*</span>
+          {t("name")} <span className="text-red-500">*</span>
         </label>
         <Input
           id="property-name"
@@ -183,7 +185,7 @@ export const PropertyForm = observer(function PropertyForm(props: Props) {
       {/* Property type dropdown */}
       <div>
         <label htmlFor="property-type" className="mb-2 block text-secondary text-sm">
-          Type <span className="text-red-500">*</span>
+          {t("workspace_settings.settings.issue_types.type")} <span className="text-red-500">*</span>
         </label>
         <select
           id="property-type"
@@ -218,7 +220,7 @@ export const PropertyForm = observer(function PropertyForm(props: Props) {
           className="cursor-pointer"
         />
         <label htmlFor="is-required" className="text-secondary text-sm">
-          Required
+          {t("workspace_settings.settings.issue_types.required")}
         </label>
       </div>
 
@@ -226,7 +228,7 @@ export const PropertyForm = observer(function PropertyForm(props: Props) {
       {(formData.property_type === "select" || formData.property_type === "multi_select") && (
         <div>
           <div className="mb-2 block text-secondary text-sm">
-            Options <span className="text-red-500">*</span>
+            {t("workspace_settings.settings.issue_types.options")} <span className="text-red-500">*</span>
           </div>
           <div className="space-y-2">
             {formData.options.map((option, index) => (
@@ -257,7 +259,7 @@ export const PropertyForm = observer(function PropertyForm(props: Props) {
               disabled={isSubmitting}
               className="mt-2 text-sm text-accent-primary hover:text-accent-primary/80 font-medium"
             >
-              + Add option
+              + {t("workspace_settings.settings.issue_types.add_option")}
             </button>
           </div>
         </div>
@@ -266,7 +268,7 @@ export const PropertyForm = observer(function PropertyForm(props: Props) {
       {/* Button row */}
       <div className="flex justify-end gap-2 pt-2">
         <Button variant="secondary" onClick={onCancel} disabled={isSubmitting} size="sm">
-          Cancel
+          {t("cancel")}
         </Button>
         <Button
           variant="primary"
@@ -276,7 +278,11 @@ export const PropertyForm = observer(function PropertyForm(props: Props) {
           data-test="property-form-submit"
           size="sm"
         >
-          {isSubmitting ? "Saving..." : data?.id ? "Update" : "Create"}
+          {isSubmitting
+            ? t("saving")
+            : data?.id
+              ? t("workspace_settings.settings.issue_types.update_property")
+              : t("workspace_settings.settings.issue_types.create_property")}
         </Button>
       </div>
     </form>

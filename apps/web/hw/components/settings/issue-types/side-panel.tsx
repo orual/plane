@@ -4,7 +4,6 @@
  * See the LICENSE file for details.
  */
 
-import { useEffect, useState } from "react";
 import { observer } from "mobx-react";
 import { X } from "lucide-react";
 import { Button } from "@plane/propel/button";
@@ -27,25 +26,9 @@ export const IssueTypeSidePanel = observer(function IssueTypeSidePanel(props: Pr
   const { workspaceSlug, issueType, isAdmin, onClose, onEdit } = props;
   // store hooks
   const { issuePropertyStore } = useRootStore();
-  // states
-  const [isLoadingDefinitions, setIsLoadingDefinitions] = useState(false);
-
-  // Fetch property definitions on mount
-  useEffect(() => {
-    const fetchDefinitions = async () => {
-      try {
-        setIsLoadingDefinitions(true);
-        await issuePropertyStore.fetchDefinitions(workspaceSlug);
-      } finally {
-        setIsLoadingDefinitions(false);
-      }
-    };
-
-    // eslint-disable-next-line @typescript-eslint/no-floating-promises
-    fetchDefinitions();
-  }, [workspaceSlug, issuePropertyStore]);
 
   // Filter properties for this issue type
+  // Note: Definitions are fetched by root component on mount, so we just filter locally
   const properties = issuePropertyStore.getAllDefinitions().filter((def) => def.issue_type_id === issueType.id);
 
   return (
@@ -100,16 +83,12 @@ export const IssueTypeSidePanel = observer(function IssueTypeSidePanel(props: Pr
 
       {/* Property list */}
       <div className="flex-1 overflow-y-auto px-5 py-4">
-        {isLoadingDefinitions ? (
-          <div className="text-center py-4 text-tertiary text-sm">Loading properties...</div>
-        ) : (
-          <PropertyList
-            workspaceSlug={workspaceSlug}
-            issueTypeId={issueType.id}
-            properties={properties}
-            isAdmin={isAdmin}
-          />
-        )}
+        <PropertyList
+          workspaceSlug={workspaceSlug}
+          issueTypeId={issueType.id}
+          properties={properties}
+          isAdmin={isAdmin}
+        />
       </div>
     </div>
   );

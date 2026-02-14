@@ -4,7 +4,7 @@
  * See the LICENSE file for details.
  */
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { EllipsisVertical } from "lucide-react";
 // types
 import type { TIssueType } from "@/plane-web/types/issue-types";
@@ -24,6 +24,22 @@ export const IssueTypeListItem = function IssueTypeListItem(props: Props) {
   const { issueType, isSelected, isAdmin, onClick, onEdit, onDelete } = props;
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+
+  // Close menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        setIsMenuOpen(false);
+      }
+    };
+
+    if (isMenuOpen) {
+      document.addEventListener("mousedown", handleClickOutside);
+      return () => {
+        document.removeEventListener("mousedown", handleClickOutside);
+      };
+    }
+  }, [isMenuOpen]);
 
   return (
     <button
@@ -74,12 +90,18 @@ export const IssueTypeListItem = function IssueTypeListItem(props: Props) {
             </button>
 
             {isMenuOpen && (
-              // eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions
               <div
                 className="absolute right-0 mt-1 bg-surface-0 border border-subtle rounded-md shadow-lg z-10"
                 onClick={(e) => {
                   e.stopPropagation();
                 }}
+                onKeyDown={(e) => {
+                  if (e.key === "Escape") {
+                    setIsMenuOpen(false);
+                  }
+                }}
+                role="menu"
+                tabIndex={-1}
               >
                 <button
                   type="button"
