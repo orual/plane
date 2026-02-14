@@ -13,29 +13,33 @@ import {
   GROUPED_WORKSPACE_SETTINGS,
   WORKSPACE_SETTINGS_CATEGORIES,
   WORKSPACE_SETTINGS_CATEGORY,
+  WORKSPACE_SETTINGS,
 } from "@plane/constants";
 import { EUserWorkspaceRoles } from "@plane/types";
-import type { TWorkspaceSettingsItem } from "@plane/types";
+import type { TWorkspaceSettingsItem, TWorkspaceSettingsTabs } from "@plane/types";
 import { useTranslation } from "@plane/i18n";
+import { joinUrlPath } from "@plane/utils";
 // components
 import { SettingsSidebarItem } from "@/components/settings/sidebar/item";
 // hooks
 import { useUserPermissions } from "@/hooks/store/user";
 // local imports
-import { WORKSPACE_SETTINGS_ICONS } from "@/components/settings/workspace/sidebar/item-icon";
+import { WORKSPACE_SETTINGS_ICONS } from "./item-icon";
 
 // Extended workspace settings with issue types
+const EXTENDED_WORKSPACE_SETTINGS_ITEM: TWorkspaceSettingsItem = {
+  key: "workspace_issue_types" as any,
+  i18n_label: "workspace_settings.settings.issue_types.title",
+  href: "/settings/issue-types",
+  access: [EUserWorkspaceRoles.ADMIN, EUserWorkspaceRoles.MEMBER, EUserWorkspaceRoles.GUEST],
+  highlight: (pathname: string, baseUrl: string) => pathname === `${baseUrl}/settings/issue-types/`,
+};
+
 const EXTENDED_GROUPED_WORKSPACE_SETTINGS: Record<WORKSPACE_SETTINGS_CATEGORY, TWorkspaceSettingsItem[]> = {
   ...GROUPED_WORKSPACE_SETTINGS,
   [WORKSPACE_SETTINGS_CATEGORY.FEATURES]: [
     ...(GROUPED_WORKSPACE_SETTINGS[WORKSPACE_SETTINGS_CATEGORY.FEATURES] || []),
-    {
-      key: "export",
-      i18n_label: "workspace_settings.settings.issue_types.title",
-      href: "/settings/issue-types",
-      access: [EUserWorkspaceRoles.ADMIN, EUserWorkspaceRoles.MEMBER, EUserWorkspaceRoles.GUEST],
-      highlight: (pathname: string, baseUrl: string) => pathname === `${baseUrl}/settings/issue-types/`,
-    },
+    EXTENDED_WORKSPACE_SETTINGS_ITEM,
   ],
 };
 
@@ -72,8 +76,8 @@ export const WorkspaceSettingsSidebarItemCategories = observer(function Workspac
                   <SettingsSidebarItem
                     key={item.key}
                     as="link"
-                    href={`/${workspaceSlug}${item.href}`}
-                    label={item.i18n_label}
+                    href={joinUrlPath(workspaceSlug ?? "", item.href)}
+                    label={t(item.i18n_label)}
                     icon={WORKSPACE_SETTINGS_ICONS[item.key]}
                     isActive={isItemActive}
                   />

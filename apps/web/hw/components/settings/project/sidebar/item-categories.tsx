@@ -13,31 +13,35 @@ import {
   GROUPED_PROJECT_SETTINGS,
   PROJECT_SETTINGS_CATEGORIES,
   PROJECT_SETTINGS_CATEGORY,
+  PROJECT_SETTINGS,
 } from "@plane/constants";
 import { EUserProjectRoles } from "@plane/types";
-import type { TProjectSettingsItem } from "@plane/types";
+import type { TProjectSettingsItem, TProjectSettingsTabs } from "@plane/types";
 import { useTranslation } from "@plane/i18n";
 // components
 import { SettingsSidebarItem } from "@/components/settings/sidebar/item";
 // hooks
 import { useUserPermissions } from "@/hooks/store/user";
 // local imports
-import { PROJECT_SETTINGS_ICONS } from "@/components/settings/project/sidebar/item-icon";
+import { PROJECT_SETTINGS_ICONS } from "./item-icon";
 
 // Extended project settings with issue types
+const EXTENDED_PROJECT_SETTINGS_ITEM: TProjectSettingsItem = {
+  key: "issue_types" as any,
+  i18n_label: "project_settings.issue_types.title",
+  href: "/issue-types",
+  access: [EUserProjectRoles.ADMIN, EUserProjectRoles.MEMBER, EUserProjectRoles.GUEST],
+  highlight: (pathname: string, baseUrl: string) => pathname === `${baseUrl}/issue-types/`,
+};
+
 const EXTENDED_GROUPED_PROJECT_SETTINGS: Record<PROJECT_SETTINGS_CATEGORY, TProjectSettingsItem[]> = {
   ...GROUPED_PROJECT_SETTINGS,
   [PROJECT_SETTINGS_CATEGORY.FEATURES]: [
     ...(GROUPED_PROJECT_SETTINGS[PROJECT_SETTINGS_CATEGORY.FEATURES] || []),
-    {
-      key: "features_intake",
-      i18n_label: "project_settings.issue_types.title",
-      href: "/issue-types",
-      access: [EUserProjectRoles.ADMIN, EUserProjectRoles.MEMBER, EUserProjectRoles.GUEST],
-      highlight: (pathname: string, baseUrl: string) => pathname === `${baseUrl}/issue-types/`,
-    },
+    EXTENDED_PROJECT_SETTINGS_ITEM,
   ],
 };
+
 
 type Props = {
   projectId: string;
@@ -79,8 +83,8 @@ export const ProjectSettingsSidebarItemCategories = observer(function ProjectSet
                   <SettingsSidebarItem
                     key={item.key}
                     as="link"
-                    href={`/${workspaceSlug}${item.href}`}
-                    label={item.i18n_label}
+                    href={`/${workspaceSlug}/settings/projects/${projectId}${item.href}/`}
+                    label={t(item.i18n_label)}
                     icon={PROJECT_SETTINGS_ICONS[item.key]}
                     isActive={isItemActive}
                   />

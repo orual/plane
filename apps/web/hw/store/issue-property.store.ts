@@ -135,6 +135,7 @@ export class IssuePropertyStore implements IIssuePropertyStore {
         }
         this.isLoading = false;
       });
+        throw error;
     }
   }
 
@@ -156,16 +157,15 @@ export class IssuePropertyStore implements IIssuePropertyStore {
         this.isLoading = false;
       });
     } catch (error: unknown) {
-      runInAction(() => {
-        if (error instanceof Error) {
-          this.error = error.message;
-        } else if (error && typeof error === "object" && "message" in error) {
-          this.error = String((error as { message: unknown }).message) || "Failed to fetch property values";
-        } else {
-          this.error = "Failed to fetch property values";
-        }
-        this.isLoading = false;
-      });
+      if (error instanceof Error) {
+        this.error = error.message;
+      } else if (error && typeof error === "object" && "message" in error) {
+        this.error = String((error as { message: unknown }).message) || "Failed to fetch property values";
+      } else {
+        this.error = "Failed to fetch property values";
+      }
+      this.isLoading = false;
+      throw error;
     }
   }
 
@@ -194,16 +194,15 @@ export class IssuePropertyStore implements IIssuePropertyStore {
         this.isLoading = false;
       });
     } catch (error: unknown) {
-      runInAction(() => {
-        if (error instanceof Error) {
-          this.error = error.message;
-        } else if (error && typeof error === "object" && "message" in error) {
-          this.error = String((error as { message: unknown }).message) || "Failed to upsert property values";
-        } else {
-          this.error = "Failed to upsert property values";
-        }
-        this.isLoading = false;
-      });
+      if (error instanceof Error) {
+        this.error = error.message;
+      } else if (error && typeof error === "object" && "message" in error) {
+        this.error = String((error as { message: unknown }).message) || "Failed to upsert property values";
+      } else {
+        this.error = "Failed to upsert property values";
+      }
+      this.isLoading = false;
+      throw error;
     }
   }
 
@@ -230,7 +229,7 @@ export class IssuePropertyStore implements IIssuePropertyStore {
           this.error = "Failed to create property definition";
         }
       });
-      throw error;
+        throw error;
     }
   }
 
@@ -270,7 +269,7 @@ export class IssuePropertyStore implements IIssuePropertyStore {
           this.error = "Failed to update property definition";
         }
       });
-      throw error;
+        throw error;
     }
   }
 
@@ -300,7 +299,7 @@ export class IssuePropertyStore implements IIssuePropertyStore {
           this.error = "Failed to delete property definition";
         }
       });
-      throw error;
+        throw error;
     }
   }
 }
