@@ -7,3 +7,5 @@
 export * from "./projects";
 export * from "./issue-types";
 export * from "./gantt-chart";
+export * from "./issue-property-definitions";
+export * from "./issue-property-values";
