@@ -778,15 +778,13 @@ git commit -m "test(e2e): add E2E tests for issue type creation"
 **Step 1: Create `e2e/tests/issue-types-switching.spec.ts`**
 
 ```typescript
-import { test, expect } from "../fixtures/index";
-const API_BASE_URL = process.env.API_BASE_URL || "http://localhost:8000";
-
 // Copyright (c) 2023-present Plane Software, Inc. and contributors
 // SPDX-License-Identifier: AGPL-3.0-only
 // See the LICENSE file for details.
 
 import { test, expect } from "../fixtures/index";
 import { createIssue, linkIssueTypeToProject } from "../helpers/api";
+const API_BASE_URL = process.env.API_BASE_URL || "http://localhost:8000";
 
 test.describe("Issue Type Switching", () => {
   test("user can switch issue type of an existing issue", async ({
@@ -976,16 +974,13 @@ git commit -m "test(e2e): add E2E tests for issue type switching on issues"
 **Step 1: Create `e2e/tests/issue-types-filtering.spec.ts`**
 
 ```typescript
-import { test, expect } from "../fixtures/index";
-import { createIssue, linkIssueTypeToProject } from "../helpers/api";
-const API_BASE_URL = process.env.API_BASE_URL || "http://localhost:8000";
-
 // Copyright (c) 2023-present Plane Software, Inc. and contributors
 // SPDX-License-Identifier: AGPL-3.0-only
 // See the LICENSE file for details.
 
 import { test, expect } from "../fixtures/index";
 import { createIssue, linkIssueTypeToProject } from "../helpers/api";
+const API_BASE_URL = process.env.API_BASE_URL || "http://localhost:8000";
 
 test.describe("Issue Filtering by Type", () => {
   test("user can filter issues by issue type", async ({
@@ -1163,10 +1158,6 @@ git commit -m "test(e2e): add E2E tests for filtering issues by type"
 **Step 1: Create `e2e/tests/properties-management.spec.ts`**
 
 ```typescript
-import { test, expect } from "../fixtures/index";
-import { createIssue, linkIssueTypeToProject } from "../helpers/api";
-const API_BASE_URL = process.env.API_BASE_URL || "http://localhost:8000";
-
 // Copyright (c) 2023-present Plane Software, Inc. and contributors
 // SPDX-License-Identifier: AGPL-3.0-only
 // See the LICENSE file for details.
@@ -1193,7 +1184,6 @@ test.describe("Custom Property Management", () => {
     });
 
     // Click the "Add property" button
-    const addButton = page.locator("button:has-text('Add property'), button:has-text('New property')").first();
     await addButton.click();
 
     // Fill in the property form
