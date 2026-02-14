@@ -6,7 +6,17 @@ import factory
 from uuid import uuid4
 from django.utils import timezone
 
-from plane.db.models import User, Workspace, WorkspaceMember, Project, ProjectMember, IssueType, ProjectIssueType, Issue, State
+from plane.db.models import (
+    User,
+    Workspace,
+    WorkspaceMember,
+    Project,
+    ProjectMember,
+    IssueType,
+    ProjectIssueType,
+    Issue,
+    State,
+)
 
 
 class UserFactory(factory.django.DjangoModelFactory):
@@ -144,7 +154,9 @@ class IssueFactory(factory.django.DjangoModelFactory):
     name = factory.Sequence(lambda n: f"Issue {n}")
     project = factory.SubFactory(ProjectFactory)
     workspace = factory.LazyAttribute(lambda o: o.project.workspace)
-    state = factory.SubFactory(StateFactory, project=factory.SelfAttribute("..project"), workspace=factory.SelfAttribute("..workspace"))
+    state = factory.SubFactory(
+        StateFactory, project=factory.SelfAttribute("..project"), workspace=factory.SelfAttribute("..workspace")
+    )
     created_by = factory.LazyAttribute(lambda o: o.project.created_by)
     created_at = factory.LazyFunction(timezone.now)
     updated_at = factory.LazyFunction(timezone.now)
