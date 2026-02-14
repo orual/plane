@@ -24,7 +24,7 @@ def validate_property_value(value, property_definition):
         if actual_value is not None and not isinstance(actual_value, str):
             raise serializers.ValidationError("Text property value must be a string.")
     elif property_type == "number":
-        if actual_value is not None and not isinstance(actual_value, (int, float)):
+        if actual_value is not None and (isinstance(actual_value, bool) or not isinstance(actual_value, (int, float))):
             raise serializers.ValidationError("Number property value must be numeric.")
     elif property_type == "url":
         if actual_value is not None and not isinstance(actual_value, str):

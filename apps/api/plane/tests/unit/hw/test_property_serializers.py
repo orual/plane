@@ -301,6 +301,26 @@ class TestIssuePropertyValueSerializer:
         assert not serializer.is_valid()
 
 
+@pytest.fixture
+def project(db, workspace, create_user):
+    """Create a test project with the user as an admin member."""
+    from plane.db.models import Project, ProjectMember
+
+    proj = Project.objects.create(
+        name="Test Project",
+        identifier="TP",
+        workspace=workspace,
+        created_by=create_user,
+    )
+    ProjectMember.objects.create(
+        project=proj,
+        member=create_user,
+        role=20,
+        is_active=True,
+    )
+    return proj
+
+
 @pytest.mark.unit
 class TestIssuePropertyValueDetailSerializer:
     """Test IssuePropertyValueDetailSerializer output shape."""
