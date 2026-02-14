@@ -3,7 +3,7 @@
 // See the LICENSE file for details.
 
 import { test, expect } from "../fixtures/index";
-import { createIssue, linkIssueTypeToProject } from "../helpers/api";
+import { createIssue, createIssueType, linkIssueTypeToProject, getProjectStates } from "../helpers/api";
 
 test.describe("Issue Filtering by Type", () => {
   test("user can filter issues by issue type", async ({
@@ -15,34 +15,21 @@ test.describe("Issue Filtering by Type", () => {
     issueTypeId,
   }) => {
     const page = authenticatedPage;
-    const apiBaseUrl = process.env.API_BASE_URL || "http://localhost:8000";
 
     // Create a second issue type
-    const response = await request.post(`${apiBaseUrl}/api/workspaces/${workspaceSlug}/issue-types/`, {
-      headers: {
-        Cookie: `sessionid=${authToken}`,
-        "Content-Type": "application/json",
-      },
-      data: {
-        name: "Support",
-        description: "Support and customer issues",
-        logo_props: { color: "#14B8A6" },
-      },
+    const issueType2 = await createIssueType(request, authToken, workspaceSlug, {
+      name: "Support",
+      description: "Support and customer issues",
+      logo_props: { color: "#14B8A6" },
     });
-    const issueType2 = await response.json();
 
     // Link both types to the project
     await linkIssueTypeToProject(request, authToken, workspaceSlug, projectId, issueTypeId);
     await linkIssueTypeToProject(request, authToken, workspaceSlug, projectId, issueType2.id);
 
     // Get states
-    const states = await request.get(`${apiBaseUrl}/api/workspaces/${workspaceSlug}/projects/${projectId}/states/`, {
-      headers: {
-        Cookie: `sessionid=${authToken}`,
-      },
-    });
-    const statesData = await states.json();
-    const stateId = statesData[0]?.id;
+    const states = await getProjectStates(request, authToken, workspaceSlug, projectId);
+    const stateId = states[0]?.id;
 
     // Create issues with different types
     await createIssue(request, authToken, workspaceSlug, projectId, {
@@ -64,7 +51,7 @@ test.describe("Issue Filtering by Type", () => {
     });
 
     // Navigate to the project issues list
-    await page.goto(`http://localhost:3000/${workspaceSlug}/projects/${projectId}/issues`);
+    await page.goto(`/${workspaceSlug}/projects/${projectId}/issues`);
 
     // Wait for issues to load
     await page.waitForSelector("text=Feature Request 1", { timeout: 5000 });
@@ -84,16 +71,15 @@ test.describe("Issue Filtering by Type", () => {
 
     // Find and select the issue type filter
     const typeFilterOption = page.locator(`text=Type, text=Issue Type, button:has-text('Type')`).first();
-    if (await typeFilterOption.isVisible({ timeout: 1000 }).catch(() => false)) {
-      await typeFilterOption.click();
-    }
+    await typeFilterOption.toBeVisible();
+    await typeFilterOption.click();
 
     // Select the first issue type
     const firstTypeOption = page.locator(`text=${issueType2.name}`).first();
     await firstTypeOption.click();
 
     // Wait for the filter to apply via networkidle
-    await page.waitForLoadState("networkidle", { timeout: 5000 }).catch(() => {});
+    await page.waitForLoadState("networkidle", { timeout: 5000 });
 
     // Verify only the support ticket is visible
     await expect(supportTicket).toBeVisible();
@@ -111,19 +97,13 @@ test.describe("Issue Filtering by Type", () => {
     issueTypeId,
   }) => {
     const page = authenticatedPage;
-    const apiBaseUrl = process.env.API_BASE_URL || "http://localhost:8000";
 
     // Create and link issue types
     await linkIssueTypeToProject(request, authToken, workspaceSlug, projectId, issueTypeId);
 
     // Get states
-    const states = await request.get(`${apiBaseUrl}/api/workspaces/${workspaceSlug}/projects/${projectId}/states/`, {
-      headers: {
-        Cookie: `sessionid=${authToken}`,
-      },
-    });
-    const statesData = await states.json();
-    const stateId = statesData[0]?.id;
+    const states = await getProjectStates(request, authToken, workspaceSlug, projectId);
+    const stateId = states[0]?.id;
 
     // Create issues
     await createIssue(request, authToken, workspaceSlug, projectId, {
@@ -133,7 +113,7 @@ test.describe("Issue Filtering by Type", () => {
     });
 
     // Navigate to project
-    await page.goto(`http://localhost:3000/${workspaceSlug}/projects/${projectId}/issues`);
+    await page.goto(`/${workspaceSlug}/projects/${projectId}/issues`);
 
     // Wait for issues to load
     await page.waitForSelector("text=Filtered Issue", { timeout: 5000 });
@@ -144,9 +124,8 @@ test.describe("Issue Filtering by Type", () => {
 
     // Find clear/reset button and click it
     const clearButton = page.locator("button:has-text('Clear'), button:has-text('Reset')").first();
-    if (await clearButton.isVisible({ timeout: 1000 }).catch(() => false)) {
-      await clearButton.click();
-    }
+    await clearButton.toBeVisible();
+    await clearButton.click();
 
     // Verify all issues are visible again
     const issue = page.locator("text=Filtered Issue");

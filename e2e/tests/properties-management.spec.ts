@@ -13,13 +13,11 @@ test.describe("Custom Property Management", () => {
     const page = authenticatedPage;
 
     // Navigate to project settings
-    await page.goto(`http://localhost:3000/${workspaceSlug}/projects/${projectId}/settings/properties`);
+    await page.goto(`/${workspaceSlug}/projects/${projectId}/settings/properties`);
 
     // Wait for the settings page to load
     const addButton = page.locator("button:has-text('Add property'), button:has-text('New property')").first();
-    await addButton.waitFor({ state: "visible", timeout: 10000 }).catch(() => {
-      // Button might have different text
-    });
+    await addButton.waitFor({ state: "visible", timeout: 10000 });
 
     // Click the "Add property" button
     await addButton.click();
@@ -62,7 +60,7 @@ test.describe("Custom Property Management", () => {
     const page = authenticatedPage;
 
     // Navigate to project settings
-    await page.goto(`http://localhost:3000/${workspaceSlug}/projects/${projectId}/settings/properties`);
+    await page.goto(`/${workspaceSlug}/projects/${projectId}/settings/properties`);
 
     // Wait for properties to load
     await page.waitForSelector("[data-test='property-item'], div:has-text('Property')", {
@@ -73,28 +71,27 @@ test.describe("Custom Property Management", () => {
     const propertyItem = page.locator("[data-test='property-item']").first();
     const editButton = propertyItem.locator("button:has-text('Edit'), button[title='Edit']");
 
-    if (await editButton.isVisible()) {
-      await editButton.click();
+    await editButton.toBeVisible();
+    await editButton.click();
 
-      // Update the property
-      const nameInput = page.locator('input[name="name"]').first();
-      const currentValue = await nameInput.inputValue();
-      await nameInput.fill(currentValue + " Updated");
+    // Update the property
+    const nameInput = page.locator('input[name="name"]').first();
+    const currentValue = await nameInput.inputValue();
+    await nameInput.fill(currentValue + " Updated");
 
-      // Save
-      const saveButton = page.locator("button:has-text('Save')").first();
-      await saveButton.click();
+    // Save
+    const saveButton = page.locator("button:has-text('Save')").first();
+    await saveButton.click();
 
-      // Verify the update
-      await page.waitForSelector(`text=${currentValue} Updated`, { timeout: 5000 });
-    }
+    // Verify the update
+    await page.waitForSelector(`text=${currentValue} Updated`, { timeout: 5000 });
   });
 
   test("user can delete a custom property", async ({ authenticatedPage, workspaceSlug, projectId }) => {
     const page = authenticatedPage;
 
     // Navigate to project settings
-    await page.goto(`http://localhost:3000/${workspaceSlug}/projects/${projectId}/settings/properties`);
+    await page.goto(`/${workspaceSlug}/projects/${projectId}/settings/properties`);
 
     // Wait for properties
     await page.waitForSelector("[data-test='property-item'], div:has-text('Property')", {
@@ -110,34 +107,29 @@ test.describe("Custom Property Management", () => {
     // Find and click delete button
     const deleteButton = propertyItem.locator("button:has-text('Delete'), button[title='Delete']");
 
-    if (await deleteButton.isVisible()) {
-      await deleteButton.click();
+    await deleteButton.toBeVisible();
+    await deleteButton.click();
 
-      // Confirm deletion in modal if present
-      const confirmButton = page.locator("button:has-text('Confirm'), button:has-text('Delete')").last();
-      if (await confirmButton.isVisible()) {
-        await confirmButton.click();
-      }
+    // Confirm deletion in modal if present
+    const confirmButton = page.locator("button:has-text('Confirm'), button:has-text('Delete')").last();
+    await confirmButton.toBeVisible();
+    await confirmButton.click();
 
-      // Verify the property is gone
-      await page.waitForLoadState("networkidle", { timeout: 5000 }).catch(() => {});
-      const deletedProperty = page.locator(`text=${propertyName}`);
-      // Property should either be gone or marked as deleted
-      // Depending on UI implementation
-    }
+    // Verify the property is gone
+    await page.waitForLoadState("networkidle", { timeout: 5000 });
+    const deletedProperty = page.locator(`text=${propertyName}`);
+    // Property should either be gone or marked as deleted
+    // Depending on UI implementation
   });
 
   test("user can set property options visibility", async ({ authenticatedPage, workspaceSlug, projectId }) => {
     const page = authenticatedPage;
 
     // Navigate to project settings
-    await page.goto(`http://localhost:3000/${workspaceSlug}/projects/${projectId}/settings/properties`);
+    await page.goto(`/${workspaceSlug}/projects/${projectId}/settings/properties`);
 
     // Wait for properties
-    const propsWait = page.waitForSelector("[data-test='property-item']", { timeout: 5000 }).catch(() => {
-      // Properties might not exist yet
-    });
-    await propsWait;
+    await page.waitForSelector("[data-test='property-item']", { timeout: 5000 });
 
     // Find a property with options
     const propertyItems = page.locator("[data-test='property-item']");
@@ -163,10 +155,10 @@ test.describe("Custom Property Management", () => {
 
     // If we found and toggled an option, verify it changed
     if (found) {
-      await page.waitForLoadState("networkidle", { timeout: 5000 }).catch(() => {});
+      await page.waitForLoadState("networkidle", { timeout: 5000 });
       // Verify the toggle changed state
       const toggle = page.locator("[role='switch']").first();
-      const isChecked = await toggle.evaluate((el: any) => el.getAttribute("aria-checked"));
+      const isChecked = await toggle.evaluate((el: Element) => el.getAttribute("aria-checked"));
       expect(isChecked).toBeTruthy();
     }
   });

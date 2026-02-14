@@ -22,26 +22,6 @@ export async function getCsrfToken(request: APIRequestContext): Promise<string> 
 }
 
 /**
- * Check if an email exists in the system.
- */
-export async function checkEmailExists(request: APIRequestContext, email: string): Promise<boolean> {
-  const csrfToken = await getCsrfToken(request);
-  const response = await request.post(`${API_BASE_URL}/auth/email-check/`, {
-    headers: {
-      "X-CSRFToken": csrfToken,
-      "Content-Type": "application/json",
-    },
-    data: { email },
-  });
-
-  if (response.ok()) {
-    const data = await response.json();
-    return data.exists || false;
-  }
-  return false;
-}
-
-/**
  * Generate a magic link for passwordless authentication.
  */
 export async function generateMagicLink(request: APIRequestContext, email: string): Promise<string> {
@@ -97,11 +77,7 @@ export async function getAuthTokenFromCookies(page: Page): Promise<string> {
 /**
  * Perform a complete login flow: generate magic link, login via browser, extract token.
  */
-export async function authenticateAndGetToken(
-  page: Page,
-  request: APIRequestContext,
-  email: string
-): Promise<string> {
+export async function authenticateAndGetToken(page: Page, request: APIRequestContext, email: string): Promise<string> {
   // Generate magic link token
   const token = await generateMagicLink(request, email);
 

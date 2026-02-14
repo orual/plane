@@ -2,18 +2,19 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 // See the LICENSE file for details.
 
-import { test as base, Page, APIRequestContext } from "@playwright/test";
-import { authenticateAndGetToken, getCsrfToken } from "../helpers/auth";
-import {
-  createWorkspace,
-  createProject,
-  createIssueType,
-  linkIssueTypeToProject,
-  getProjectStates,
-} from "../helpers/api";
+import { test as base, Page } from "@playwright/test";
+import { authenticateAndGetToken } from "../helpers/auth";
+import { createWorkspace, createProject, createIssueType, getProjectStates } from "../helpers/api";
 import { randomUUID } from "crypto";
 
+interface AuthSession {
+  page: Page;
+  token: string;
+  email: string;
+}
+
 interface TestFixtures {
+  _authSession: AuthSession;
   authenticatedPage: Page;
   authToken: string;
   testEmail: string;
@@ -24,28 +25,23 @@ interface TestFixtures {
 }
 
 export const test = base.extend<TestFixtures>({
-  authenticatedPage: async ({ page, request }, use) => {
-    const testEmail = `test-${randomUUID().substring(0, 8)}@plane.test`;
-
-    try {
-      // Authenticate the page
-      await authenticateAndGetToken(page, request, testEmail);
-      await use(page);
-    } finally {
-      await page.close();
-    }
-  },
-
-  authToken: async ({ page, request }, use) => {
-    const testEmail = `test-${randomUUID().substring(0, 8)}@plane.test`;
-    const token = await authenticateAndGetToken(page, request, testEmail);
-    await use(token);
+  _authSession: async ({ page, request }, use) => {
+    const email = `test-${randomUUID().substring(0, 8)}@plane.test`;
+    const token = await authenticateAndGetToken(page, request, email);
+    await use({ page, token, email });
     await page.close();
   },
 
-  testEmail: async ({}, use) => {
-    const email = `test-${randomUUID().substring(0, 8)}@plane.test`;
-    await use(email);
+  authenticatedPage: async ({ _authSession }, use) => {
+    await use(_authSession.page);
+  },
+
+  authToken: async ({ _authSession }, use) => {
+    await use(_authSession.token);
+  },
+
+  testEmail: async ({ _authSession }, use) => {
+    await use(_authSession.email);
   },
 
   workspaceSlug: async ({ request, authToken }, use) => {
@@ -78,8 +74,6 @@ export const test = base.extend<TestFixtures>({
       logo_props: { color: "#3B82F6" },
     });
 
-    // Link the issue type to the project (get first project)
-    // For now, we'll just return the ID without linking
     await use(issueType.id);
   },
 

@@ -11,12 +11,10 @@ test.describe("Issue Type Creation", () => {
     const page = authenticatedPage;
 
     // Navigate to workspace settings
-    await page.goto(`http://localhost:3000/${workspaceSlug}/settings/issue-types`);
+    await page.goto(`/${workspaceSlug}/settings/issue-types`);
 
     // Wait for the page to load
-    await page.waitForSelector("button:has-text('Add issue type')", { timeout: 10000 }).catch(() => {
-      // Button might have different text, try alternative selectors
-    });
+    await page.waitForSelector("button:has-text('Add issue type')", { timeout: 10000 });
 
     // Click the "Add" button (adjust selector based on actual UI)
     const addButton = page.locator("button:has-text('Add'), button:has-text('Create'), button:has-text('New')").first();
@@ -47,7 +45,7 @@ test.describe("Issue Type Creation", () => {
     const page = authenticatedPage;
 
     // Navigate to workspace settings
-    await page.goto(`http://localhost:3000/${workspaceSlug}/settings/issue-types`);
+    await page.goto(`/${workspaceSlug}/settings/issue-types`);
 
     // Click the "Add" button
     const addButton = page.locator("button:has-text('Add'), button:has-text('Create'), button:has-text('New')").first();
@@ -65,7 +63,7 @@ test.describe("Issue Type Creation", () => {
     const page = authenticatedPage;
 
     // Navigate to workspace settings
-    await page.goto(`http://localhost:3000/${workspaceSlug}/settings/issue-types`);
+    await page.goto(`/${workspaceSlug}/settings/issue-types`);
 
     // Click the "Add" button
     const addButton = page.locator("button:has-text('Add'), button:has-text('Create'), button:has-text('New')").first();
@@ -78,8 +76,6 @@ test.describe("Issue Type Creation", () => {
 
     // Check for validation message
     const errorMessage = page.locator("text=Name is required, text=This field is required").first();
-    if (await errorMessage.isVisible({ timeout: 5000 }).catch(() => false)) {
-      await expect(errorMessage).toBeVisible();
-    }
+    await expect(errorMessage).toBeVisible();
   });
 });

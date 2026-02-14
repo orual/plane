@@ -35,8 +35,6 @@ export async function waitForModalClose(page: Page, timeout = 5000) {
 export async function waitForClickable(page: Page, selector: string, timeout = 5000) {
   const element = page.locator(selector);
   await element.waitFor({ state: "visible", timeout });
-  // Give it a bit more time to be interactive
-  await page.waitForTimeout(100);
   return element;
 }
 
