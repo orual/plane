@@ -4,10 +4,10 @@
  * See the LICENSE file for details.
  */
 
-/* eslint-disable @typescript-eslint/no-unsafe-return, @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access */
 import { useContext, useEffect, useMemo } from "react";
 import type { TIssueServiceType } from "@plane/types";
 import { StoreContext } from "@/lib/store-context";
+import type { RootStore } from "@/plane-web/store/root.store";
 import type { IIssuePropertyStore } from "../store/issue-property.store";
 import type { IIssuePropertyValueDetail, IIssuePropertyValueUpsertItem } from "../types";
 
@@ -19,7 +19,8 @@ export const useIssueProperties = (): IIssuePropertyStore => {
   if (context === undefined) {
     throw new Error("useIssueProperties must be used within StoreProvider");
   }
-  return (context as any).issuePropertyStore;
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
+  return (context as RootStore).issuePropertyStore;
 };
 
 /**
@@ -96,6 +97,6 @@ export const useWorkItemProperties = (
   _workspaceSlug: string | null | undefined,
   _workItemId: string | null | undefined,
   _issueServiceType: TIssueServiceType
-) => {
+): void => {
   // No-op in HW fork — custom properties are loaded via the property store
 };

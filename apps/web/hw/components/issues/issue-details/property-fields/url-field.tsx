@@ -4,23 +4,24 @@
  * See the LICENSE file for details.
  */
 
-import React from "react";
 import { Input } from "@plane/ui";
 
-type Props = {
+type PropertyUrlFieldProps = {
   value: string | null;
   onChange: (value: string | null) => void;
   disabled?: boolean;
   placeholder?: string;
 };
 
-export const PropertyUrlField: React.FC<Props> = ({ value, onChange, disabled, placeholder }) => (
-  <Input
-    type="url"
-    value={value ?? ""}
-    onChange={(e) => onChange(e.target.value || null)}
-    disabled={disabled}
-    placeholder={placeholder ?? "https://example.com"}
-    className="h-8 text-sm"
-  />
-);
+export function PropertyUrlField({ value, onChange, disabled, placeholder }: PropertyUrlFieldProps) {
+  return (
+    <Input
+      type="url"
+      value={value ?? ""}
+      onChange={(e) => onChange(e.target.value || null)}
+      disabled={disabled}
+      placeholder={placeholder ?? "https://example.com"}
+      className="h-8 text-sm"
+    />
+  );
+}

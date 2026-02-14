@@ -4,79 +4,18 @@
  * See the LICENSE file for details.
  */
 
-/* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-assignment */
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { observer } from "mobx-react";
 import useDebounce from "@/hooks/use-debounce";
 import { useIssueProperties, useIssuePropertyValues } from "@/plane-web/hooks/use-issue-properties";
-import {
-  PropertyTextField,
-  PropertyNumberField,
-  PropertySelectField,
-  PropertyMultiSelectField,
-  PropertyUrlField,
-  PropertyDateField,
-  PropertyBooleanField,
-} from "../issue-details/property-fields";
-import type { TPropertyType, IIssuePropertyValueUpsertItem } from "@/plane-web/types";
+import { renderPropertyField } from "../issue-details/property-fields/render-field";
+import type { IIssuePropertyValueUpsertItem, IIssuePropertyValueDetail } from "@/plane-web/types";
 
 export type TWorkItemModalAdditionalPropertiesProps = {
   isDraft?: boolean;
   projectId: string | null;
   workItemId: string | undefined;
   workspaceSlug: string;
-};
-
-const renderField = (
-  propertyType: TPropertyType,
-  value: string | number | boolean | string[] | null,
-  onChange: (newValue: string | number | boolean | string[] | null) => void,
-  options: string[],
-  disabled: boolean
-) => {
-  switch (propertyType) {
-    case "text":
-      return (
-        <PropertyTextField
-          value={value as string | null}
-          onChange={onChange}
-          disabled={disabled}
-          placeholder="Enter text"
-        />
-      );
-    case "number":
-      return (
-        <PropertyNumberField
-          value={value as number | null}
-          onChange={onChange}
-          disabled={disabled}
-          placeholder="Enter number"
-        />
-      );
-    case "url":
-      return <PropertyUrlField value={value as string | null} onChange={onChange} disabled={disabled} />;
-    case "date":
-      return <PropertyDateField value={value as string | null} onChange={onChange} disabled={disabled} />;
-    case "boolean":
-      return (
-        <PropertyBooleanField value={value as boolean | null} onChange={(val) => onChange(val)} disabled={disabled} />
-      );
-    case "select":
-      return (
-        <PropertySelectField value={value as string | null} onChange={onChange} options={options} disabled={disabled} />
-      );
-    case "multi_select":
-      return (
-        <PropertyMultiSelectField
-          value={value as string[] | null}
-          onChange={onChange}
-          options={options}
-          disabled={disabled}
-        />
-      );
-    default:
-      return null;
-  }
 };
 
 export const WorkItemModalAdditionalProperties = observer(function WorkItemModalAdditionalProperties({
@@ -95,17 +34,11 @@ export const WorkItemModalAdditionalProperties = observer(function WorkItemModal
   const [pendingChanges, setPendingChanges] = useState<Record<string, string | number | boolean | string[] | null>>({});
   const debouncedChanges = useDebounce(pendingChanges, 1000);
 
-  const definitions = (propertyStore.getAllDefinitions?.() ?? []) as Array<{
-    id: string;
-    name: string;
-    is_required: boolean;
-    property_type: TPropertyType;
-    options: string[];
-  }>;
+  const definitions = propertyStore.getAllDefinitions?.() ?? [];
 
   const currentValueMap = useMemo(() => {
     const map: Record<string, string | number | boolean | string[] | null> = {};
-    (propertyValues as any[]).forEach((pv: any) => {
+    propertyValues.forEach((pv: IIssuePropertyValueDetail) => {
       map[pv.property_definition_id] = pv.value?.value ?? null;
     });
     return map;
@@ -128,7 +61,11 @@ export const WorkItemModalAdditionalProperties = observer(function WorkItemModal
     }));
 
     void upsertValues(items);
-    setPendingChanges({});
+    setPendingChanges((prev) => {
+      const next = { ...prev };
+      keys.forEach((k) => delete next[k]);
+      return next;
+    });
   }, [debouncedChanges, upsertValues, isDraft, projectId, workItemId]);
 
   if (definitions.length === 0) return null;
@@ -143,7 +80,7 @@ export const WorkItemModalAdditionalProperties = observer(function WorkItemModal
               {def.name}
               {def.is_required && <span className="ml-0.5 text-red-500">*</span>}
             </label>
-            {renderField(
+            {renderPropertyField(
               def.property_type,
               displayValues[def.id] ?? null,
               (newValue) => handleChange(def.id, newValue),

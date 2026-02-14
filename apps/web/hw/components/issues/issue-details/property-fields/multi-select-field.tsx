@@ -4,16 +4,14 @@
  * See the LICENSE file for details.
  */
 
-import React from "react";
-
-type Props = {
+type PropertyMultiSelectFieldProps = {
   value: string[] | null;
   onChange: (value: string[] | null) => void;
   options: string[];
   disabled?: boolean;
 };
 
-export const PropertyMultiSelectField: React.FC<Props> = ({ value, onChange, options, disabled }) => {
+export function PropertyMultiSelectField({ value, onChange, options, disabled }: PropertyMultiSelectFieldProps) {
   const selected = value ?? [];
 
   const handleToggle = (opt: string) => {
@@ -44,4 +42,4 @@ export const PropertyMultiSelectField: React.FC<Props> = ({ value, onChange, opt
       ))}
     </div>
   );
-};
+}

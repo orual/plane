@@ -4,23 +4,22 @@
  * See the LICENSE file for details.
  */
 
-import React from "react";
 import { Input } from "@plane/ui";
 
-type Props = {
+type PropertyNumberFieldProps = {
   value: number | null;
   onChange: (value: number | null) => void;
   disabled?: boolean;
   placeholder?: string;
 };
 
-export const PropertyNumberField: React.FC<Props> = ({ value, onChange, disabled, placeholder }) => {
+export function PropertyNumberField({ value, onChange, disabled, placeholder }: PropertyNumberFieldProps) {
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const raw = e.target.value;
     if (raw === "") {
       onChange(null);
     } else {
-      const parsed = parseFloat(raw);
+      const parsed = Number(raw);
       if (!isNaN(parsed)) onChange(parsed);
     }
   };
@@ -35,4 +34,4 @@ export const PropertyNumberField: React.FC<Props> = ({ value, onChange, disabled
       className="h-8 text-sm"
     />
   );
-};
+}

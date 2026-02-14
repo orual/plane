@@ -4,6 +4,7 @@
  * See the LICENSE file for details.
  */
 
+// APIService base methods return untyped responses
 /* eslint-disable @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-return */
 import { API_BASE_URL } from "@plane/constants";
 import { APIService } from "@/services/api.service";
@@ -75,7 +76,12 @@ export class IssuePropertyService extends APIService {
       `/api/workspaces/${workspaceSlug}/projects/${projectId}/issues/${issueId}/property-values/bulk-upsert/`,
       items
     )
-      .then((res) => res?.data)
+      .then((res) => {
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+        const data = res?.data;
+        // Handle 207 Multi-Status: backend returns {results: [...], errors: [...]}
+        return Array.isArray(data) ? data : (data?.results ?? []);
+      })
       .catch((error) => {
         throw error?.response?.data;
       });

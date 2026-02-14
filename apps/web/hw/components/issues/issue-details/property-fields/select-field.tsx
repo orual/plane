@@ -4,9 +4,7 @@
  * See the LICENSE file for details.
  */
 
-import React from "react";
-
-type Props = {
+type PropertySelectFieldProps = {
   value: string | null;
   onChange: (value: string | null) => void;
   options: string[];
@@ -14,18 +12,20 @@ type Props = {
   placeholder?: string;
 };
 
-export const PropertySelectField: React.FC<Props> = ({ value, onChange, options, disabled, placeholder }) => (
-  <select
-    value={value ?? ""}
-    onChange={(e) => onChange(e.target.value || null)}
-    disabled={disabled}
-    className="h-8 w-full rounded border border-custom-border-200 bg-custom-background-100 px-2 text-sm text-custom-text-100 focus:outline-none focus:ring-1 focus:ring-custom-primary-100"
-  >
-    <option value="">{placeholder ?? "Select..."}</option>
-    {options.map((opt) => (
-      <option key={opt} value={opt}>
-        {opt}
-      </option>
-    ))}
-  </select>
-);
+export function PropertySelectField({ value, onChange, options, disabled, placeholder }: PropertySelectFieldProps) {
+  return (
+    <select
+      value={value ?? ""}
+      onChange={(e) => onChange(e.target.value || null)}
+      disabled={disabled}
+      className="h-8 w-full rounded border border-custom-border-200 bg-custom-background-100 px-2 text-sm text-custom-text-100 focus:outline-none focus:ring-1 focus:ring-custom-primary-100"
+    >
+      <option value="">{placeholder ?? "Select..."}</option>
+      {options.map((opt) => (
+        <option key={opt} value={opt}>
+          {opt}
+        </option>
+      ))}
+    </select>
+  );
+}

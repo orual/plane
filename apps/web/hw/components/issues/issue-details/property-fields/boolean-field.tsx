@@ -4,15 +4,19 @@
  * See the LICENSE file for details.
  */
 
-import React from "react";
 import { ToggleSwitch } from "@plane/ui";
 
-type Props = {
+type PropertyBooleanFieldProps = {
   value: boolean | null;
   onChange: (value: boolean) => void;
   disabled?: boolean;
 };
 
-export const PropertyBooleanField: React.FC<Props> = ({ value, onChange, disabled }) => (
-  <ToggleSwitch value={value ?? false} onChange={(val) => onChange(val)} disabled={disabled} size="sm" />
-);
+/**
+ * Boolean property field using a toggle switch.
+ * Null values are treated as false — once toggled, the value cannot be cleared
+ * back to null. This is intentional: boolean properties are always true or false.
+ */
+export function PropertyBooleanField({ value, onChange, disabled }: PropertyBooleanFieldProps) {
+  return <ToggleSwitch value={value ?? false} onChange={(val) => onChange(val)} disabled={disabled} size="sm" />;
+}

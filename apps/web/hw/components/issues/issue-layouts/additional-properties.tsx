@@ -4,13 +4,13 @@
  * See the LICENSE file for details.
  */
 
-/* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-assignment */
 import { useMemo } from "react";
 import { useParams } from "next/navigation";
 import { observer } from "mobx-react";
 import { useRootStore } from "@/hooks/store/use-root-store";
 import { useIssuePropertyValues } from "@/plane-web/hooks/use-issue-properties";
 import type { IIssueDisplayProperties, TIssue } from "@plane/types";
+import type { IIssuePropertyValueDetail, IIssuePropertyDefinition } from "@/plane-web/types";
 
 export type TWorkItemLayoutAdditionalProperties = {
   displayProperties: IIssueDisplayProperties;
@@ -25,7 +25,7 @@ export const WorkItemLayoutAdditionalProperties = observer(function WorkItemLayo
 ) {
   const { displayProperties, issue } = props;
   const { workspaceSlug } = useParams();
-  const { issueTypeStore, issuePropertyStore } = useRootStore() as any;
+  const { issueTypeStore, issuePropertyStore } = useRootStore();
 
   const { values: propertyValues } = useIssuePropertyValues(
     workspaceSlug as string | undefined,
@@ -35,16 +35,13 @@ export const WorkItemLayoutAdditionalProperties = observer(function WorkItemLayo
 
   // Build value display map
   const valueDisplayItems = useMemo(() => {
-    const definitions = (issuePropertyStore?.getAllDefinitions?.() ?? []) as Array<{
-      id: string;
-      name: string;
-    }>;
+    const definitions = issuePropertyStore?.getAllDefinitions?.() ?? [];
 
     if (definitions.length === 0 || propertyValues.length === 0) return [];
 
     return definitions
-      .map((def: any) => {
-        const pv = (propertyValues as any[]).find((v: any) => v.property_definition_id === def.id);
+      .map((def: IIssuePropertyDefinition) => {
+        const pv = propertyValues.find((v: IIssuePropertyValueDetail) => v.property_definition_id === def.id);
         const rawValue = pv?.value?.value ?? null;
         if (rawValue === null || rawValue === undefined) return null;
 
@@ -59,7 +56,7 @@ export const WorkItemLayoutAdditionalProperties = observer(function WorkItemLayo
 
         return { id: def.id, name: def.name, displayValue };
       })
-      .filter(Boolean);
+      .filter((item): item is { id: string; name: string; displayValue: string } => item !== null);
   }, [issuePropertyStore, propertyValues]);
 
   // Issue type display (preserved from Phase 3)
@@ -79,7 +76,7 @@ export const WorkItemLayoutAdditionalProperties = observer(function WorkItemLayo
       )}
 
       {/* Custom property values */}
-      {valueDisplayItems.map((item: any) => (
+      {valueDisplayItems.map((item) => (
         <div key={item.id} className="inline-flex items-center gap-1 rounded bg-custom-background-90 px-2 py-1 text-xs">
           <span className="font-medium text-custom-text-300">{item.name}:</span>
           <span className="text-custom-text-200">{item.displayValue}</span>
