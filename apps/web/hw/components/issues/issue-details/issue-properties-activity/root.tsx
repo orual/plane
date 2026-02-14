@@ -4,13 +4,20 @@
  * See the LICENSE file for details.
  */
 
-import type { FC } from "react";
+import { observer } from "mobx-react";
 
 type TIssueAdditionalPropertiesActivity = {
   activityId: string;
   ends: "top" | "bottom" | undefined;
 };
 
-export function IssueAdditionalPropertiesActivity(_props: TIssueAdditionalPropertiesActivity) {
-  return <></>;
-}
+/**
+ * Activity component for custom property changes.
+ * Full activity tracking will be implemented when the activity module is integrated.
+ */
+export const IssueAdditionalPropertiesActivity = observer(function IssueAdditionalPropertiesActivity({
+  activityId,
+  ends,
+}: TIssueAdditionalPropertiesActivity) {
+  return <div className="space-y-2" data-activity-id={activityId} data-ends={ends} />;
+});
