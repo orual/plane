@@ -33,6 +33,17 @@ export interface IIssuePropertyStore {
     issueId: string,
     items: IIssuePropertyValueUpsertItem[]
   ) => Promise<void>;
+  // CRUD actions
+  createDefinition: (
+    workspaceSlug: string,
+    data: Partial<IIssuePropertyDefinition>
+  ) => Promise<IIssuePropertyDefinition>;
+  updateDefinition: (
+    workspaceSlug: string,
+    propertyId: string,
+    data: Partial<IIssuePropertyDefinition>
+  ) => Promise<IIssuePropertyDefinition>;
+  deleteDefinition: (workspaceSlug: string, propertyId: string) => Promise<void>;
 }
 
 /**
@@ -63,6 +74,9 @@ export class IssuePropertyStore implements IIssuePropertyStore {
       fetchDefinitions: action,
       fetchIssueValues: action,
       upsertIssueValues: action,
+      createDefinition: action,
+      updateDefinition: action,
+      deleteDefinition: action,
     });
   }
 
