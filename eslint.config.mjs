@@ -31,6 +31,7 @@ export default defineConfig([
     "**/build/**",
     "**/coverage/**",
     "**/dist/**",
+    "**/e2e/**",
     "**/node_modules/**",
     "**/public/**",
   ]),
