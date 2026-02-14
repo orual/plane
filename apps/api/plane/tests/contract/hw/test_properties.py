@@ -5,7 +5,7 @@
 import pytest
 from rest_framework import status
 
-from plane.db.models import Issue, Project, ProjectMember, State
+from plane.db.models import Issue, Project, ProjectMember, State, WorkspaceMember
 from plane.hw.models import IssuePropertyDefinition, IssuePropertyValue
 
 
@@ -46,6 +46,30 @@ def issue(db, workspace, project, create_user):
         state=state,
         created_by=create_user,
     )
+
+
+@pytest.fixture
+def member_user(db):
+    """Create a member user."""
+    from plane.db.models import User
+
+    user = User.objects.create(
+        email="member@plane.so",
+        username="member_user",
+        first_name="Member",
+        last_name="User",
+    )
+    user.set_password("member@123")
+    user.save()
+    return user
+
+
+@pytest.fixture
+def member_client(api_client, member_user, workspace):
+    """Return an authenticated client for a member-level workspace member."""
+    WorkspaceMember.objects.create(workspace=workspace, member=member_user, role=15)
+    api_client.force_authenticate(user=member_user)
+    return api_client
 
 
 # ============================================================
@@ -287,3 +311,43 @@ class TestPropertyValueDelete:
         response = session_client.delete(url)
 
         assert response.status_code == status.HTTP_204_NO_CONTENT
+
+
+# ============================================================
+# Permission enforcement tests
+# ============================================================
+
+
+@pytest.mark.contract
+class TestPropertyDefinitionPermissions:
+    """Test workspace-scoped property definition permission enforcement."""
+
+    def get_url(self, workspace_slug):
+        return f"/api/workspaces/{workspace_slug}/property-definitions/"
+
+    @pytest.mark.django_db
+    def test_create_property_definition_as_member_forbidden(self, member_client, workspace):
+        """Members should not be able to create property definitions."""
+        url = self.get_url(workspace.slug)
+        data = {
+            "name": "Status",
+            "property_type": "select",
+            "options": ["Open", "Closed"],
+        }
+        response = member_client.post(url, data, format="json")
+
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+
+    @pytest.mark.django_db
+    def test_delete_property_definition_as_member_forbidden(self, member_client, workspace):
+        """Members should not be able to delete property definitions."""
+        prop_def = IssuePropertyDefinition.objects.create(
+            workspace=workspace,
+            name="To Delete",
+            property_type="text",
+        )
+
+        url = f"/api/workspaces/{workspace.slug}/property-definitions/{prop_def.id}/"
+        response = member_client.delete(url)
+
+        assert response.status_code == status.HTTP_403_FORBIDDEN
