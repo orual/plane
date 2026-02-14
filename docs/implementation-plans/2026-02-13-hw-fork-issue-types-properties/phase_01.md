@@ -33,7 +33,6 @@ This flake provides all system-level dependencies needed for the Plane dev envir
 - **Nix provides system libraries** — C headers and shared objects needed by Python packages with compiled extensions (psycopg3, cryptography, lxml).
 - **NIX_LD / LD_LIBRARY_PATH** — required so that pip/uv-installed wheels with compiled C extensions can find shared libraries at runtime. On NixOS with `programs.nix-ld.enable = true`, the system handles this globally; we set it in the flake so it also works for non-NixOS Nix users (e.g., Nix-on-Ubuntu).
 - **UV_PYTHON_DOWNLOADS=never** — forces uv to use the Nix-provided Python interpreter instead of downloading its own, keeping the environment deterministic.
-- **UV_LINK_MODE=copy** — uv defaults to hardlinking files into the venv, which fails across filesystem boundaries (the Nix store is on a separate mount). Copy mode avoids this.
 
 ```nix
 {
@@ -100,9 +99,8 @@ This flake provides all system-level dependencies needed for the Plane dev envir
           PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD = "1";
           PLAYWRIGHT_SKIP_VALIDATE_HOST_REQUIREMENTS = true;
 
-          # uv: use Nix-provided Python, copy instead of hardlink
+          # uv: use Nix-provided Python, not a downloaded one
           UV_PYTHON_DOWNLOADS = "never";
-          UV_LINK_MODE = "copy";
 
           shellHook = ''
             # Put Nix library paths first so they take priority
@@ -189,7 +187,7 @@ git commit -m "chore: add Nix flake dev environment with Node.js, Python, and Pl
 
 **Step 1: Install Python dependencies using uv**
 
-We use `uv pip install` instead of `pip install` — it reads standard `requirements.txt` files and is 10-100x faster. The `UV_LINK_MODE=copy` env var (set in the flake) ensures uv copies files into the venv instead of hardlinking, avoiding cross-filesystem issues on NixOS.
+We use `uv pip install` instead of `pip install` — it reads standard `requirements.txt` files and is 10-100x faster.
 
 ```bash
 cd apps/api
