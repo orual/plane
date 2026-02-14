@@ -4,5 +4,33 @@
  * See the LICENSE file for details.
  */
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-export const useWorkspaceIssuePropertiesExtended = (workspaceSlug: string | string[] | undefined) => {};
+import { useMemo } from "react";
+import { useWorkspacePropertyDefinitions } from "./use-issue-properties";
+import type { IIssuePropertyWithValue } from "../types";
+
+/**
+ * Extended hook that combines property definitions with placeholder values.
+ * Used in workspace-level views to show available custom properties.
+ */
+export const useWorkspaceIssuePropertiesExtended = (
+  workspaceSlug: string | string[] | undefined
+): {
+  properties: IIssuePropertyWithValue[];
+  isLoading: boolean;
+  error: string | null;
+} => {
+  const slug = typeof workspaceSlug === "string" ? workspaceSlug : undefined;
+  const { definitions, isLoading, error } = useWorkspacePropertyDefinitions(slug);
+
+  const properties = useMemo<IIssuePropertyWithValue[]>(
+    () =>
+      definitions.map((def) => ({
+        definition: def,
+        value: null,
+        currentValue: null,
+      })),
+    [definitions]
+  );
+
+  return { properties, isLoading, error };
+};
