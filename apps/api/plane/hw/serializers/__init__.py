@@ -7,3 +7,8 @@ from .issue_type import (
     ProjectIssueTypeSerializer,
     ProjectIssueTypeDetailSerializer,
 )
+from .issue_property import (
+    PropertyDefinitionSerializer,
+    IssuePropertyValueSerializer,
+    IssuePropertyValueDetailSerializer,
+)
