@@ -1304,7 +1304,7 @@ test.describe("Custom Property Management", () => {
       }
 
       // Verify the property is gone
-      await page.waitForTimeout(500);
+      await page.waitForLoadState("networkidle", { timeout: 5000 }).catch(() => {});
       const deletedProperty = page.locator(`text=${propertyName}`);
       // Property should either be gone or marked as deleted
       // Depending on UI implementation
