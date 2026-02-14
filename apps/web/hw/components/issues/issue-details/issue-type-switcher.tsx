@@ -4,11 +4,15 @@
  * See the LICENSE file for details.
  */
 
+import { useMemo } from "react";
 import { observer } from "mobx-react";
 // store hooks
+import { useRootStore } from "@/hooks/store/use-root-store";
 import { useIssueDetail } from "@/hooks/store/use-issue-detail";
-// plane web components
-import { IssueIdentifier } from "@/plane-web/components/issues/issue-details/issue-identifier";
+// plane imports
+import { CustomSelect } from "@plane/ui";
+// types
+import type { TIssue } from "@plane/types";
 
 export type TIssueTypeSwitcherProps = {
   issueId: string;
@@ -16,15 +20,61 @@ export type TIssueTypeSwitcherProps = {
 };
 
 export const IssueTypeSwitcher = observer(function IssueTypeSwitcher(props: TIssueTypeSwitcherProps) {
-  const { issueId } = props;
-  // store hooks
+  const { issueId, disabled } = props;
+
+  // store
+  const {
+    workspaceRoot: { currentWorkspace },
+    issueTypeStore,
+  } = useRootStore();
+
   const {
     issue: { getIssueById },
+    updateIssue,
   } = useIssueDetail();
+
   // derived values
+  const workspaceSlug = currentWorkspace?.slug;
   const issue = getIssueById(issueId);
+  const currentTypeId = issue?.type_id;
 
-  if (!issue || !issue.project_id) return <></>;
+  const issueTypes = useMemo(
+    () => (workspaceSlug ? issueTypeStore.getWorkspaceIssueTypes(workspaceSlug) : []),
+    [issueTypeStore, workspaceSlug]
+  );
 
-  return <IssueIdentifier issueId={issueId} projectId={issue.project_id} size="md" enableClickToCopyIdentifier />;
+  const handleIssueTypeChange = async (newTypeId: string | null) => {
+    if (!issue || !workspaceSlug || !newTypeId || !issue.project_id) return;
+
+    try {
+      const updateData: Partial<TIssue> = {
+        type_id: newTypeId,
+      };
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-explicit-any
+      await updateIssue(workspaceSlug, issue.project_id, issueId, updateData as any);
+    } catch (error) {
+      console.error("Failed to update issue type:", error);
+    }
+  };
+
+  if (!issue) return null;
+
+  return (
+    <CustomSelect
+      value={currentTypeId}
+      onChange={handleIssueTypeChange}
+      disabled={disabled || issueTypes.length === 0}
+      label="Select type"
+      noChevron={false}
+    >
+      {issueTypes.map((issueType) => (
+        <CustomSelect.Option key={issueType.id} value={issueType.id}>
+          <div className="flex items-center gap-2">
+            <div className="w-3 h-3 rounded-full" style={{ backgroundColor: issueType.logo_props.color }} />
+            <span>{issueType.name}</span>
+          </div>
+        </CustomSelect.Option>
+      ))}
+    </CustomSelect>
+  );
 });

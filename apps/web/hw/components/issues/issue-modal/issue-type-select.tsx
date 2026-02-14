@@ -4,11 +4,17 @@
  * See the LICENSE file for details.
  */
 
-import type { Control } from "react-hook-form";
+import { useMemo } from "react";
+import { Controller } from "react-hook-form";
+import type { Control, FieldPath } from "react-hook-form";
+// store hooks
+import { useRootStore } from "@/hooks/store/use-root-store";
 // plane imports
 import type { EditorRefApi } from "@plane/editor";
 // types
 import type { TBulkIssueProperties, TIssue } from "@plane/types";
+// components
+import { CustomSelect } from "@plane/ui";
 
 export type TIssueFields = TIssue & TBulkIssueProperties;
 
@@ -24,11 +30,64 @@ export type TIssueTypeSelectProps<T extends Partial<TIssueFields>> = {
   isRequired?: boolean;
   renderChevron?: boolean;
   dropDownContainerClassName?: string;
-  showMandatoryFieldInfo?: boolean; // Show info about mandatory fields
+  showMandatoryFieldInfo?: boolean;
   handleFormChange?: () => void;
 };
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
 export function IssueTypeSelect<T extends Partial<TIssueFields>>(props: TIssueTypeSelectProps<T>) {
-  return <></>;
+  const {
+    control,
+    _projectId,
+    _editorRef,
+    disabled = false,
+    _variant = "sm",
+    placeholder = "Select issue type",
+    _isRequired = false,
+    renderChevron = true,
+    dropDownContainerClassName,
+    _showMandatoryFieldInfo = false,
+    handleFormChange,
+  } = props;
+
+  // store
+  const {
+    workspaceRoot: { currentWorkspace },
+    issueTypeStore,
+  } = useRootStore();
+
+  // derived values
+  const workspaceSlug = currentWorkspace?.slug;
+  const issueTypes = useMemo(
+    () => (workspaceSlug ? issueTypeStore.getWorkspaceIssueTypes(workspaceSlug) : []),
+    [issueTypeStore, workspaceSlug]
+  );
+
+  return (
+    <Controller
+      control={control}
+      name={"type_id" as FieldPath<T>}
+      render={({ field: { value, onChange } }) => (
+        <CustomSelect
+          value={value}
+          onChange={(newValue: string | null) => {
+            onChange(newValue);
+            handleFormChange?.();
+          }}
+          disabled={disabled || issueTypes.length === 0}
+          label={placeholder}
+          buttonClassName={dropDownContainerClassName}
+          noChevron={!renderChevron}
+        >
+          {issueTypes.map((issueType) => (
+            <CustomSelect.Option key={issueType.id} value={issueType.id}>
+              <div className="flex items-center gap-2">
+                <div className="w-3 h-3 rounded-full" style={{ backgroundColor: issueType.logo_props.color }} />
+                <span>{issueType.name}</span>
+              </div>
+            </CustomSelect.Option>
+          ))}
+        </CustomSelect>
+      )}
+    />
+  );
 }

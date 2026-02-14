@@ -4,8 +4,10 @@
  * See the LICENSE file for details.
  */
 
-import type { FC } from "react";
-import React from "react";
+import { observer } from "mobx-react";
+// store hooks
+import { useRootStore } from "@/hooks/store/use-root-store";
+// types
 import type { IIssueDisplayProperties, TIssue } from "@plane/types";
 
 export type TWorkItemLayoutAdditionalProperties = {
@@ -13,6 +15,25 @@ export type TWorkItemLayoutAdditionalProperties = {
   issue: TIssue;
 };
 
-export function WorkItemLayoutAdditionalProperties(props: TWorkItemLayoutAdditionalProperties) {
-  return <></>;
-}
+export const WorkItemLayoutAdditionalProperties = observer(function WorkItemLayoutAdditionalProperties(
+  props: TWorkItemLayoutAdditionalProperties
+) {
+  const { displayProperties, issue } = props;
+
+  // store
+  const { issueTypeStore } = useRootStore();
+
+  // Check if issue type should be displayed
+  if (!displayProperties?.issue_type || !issue.type_id) return null;
+
+  const issueType = issueTypeStore.getIssueTypeById(issue.type_id);
+
+  if (!issueType) return null;
+
+  return (
+    <div className="flex items-center gap-1.5 px-2 py-1 bg-gray-100 rounded-full">
+      <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: issueType.logo_props.color }} />
+      <span className="text-xs font-medium text-gray-700">{issueType.name}</span>
+    </div>
+  );
+});
