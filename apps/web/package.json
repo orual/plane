@@ -14,7 +14,9 @@
     "check:types": "react-router typegen && tsc --noEmit",
     "check:format": "prettier . --cache --check",
     "fix:lint": "eslint . --cache --cache-location node_modules/.cache/eslint/ --fix --max-warnings=14367",
-    "fix:format": "prettier . --cache --write"
+    "fix:format": "prettier . --cache --write",
+    "test": "vitest",
+    "test:ui": "vitest --ui"
   },
   "dependencies": {
     "@atlaskit/pragmatic-drag-and-drop": "catalog:",
@@ -80,13 +82,20 @@
     "@plane/typescript-config": "workspace:*",
     "@react-router/dev": "catalog:",
     "@tailwindcss/typography": "0.5.19",
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.2",
+    "@testing-library/user-event": "^14.6.1",
     "@types/lodash-es": "catalog:",
     "@types/node": "catalog:",
     "@types/react": "catalog:",
     "@types/react-color": "^3.0.6",
     "@types/react-dom": "catalog:",
+    "@vitejs/plugin-react": "^5.1.4",
+    "@vitest/ui": "^4.0.18",
+    "jsdom": "^28.0.0",
     "typescript": "catalog:",
     "vite": "catalog:",
-    "vite-tsconfig-paths": "^5.1.4"
+    "vite-tsconfig-paths": "^5.1.4",
+    "vitest": "^4.0.15"
   }
 }
