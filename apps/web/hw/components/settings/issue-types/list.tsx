@@ -46,7 +46,7 @@ export const IssueTypeList = observer(function IssueTypeList(props: Props) {
         </div>
         {isAdmin && (
           <Button variant="primary" size="sm" onClick={onCreateType} data-test="issue-type-create-btn">
-            Add
+            {t("add")}
           </Button>
         )}
       </div>

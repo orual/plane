@@ -1606,6 +1606,7 @@ export default {
         update_success: "Issue type updated successfully",
         delete_success: "Issue type deleted successfully",
         delete_error: "Issue type could not be deleted. Please try again.",
+        save_error: "Issue type could not be saved. Please try again.",
         delete_confirmation:
           "Are you sure you want to delete {name}? This will remove the issue type from all work items that reference it.",
         no_types: "No issue types exist yet",
@@ -1618,6 +1619,7 @@ export default {
         property_updated: "Property updated successfully",
         property_deleted: "Property deleted successfully",
         property_delete_error: "Failed to delete property",
+        property_save_error: "Failed to save property",
         no_properties: "No properties defined for this type.",
         property_name_required: "Property name is required",
         property_type_required: "Property type is required",

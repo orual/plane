@@ -106,7 +106,7 @@ export const CreateUpdateIssueTypeModal = observer(function CreateUpdateIssueTyp
       } catch (error) {
         setIsSubmitting(false);
         const errorMessage =
-          error instanceof Error ? error.message : t("workspace_settings.settings.issue_types.delete_error");
+          error instanceof Error ? error.message : t("workspace_settings.settings.issue_types.save_error");
         setToast({
           type: TOAST_TYPE.ERROR,
           title: t("error"),

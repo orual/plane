@@ -19,6 +19,16 @@ import type { IIssuePropertyDefinition, TPropertyType } from "@/plane-web/types/
 
 const PROPERTY_TYPES: TPropertyType[] = ["text", "number", "select", "multi_select", "url", "date", "boolean"];
 
+const PROPERTY_TYPE_LABELS: Record<TPropertyType, string> = {
+  text: "Text",
+  number: "Number",
+  select: "Select",
+  multi_select: "Multi Select",
+  url: "URL",
+  date: "Date",
+  boolean: "Boolean",
+};
+
 type Props = {
   workspaceSlug: string;
   issueTypeId: string;
@@ -148,7 +158,7 @@ export const PropertyForm = observer(function PropertyForm(props: Props) {
       } catch (error) {
         setIsSubmitting(false);
         const errorMessage =
-          error instanceof Error ? error.message : t("workspace_settings.settings.issue_types.property_delete_error");
+          error instanceof Error ? error.message : t("workspace_settings.settings.issue_types.property_save_error");
         setToast({
           type: TOAST_TYPE.ERROR,
           title: t("error"),
@@ -204,7 +214,7 @@ export const PropertyForm = observer(function PropertyForm(props: Props) {
         >
           {PROPERTY_TYPES.map((type) => (
             <option key={type} value={type}>
-              {type}
+              {PROPERTY_TYPE_LABELS[type]}
             </option>
           ))}
         </select>
