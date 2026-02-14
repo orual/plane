@@ -4,7 +4,7 @@
  * See the LICENSE file for details.
  */
 
-/* eslint-disable @typescript-eslint/no-unsafe-return, @typescript-eslint/no-unsafe-member-access */
+/* eslint-disable @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-return */
 import { APIService } from "@/services/api.service";
 import { API_BASE_URL } from "@plane/constants";
 // types
@@ -60,6 +60,7 @@ export class IssueTypeService extends APIService {
     return this.delete(`/api/workspaces/${workspaceSlug}/issue-types/${issueTypeId}/`)
       .then(() => undefined)
       .catch((error) => {
+         
         throw error?.response?.data;
       });
   }
@@ -104,6 +105,7 @@ export class IssueTypeService extends APIService {
     return this.delete(`/api/workspaces/${workspaceSlug}/projects/${projectId}/issue-types/${projectIssueTypeId}/`)
       .then(() => undefined)
       .catch((error) => {
+         
         throw error?.response?.data;
       });
   }

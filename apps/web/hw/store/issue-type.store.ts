@@ -4,14 +4,13 @@
  * See the LICENSE file for details.
  */
 
-/* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unused-vars, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access */
 import { makeObservable, observable, action, computed, runInAction } from "mobx";
 import { computedFn } from "mobx-utils";
 // service
-import { IssueTypeService } from "@/plane-web/services/issue-type.service";
+import { IssueTypeService } from "../services/issue-type.service";
 // types
 import type { CoreRootStore } from "@/store/root.store";
-import type { TIssueType, TProjectIssueType } from "@/plane-web/types/issue-types";
+import type { TIssueType, TProjectIssueType } from "../types/issue-types";
 
 export interface IIssueTypeStore {
   // observables
@@ -89,13 +88,17 @@ export class IssueTypeStore implements IIssueTypeStore {
       const issueTypes = await this.issueTypeService.listIssueTypes(workspaceSlug);
 
       runInAction(() => {
+        // Clear existing entries to prevent stale data from persisting
+        this.issueTypeMap = {};
         issueTypes.forEach((issueType) => {
           this.issueTypeMap[issueType.id] = issueType;
         });
         this.isLoading = false;
       });
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
       runInAction(() => {
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
         this.error = error?.message || "Failed to fetch issue types";
         this.isLoading = false;
       });
@@ -113,6 +116,8 @@ export class IssueTypeStore implements IIssueTypeStore {
       const projectIssueTypes = await this.issueTypeService.listProjectIssueTypes(workspaceSlug, projectId);
 
       runInAction(() => {
+        // Clear existing entries to prevent stale data from persisting
+        this.projectIssueTypeMap = {};
         projectIssueTypes.forEach((projectIssueType) => {
           this.projectIssueTypeMap[projectIssueType.id] = projectIssueType;
           // Also cache the nested issue type detail
@@ -122,8 +127,10 @@ export class IssueTypeStore implements IIssueTypeStore {
         });
         this.isLoading = false;
       });
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
       runInAction(() => {
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
         this.error = error?.message || "Failed to fetch project issue types";
         this.isLoading = false;
       });
@@ -140,8 +147,10 @@ export class IssueTypeStore implements IIssueTypeStore {
       });
 
       return issueType;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
       runInAction(() => {
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
         this.error = error?.message || "Failed to create issue type";
       });
       throw error;
@@ -167,10 +176,12 @@ export class IssueTypeStore implements IIssueTypeStore {
       });
 
       return issueType;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
       // Rollback on error
       runInAction(() => {
         if (originalData) this.issueTypeMap[issueTypeId] = originalData;
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
         this.error = error?.message || "Failed to update issue type";
       });
       throw error;
@@ -186,10 +197,12 @@ export class IssueTypeStore implements IIssueTypeStore {
       });
 
       await this.issueTypeService.deleteIssueType(workspaceSlug, issueTypeId);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
       // Rollback on error
       runInAction(() => {
         if (originalData) this.issueTypeMap[issueTypeId] = originalData;
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
         this.error = error?.message || "Failed to delete issue type";
       });
       throw error;
@@ -211,8 +224,10 @@ export class IssueTypeStore implements IIssueTypeStore {
       });
 
       return projectIssueType;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
       runInAction(() => {
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
         this.error = error?.message || "Failed to link issue type to project";
       });
       throw error;
@@ -232,10 +247,12 @@ export class IssueTypeStore implements IIssueTypeStore {
       });
 
       await this.issueTypeService.unlinkProjectIssueType(workspaceSlug, projectId, projectIssueTypeId);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
       // Rollback on error
       runInAction(() => {
         if (originalData) this.projectIssueTypeMap[projectIssueTypeId] = originalData;
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
         this.error = error?.message || "Failed to unlink issue type from project";
       });
       throw error;
@@ -247,7 +264,7 @@ export class IssueTypeStore implements IIssueTypeStore {
   // ============================================================
 
   get getWorkspaceIssueTypes() {
-    return computedFn((workspaceSlug: string): TIssueType[] => {
+    return computedFn((_workspaceSlug: string): TIssueType[] => {
       // Filter issue types by workspace based on the workspace slug stored in the rootStore
       // For now, we return all cached issue types (workspace filtering is implicit via fetchIssueTypes)
       return Object.values(this.issueTypeMap);
@@ -255,10 +272,9 @@ export class IssueTypeStore implements IIssueTypeStore {
   }
 
   get getProjectIssueTypes() {
-    return computedFn((workspaceSlug: string, projectId: string): TProjectIssueType[] => {
-      // Filter by project ID — in a multi-project scenario, you would filter here
-      // For now, return all cached project issue types
-      return Object.values(this.projectIssueTypeMap);
+    return computedFn((_workspaceSlug: string, projectId: string): TProjectIssueType[] => {
+      // Filter project issue types by project ID
+      return Object.values(this.projectIssueTypeMap).filter((pit) => pit.project_id === projectId);
     });
   }
 
@@ -269,7 +285,7 @@ export class IssueTypeStore implements IIssueTypeStore {
   }
 
   get getDefaultIssueType() {
-    return computedFn((workspaceSlug: string): TIssueType | undefined => {
+    return computedFn((_workspaceSlug: string): TIssueType | undefined => {
       return Object.values(this.issueTypeMap).find((it) => it.is_default);
     });
   }

@@ -50,7 +50,8 @@ export const IssueTypeSwitcher = observer(function IssueTypeSwitcher(props: TIss
       const updateData: Partial<TIssue> = {
         type_id: newTypeId,
       };
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-explicit-any
+      // type_id is an HW extension not yet in the core TIssue type
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-argument
       await updateIssue(workspaceSlug, issue.project_id, issueId, updateData as any);
     } catch (error) {
       console.error("Failed to update issue type:", error);

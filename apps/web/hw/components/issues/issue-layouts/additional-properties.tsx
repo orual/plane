@@ -31,9 +31,9 @@ export const WorkItemLayoutAdditionalProperties = observer(function WorkItemLayo
   if (!issueType) return null;
 
   return (
-    <div className="flex items-center gap-1.5 px-2 py-1 bg-gray-100 rounded-full">
+    <div className="flex items-center gap-1.5 px-2 py-1 bg-layer-2-hover rounded-full">
       <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: issueType.logo_props.color }} />
-      <span className="text-xs font-medium text-gray-700">{issueType.name}</span>
+      <span className="text-xs font-medium text-text-color-secondary">{issueType.name}</span>
     </div>
   );
 });

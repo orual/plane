@@ -49,7 +49,7 @@ export const FilterIssueTypes = observer(function FilterIssueTypes(props: Props)
       <div className="flex items-center justify-center h-20 px-4">
         <button
           onClick={() => setPreviewEnabled(true)}
-          className="text-sm text-blue-500 hover:text-blue-600"
+          className="text-sm text-text-color-accent-primary hover:text-text-color-accent-primary"
           type="button"
         >
           Show filters
@@ -61,10 +61,10 @@ export const FilterIssueTypes = observer(function FilterIssueTypes(props: Props)
   return (
     <div className="space-y-3 p-4">
       <div className="flex items-center gap-2">
-        <h4 className="text-sm font-medium text-gray-900">Issue types</h4>
+        <h4 className="text-sm font-medium text-text-color-primary">Issue types</h4>
         <button
           onClick={() => setPreviewEnabled(false)}
-          className="ml-auto text-xs text-gray-500 hover:text-gray-700"
+          className="ml-auto text-xs text-text-color-tertiary"
           type="button"
         >
           Hide
@@ -72,18 +72,21 @@ export const FilterIssueTypes = observer(function FilterIssueTypes(props: Props)
       </div>
 
       {filteredIssueTypes.length === 0 ? (
-        <p className="text-xs text-gray-500">No issue types found</p>
+        <p className="text-xs text-text-color-tertiary">No issue types found</p>
       ) : (
         <div className="space-y-2">
           {filteredIssueTypes.map((issueType) => (
-            <div key={issueType.id} className="flex items-center gap-2 cursor-pointer hover:bg-gray-50 p-2 rounded">
+            <div
+              key={issueType.id}
+              className="flex items-center gap-2 cursor-pointer hover:bg-layer-2-hover p-2 rounded"
+            >
               <Checkbox
                 checked={appliedFilters?.includes(issueType.id) ?? false}
                 onChange={() => handleUpdate(issueType.id)}
               />
               <div className="flex items-center gap-2 flex-1">
                 <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: issueType.logo_props.color }} />
-                <span className="text-sm text-gray-700">{issueType.name}</span>
+                <span className="text-sm text-text-color-secondary">{issueType.name}</span>
               </div>
             </div>
           ))}

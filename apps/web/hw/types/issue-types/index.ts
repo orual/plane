@@ -36,10 +36,6 @@ export type TProjectIssueType = {
   updated_at: string;
 };
 
-export type TIssueTypeResponse = TIssueType;
-
-export type TProjectIssueTypeResponse = TProjectIssueType;
-
 export type TIssueTypeListResponse = TIssueType[];
 
 export type TProjectIssueTypeListResponse = TProjectIssueType[];
