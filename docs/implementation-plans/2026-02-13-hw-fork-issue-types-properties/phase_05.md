@@ -1607,17 +1607,9 @@ import type { IIssuePropertyDefinition, IIssuePropertyValue } from "../../types"
 
 describe("IssuePropertyService", () => {
   let service: IssuePropertyService;
-  let mockApiClient: any;
 
   beforeEach(() => {
-    mockApiClient = {
-      get: vi.fn(),
-      post: vi.fn(),
-      patch: vi.fn(),
-      put: vi.fn(),
-      delete: vi.fn(),
-    };
-    service = new IssuePropertyService(mockApiClient);
+    service = new IssuePropertyService();
   });
 
   describe("fetchPropertyDefinitions", () => {
@@ -1632,22 +1624,23 @@ describe("IssuePropertyService", () => {
         },
       ];
 
-      mockApiClient.get.mockResolvedValue({ data: mockDefinitions });
+      const getSpy = vi.spyOn(service as any, "get").mockResolvedValue({ data: mockDefinitions });
 
       const result = await service.fetchPropertyDefinitions("test-ws");
 
       expect(result).toEqual(mockDefinitions);
-      expect(mockApiClient.get).toHaveBeenCalledWith("/workspaces/test-ws/property-definitions/");
+      expect(getSpy).toHaveBeenCalledWith("/api/workspaces/test-ws/property-definitions/");
     });
 
     it("throws error on API failure", async () => {
-      mockApiClient.get.mockRejectedValue({
+      const getSpy = vi.spyOn(service as any, "get").mockRejectedValue({
         response: { data: { error: "Not found" } },
       });
 
       await expect(service.fetchPropertyDefinitions("test-ws")).rejects.toEqual({
         error: "Not found",
       });
+      expect(getSpy).toHaveBeenCalledWith("/api/workspaces/test-ws/property-definitions/");
     });
   });
 
@@ -1664,13 +1657,13 @@ describe("IssuePropertyService", () => {
         },
       ];
 
-      mockApiClient.get.mockResolvedValue({ data: mockValues });
+      const getSpy = vi.spyOn(service as any, "get").mockResolvedValue({ data: mockValues });
 
       const result = await service.fetchIssuePropertyValues("test-ws", "proj1", "issue1");
 
       expect(result).toEqual(mockValues);
-      expect(mockApiClient.get).toHaveBeenCalledWith(
-        "/workspaces/test-ws/projects/proj1/issues/issue1/property-values/"
+      expect(getSpy).toHaveBeenCalledWith(
+        "/api/workspaces/test-ws/projects/proj1/issues/issue1/property-values/"
       );
     });
   });
@@ -1683,13 +1676,13 @@ describe("IssuePropertyService", () => {
         prop2: { id: "v2", workspace_id: "ws1", project_id: "p1", issue_id: "i1", property_id: "prop2", value: 42 },
       };
 
-      mockApiClient.put.mockResolvedValue({ data: mockResult });
+      const putSpy = vi.spyOn(service as any, "put").mockResolvedValue({ data: mockResult });
 
       const result = await service.upsertIssuePropertyValues("test-ws", "proj1", "issue1", payload);
 
       expect(result).toEqual(mockResult);
-      expect(mockApiClient.put).toHaveBeenCalledWith(
-        "/workspaces/test-ws/projects/proj1/issues/issue1/property-values/",
+      expect(putSpy).toHaveBeenCalledWith(
+        "/api/workspaces/test-ws/projects/proj1/issues/issue1/property-values/",
         payload
       );
     });
@@ -1719,7 +1712,10 @@ describe("IssuePropertyStore", () => {
       fetchIssuePropertyValues: vi.fn(),
       upsertIssuePropertyValues: vi.fn(),
     };
-    store = new IssuePropertyStore(mockService);
+    vi.mock("../../services/issue-property.service", () => ({
+      IssuePropertyService: vi.fn().mockImplementation(() => mockService),
+    }));
+    store = new IssuePropertyStore({} as any);
   });
 
   describe("definitions management", () => {
