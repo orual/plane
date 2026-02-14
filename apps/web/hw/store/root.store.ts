@@ -8,13 +8,17 @@
 import { CoreRootStore } from "@/store/root.store";
 import type { ITimelineStore } from "./timeline";
 import { TimeLineStore } from "./timeline";
+import { IssueTypeStore  } from "@/plane-web/store/issue-type.store";
+import type {IIssueTypeStore} from "@/plane-web/store/issue-type.store";
 
 export class RootStore extends CoreRootStore {
   timelineStore: ITimelineStore;
+  issueTypeStore: IIssueTypeStore;
 
   constructor() {
     super();
 
     this.timelineStore = new TimeLineStore(this);
+    this.issueTypeStore = new IssueTypeStore(this);
   }
 }
