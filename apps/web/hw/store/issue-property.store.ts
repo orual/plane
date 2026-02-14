@@ -43,7 +43,9 @@ export interface IIssuePropertyStore {
  */
 export class IssuePropertyStore implements IIssuePropertyStore {
   isLoading = false;
-  error: string | null = null;
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  error: any = null;
   definitionsMap = new Map<string, IIssuePropertyDefinition>();
   valuesMap = new Map<string, Map<string, IIssuePropertyValueDetail>>();
 
@@ -110,10 +112,12 @@ export class IssuePropertyStore implements IIssuePropertyStore {
         this.isLoading = false;
       });
     } catch (error: unknown) {
+       
       runInAction(() => {
         if (error instanceof Error) {
           this.error = error.message;
         } else if (error && typeof error === "object" && "message" in error) {
+           
           this.error = String((error as { message: unknown }).message) || "Failed to fetch property definitions";
         } else {
           this.error = "Failed to fetch property definitions";
@@ -130,6 +134,7 @@ export class IssuePropertyStore implements IIssuePropertyStore {
     try {
       this.isLoading = true;
       this.error = null;
+       
       const values = await this.service.fetchIssuePropertyValues(workspaceSlug, projectId, issueId);
       runInAction(() => {
         const valueMap = new Map<string, IIssuePropertyValueDetail>();
@@ -140,10 +145,12 @@ export class IssuePropertyStore implements IIssuePropertyStore {
         this.isLoading = false;
       });
     } catch (error: unknown) {
+       
       runInAction(() => {
         if (error instanceof Error) {
           this.error = error.message;
         } else if (error && typeof error === "object" && "message" in error) {
+           
           this.error = String((error as { message: unknown }).message) || "Failed to fetch property values";
         } else {
           this.error = "Failed to fetch property values";
@@ -165,6 +172,7 @@ export class IssuePropertyStore implements IIssuePropertyStore {
     try {
       this.isLoading = true;
       this.error = null;
+       
       const results = await this.service.upsertIssuePropertyValues(workspaceSlug, projectId, issueId, items);
       runInAction(() => {
         if (!this.valuesMap.has(issueId)) {
@@ -177,10 +185,12 @@ export class IssuePropertyStore implements IIssuePropertyStore {
         this.isLoading = false;
       });
     } catch (error: unknown) {
+       
       runInAction(() => {
         if (error instanceof Error) {
           this.error = error.message;
         } else if (error && typeof error === "object" && "message" in error) {
+           
           this.error = String((error as { message: unknown }).message) || "Failed to upsert property values";
         } else {
           this.error = "Failed to upsert property values";
