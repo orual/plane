@@ -3,8 +3,9 @@
 # See the LICENSE file for details.
 
 from rest_framework.response import Response
-from rest_framework import status
+from rest_framework import status, serializers
 from rest_framework.decorators import action
+from django.db import IntegrityError
 
 # Module imports
 from plane.app.views import BaseViewSet
@@ -14,6 +15,7 @@ from plane.hw.serializers import (
     PropertyDefinitionSerializer,
     IssuePropertyValueSerializer,
     IssuePropertyValueDetailSerializer,
+    validate_property_value,
 )
 
 
@@ -151,15 +153,28 @@ class IssuePropertyValueViewSet(BaseViewSet):
                 continue
 
             try:
+                # Look up property definition to ensure it exists and belongs to this workspace
+                prop_def = IssuePropertyDefinition.objects.get(
+                    id=prop_def_id, workspace=workspace
+                )
+
+                # Validate the value against the property definition type
+                validate_property_value(value, prop_def)
+
+                # Now perform the upsert
                 prop_value, created = IssuePropertyValue.objects.update_or_create(
                     issue=issue,
-                    property_definition_id=prop_def_id,
+                    property_definition=prop_def,
                     defaults={"value": value, "workspace": workspace},
                 )
                 serializer = IssuePropertyValueDetailSerializer(prop_value)
                 results.append(serializer.data)
-            except Exception as e:
-                errors.append(f"Item {idx}: {str(e)}")
+            except IssuePropertyDefinition.DoesNotExist:
+                errors.append(f"Item {idx}: Property definition not found.")
+            except serializers.ValidationError as e:
+                errors.append(f"Item {idx}: {str(e.detail[0] if e.detail else e)}")
+            except IntegrityError as e:
+                errors.append(f"Item {idx}: Database integrity error - {str(e)}")
 
         if errors:
             return Response(
