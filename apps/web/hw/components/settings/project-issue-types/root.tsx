@@ -6,6 +6,7 @@
 
 import { useEffect, useState } from "react";
 import { observer } from "mobx-react";
+import { useTranslation } from "@plane/i18n";
 import { Loader } from "@plane/ui";
 import { useRootStore } from "@/hooks/store/use-root-store";
 import type { TProjectIssueType } from "@/plane-web/types/issue-types";
@@ -23,6 +24,7 @@ export const ProjectIssueTypesRoot = observer(function ProjectIssueTypesRoot({
   canPerformActions,
 }: Props) {
   const { issueTypeStore } = useRootStore();
+  const { t } = useTranslation();
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -59,8 +61,8 @@ export const ProjectIssueTypesRoot = observer(function ProjectIssueTypesRoot({
         </Loader>
       ) : workspaceIssueTypes.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-10 text-center">
-          <p className="text-sm text-custom-text-300">No issue types have been created for this workspace yet.</p>
-          <p className="text-xs text-custom-text-400 mt-1">Create issue types in workspace settings.</p>
+          <p className="text-sm text-custom-text-300">{t("project_settings.issue_types.empty_title")}</p>
+          <p className="text-xs text-custom-text-400 mt-1">{t("project_settings.issue_types.empty_description")}</p>
         </div>
       ) : (
         <div className="rounded-md border border-custom-border-100">

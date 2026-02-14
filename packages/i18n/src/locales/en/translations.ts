@@ -1926,6 +1926,11 @@ export default {
     issue_types: {
       title: "Issue types",
       description: "Manage which issue types are available in this project.",
+      link_error: "Failed to link issue type to project.",
+      unlink_error: "Failed to unlink issue type from project.",
+      default_badge: "Default",
+      empty_title: "No issue types have been created for this workspace yet.",
+      empty_description: "Create issue types in workspace settings.",
     },
   },
   project_cycles: {

@@ -6,6 +6,7 @@
 
 import { useState } from "react";
 import { observer } from "mobx-react";
+import { useTranslation } from "@plane/i18n";
 import { ToggleSwitch } from "@plane/ui";
 import { setToast, TOAST_TYPE } from "@plane/propel/toast";
 import { useRootStore } from "@/hooks/store/use-root-store";
@@ -27,6 +28,7 @@ export const TypeLinkItem = observer(function TypeLinkItem({
   canPerformActions,
 }: Props) {
   const { issueTypeStore } = useRootStore();
+  const { t } = useTranslation();
   const [isLoading, setIsLoading] = useState(false);
 
   const handleToggle = async (newValue: boolean) => {
@@ -40,8 +42,10 @@ export const TypeLinkItem = observer(function TypeLinkItem({
     } catch (_error) {
       setToast({
         type: TOAST_TYPE.ERROR,
-        title: "Error!",
-        message: newValue ? "Failed to link issue type to project." : "Failed to unlink issue type from project.",
+        title: t("error"),
+        message: newValue
+          ? t("project_settings.issue_types.link_error")
+          : t("project_settings.issue_types.unlink_error"),
       });
     } finally {
       setIsLoading(false);
@@ -66,7 +70,7 @@ export const TypeLinkItem = observer(function TypeLinkItem({
             className="rounded bg-custom-primary-100/20 px-2 py-0.5 text-xs font-medium text-custom-primary-100"
             data-test="project-issue-type-default"
           >
-            Default
+            {t("project_settings.issue_types.default_badge")}
           </span>
         )}
         <div data-test="project-issue-type-toggle">
