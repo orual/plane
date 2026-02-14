@@ -16,6 +16,25 @@ import type { IIssuePropertyDefinition } from "../types";
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type MockRootStore = any;
 
+/**
+ * Create a mock property definition with optional overrides.
+ */
+function createMockDefinition(overrides?: Partial<IIssuePropertyDefinition>): IIssuePropertyDefinition {
+  return {
+    id: "def-1",
+    workspace_id: "workspace-1",
+    issue_type_id: null,
+    name: "Priority",
+    property_type: "select",
+    options: ["Low", "Medium", "High"],
+    is_required: false,
+    sort_order: 0,
+    created_at: "2024-01-01T00:00:00Z",
+    updated_at: "2024-01-01T00:00:00Z",
+    ...overrides,
+  };
+}
+
 describe("IssuePropertyStore", () => {
   let store: IssuePropertyStore;
   let mockRootStore: MockRootStore;
@@ -41,18 +60,7 @@ describe("IssuePropertyStore", () => {
 
   describe("createDefinition", () => {
     it("should add a new property definition to definitionsMap", async () => {
-      const newDefinition: IIssuePropertyDefinition = {
-        id: "def-1",
-        workspace_id: "workspace-1",
-        issue_type_id: null,
-        name: "Priority",
-        property_type: "select",
-        options: ["Low", "Medium", "High"],
-        is_required: false,
-        sort_order: 0,
-        created_at: "2024-01-01T00:00:00Z",
-        updated_at: "2024-01-01T00:00:00Z",
-      };
+      const newDefinition = createMockDefinition();
 
       vi.spyOn(IssuePropertyService.prototype, "createPropertyDefinition").mockResolvedValueOnce(newDefinition);
 
@@ -74,49 +82,29 @@ describe("IssuePropertyStore", () => {
 
   describe("updateDefinition", () => {
     it("should perform optimistic update and persist server response", async () => {
-      const originalDef: IIssuePropertyDefinition = {
-        id: "def-1",
-        workspace_id: "workspace-1",
-        issue_type_id: null,
-        name: "Priority",
-        property_type: "select",
-        options: ["Low", "Medium", "High"],
-        is_required: false,
-        sort_order: 0,
-        created_at: "2024-01-01T00:00:00Z",
-        updated_at: "2024-01-01T00:00:00Z",
-      };
+      const originalDef = createMockDefinition();
 
-      const updatedDef: IIssuePropertyDefinition = {
-        ...originalDef,
+      const updatedDef = createMockDefinition({
         name: "Urgency",
         options: ["Low", "High"],
         updated_at: "2024-01-02T00:00:00Z",
-      };
+      });
 
       store.definitionsMap.set("def-1", originalDef);
 
       vi.spyOn(IssuePropertyService.prototype, "updatePropertyDefinition").mockResolvedValueOnce(updatedDef);
 
-      const result = await store.updateDefinition("test-workspace", "def-1", { name: "Urgency", options: ["Low", "High"] });
+      const result = await store.updateDefinition("test-workspace", "def-1", {
+        name: "Urgency",
+        options: ["Low", "High"],
+      });
 
       expect(result).toEqual(updatedDef);
       expect(store.definitionsMap.get("def-1")).toEqual(updatedDef);
     });
 
     it("should rollback optimistic update on error", async () => {
-      const originalDef: IIssuePropertyDefinition = {
-        id: "def-1",
-        workspace_id: "workspace-1",
-        issue_type_id: null,
-        name: "Priority",
-        property_type: "select",
-        options: ["Low", "Medium", "High"],
-        is_required: false,
-        sort_order: 0,
-        created_at: "2024-01-01T00:00:00Z",
-        updated_at: "2024-01-01T00:00:00Z",
-      };
+      const originalDef = createMockDefinition();
 
       store.definitionsMap.set("def-1", originalDef);
 
@@ -131,18 +119,7 @@ describe("IssuePropertyStore", () => {
 
   describe("deleteDefinition", () => {
     it("should remove a property definition from definitionsMap", async () => {
-      const definition: IIssuePropertyDefinition = {
-        id: "def-1",
-        workspace_id: "workspace-1",
-        issue_type_id: null,
-        name: "Priority",
-        property_type: "select",
-        options: ["Low", "Medium", "High"],
-        is_required: false,
-        sort_order: 0,
-        created_at: "2024-01-01T00:00:00Z",
-        updated_at: "2024-01-01T00:00:00Z",
-      };
+      const definition = createMockDefinition();
 
       // Populate store
       store.definitionsMap.set("def-1", definition);
@@ -155,18 +132,7 @@ describe("IssuePropertyStore", () => {
     });
 
     it("should rollback deletion on error", async () => {
-      const definition: IIssuePropertyDefinition = {
-        id: "def-1",
-        workspace_id: "workspace-1",
-        issue_type_id: null,
-        name: "Priority",
-        property_type: "select",
-        options: ["Low", "Medium", "High"],
-        is_required: false,
-        sort_order: 0,
-        created_at: "2024-01-01T00:00:00Z",
-        updated_at: "2024-01-01T00:00:00Z",
-      };
+      const definition = createMockDefinition();
 
       store.definitionsMap.set("def-1", definition);
 

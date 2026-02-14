@@ -15,6 +15,7 @@ import {
   WORKSPACE_SETTINGS_CATEGORY,
 } from "@plane/constants";
 import { EUserWorkspaceRoles } from "@plane/types";
+import type { TWorkspaceSettingsItem } from "@plane/types";
 import { useTranslation } from "@plane/i18n";
 import { joinUrlPath } from "@plane/utils";
 // components
@@ -24,22 +25,27 @@ import { useUserPermissions } from "@/hooks/store/user";
 // local imports
 import { WORKSPACE_SETTINGS_ICONS } from "./item-icon";
 
+// Extended type to include workspace_issue_types key
+type TExtendedWorkspaceSettingsItem = Omit<TWorkspaceSettingsItem, "key"> & {
+  key: TWorkspaceSettingsItem["key"] | "workspace_issue_types";
+};
+
 // Extended workspace settings with issue types
-const EXTENDED_WORKSPACE_SETTINGS_ITEM = {
+const EXTENDED_WORKSPACE_SETTINGS_ITEM: TExtendedWorkspaceSettingsItem = {
   key: "workspace_issue_types",
   i18n_label: "workspace_settings.settings.issue_types.title",
   href: "/settings/issue-types",
   access: [EUserWorkspaceRoles.ADMIN, EUserWorkspaceRoles.MEMBER, EUserWorkspaceRoles.GUEST],
   highlight: (pathname: string, baseUrl: string) => pathname === `${baseUrl}/settings/issue-types/`,
-} as const;
+};
 
-const EXTENDED_GROUPED_WORKSPACE_SETTINGS: Record<WORKSPACE_SETTINGS_CATEGORY, any[]> = {
+const EXTENDED_GROUPED_WORKSPACE_SETTINGS: Record<WORKSPACE_SETTINGS_CATEGORY, TExtendedWorkspaceSettingsItem[]> = {
   ...GROUPED_WORKSPACE_SETTINGS,
   [WORKSPACE_SETTINGS_CATEGORY.FEATURES]: [
     ...(GROUPED_WORKSPACE_SETTINGS[WORKSPACE_SETTINGS_CATEGORY.FEATURES] || []),
     EXTENDED_WORKSPACE_SETTINGS_ITEM,
   ],
-};
+} as const;
 
 export const WorkspaceSettingsSidebarItemCategories = observer(function WorkspaceSettingsSidebarItemCategories() {
   // params

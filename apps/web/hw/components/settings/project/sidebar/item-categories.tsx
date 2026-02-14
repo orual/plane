@@ -15,6 +15,7 @@ import {
   PROJECT_SETTINGS_CATEGORY,
 } from "@plane/constants";
 import { EUserProjectRoles } from "@plane/types";
+import type { TProjectSettingsItem } from "@plane/types";
 import { useTranslation } from "@plane/i18n";
 // components
 import { SettingsSidebarItem } from "@/components/settings/sidebar/item";
@@ -23,23 +24,27 @@ import { useUserPermissions } from "@/hooks/store/user";
 // local imports
 import { PROJECT_SETTINGS_ICONS } from "./item-icon";
 
+// Extended type to include issue_types key
+type TExtendedProjectSettingsItem = Omit<TProjectSettingsItem, "key"> & {
+  key: TProjectSettingsItem["key"] | "issue_types";
+};
+
 // Extended project settings with issue types
-const EXTENDED_PROJECT_SETTINGS_ITEM = {
+const EXTENDED_PROJECT_SETTINGS_ITEM: TExtendedProjectSettingsItem = {
   key: "issue_types",
   i18n_label: "project_settings.issue_types.title",
   href: "/issue-types",
   access: [EUserProjectRoles.ADMIN, EUserProjectRoles.MEMBER, EUserProjectRoles.GUEST],
   highlight: (pathname: string, baseUrl: string) => pathname === `${baseUrl}/issue-types/`,
-} as const;
+};
 
-const EXTENDED_GROUPED_PROJECT_SETTINGS: Record<PROJECT_SETTINGS_CATEGORY, any[]> = {
+const EXTENDED_GROUPED_PROJECT_SETTINGS: Record<PROJECT_SETTINGS_CATEGORY, TExtendedProjectSettingsItem[]> = {
   ...GROUPED_PROJECT_SETTINGS,
   [PROJECT_SETTINGS_CATEGORY.FEATURES]: [
     ...(GROUPED_PROJECT_SETTINGS[PROJECT_SETTINGS_CATEGORY.FEATURES] || []),
     EXTENDED_PROJECT_SETTINGS_ITEM,
   ],
-};
-
+} as const;
 
 type Props = {
   projectId: string;
@@ -73,9 +78,9 @@ export const ProjectSettingsSidebarItemCategories = observer(function ProjectSet
             <div className="flex flex-col">
               {accessibleItems.map((item) => {
                 const isItemActive =
-                  item.href === "/settings"
-                    ? pathname === `/${workspaceSlug}${item.href}/`
-                    : new RegExp(`^/${workspaceSlug}${item.href}/`).test(pathname);
+                  item.href === ""
+                    ? pathname === `/${workspaceSlug}/settings/projects/${projectId}${item.href}/`
+                    : new RegExp(`^/${workspaceSlug}/settings/projects/${projectId}${item.href}/`).test(pathname);
 
                 return (
                   <SettingsSidebarItem

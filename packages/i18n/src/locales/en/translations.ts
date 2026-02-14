@@ -1597,6 +1597,9 @@ export default {
           },
         },
       },
+      issue_types: {
+        title: "Issue types",
+      },
     },
     empty_state: {
       api_tokens: {
@@ -1885,6 +1888,9 @@ export default {
         toggle_title: "Enable intake",
         toggle_description: "Let project members create in app intake requests.",
       },
+    },
+    issue_types: {
+      title: "Issue types",
     },
   },
   project_cycles: {
