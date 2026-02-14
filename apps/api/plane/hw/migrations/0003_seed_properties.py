@@ -149,7 +149,7 @@ def seed_properties(apps, schema_editor):
 
 
 def reverse_seed(apps, schema_editor):
-    """Remove seeded properties (only those with default names)."""
+    """Remove seeded properties (only those with default names and no creator)."""
     IssuePropertyDefinition = apps.get_model("hw", "IssuePropertyDefinition")
 
     default_names = set()
@@ -157,7 +157,8 @@ def reverse_seed(apps, schema_editor):
         for prop_data in props:
             default_names.add(prop_data["name"])
 
-    IssuePropertyDefinition.objects.filter(name__in=default_names).delete()
+    # Only delete seeded records (created_by is null) to preserve user-created records
+    IssuePropertyDefinition.objects.filter(name__in=default_names, created_by__isnull=True).delete()
 
 
 class Migration(migrations.Migration):
