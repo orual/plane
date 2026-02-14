@@ -38,7 +38,7 @@
             uv
             ruff
 
-            # PostgreSQL client (provides pg_config for psycopg-c compilation)
+            # PostgreSQL client and dev headers (libpq headers and pkg-config metadata for psycopg-c)
             postgresql
             postgresql.dev
 
