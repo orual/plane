@@ -3,3 +3,4 @@
 # See the LICENSE file for details.
 
 from .issue_type import IssueTypeViewSet, ProjectIssueTypeViewSet
+from .issue_property import PropertyDefinitionViewSet, IssuePropertyValueViewSet
