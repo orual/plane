@@ -43,9 +43,8 @@ if settings.DEBUG:
     from plane.hw.views import proxy_minio_upload
 
     urlpatterns += [
-        re_path(r"^uploads/(?P<path>(?!.*\.\.)[\w\-./]+$", proxy_minio_upload),
-        re_path(r"^uploads/$", proxy_minio_upload),
-    ]
+        re_path(r"^uploads/(?P<path>(?!.*\.\.)[\w\-./]+)$", proxy_minio_upload),
+        re_path(r"^uploads$", proxy_minio_upload),
     ]
     try:
         import debug_toolbar
