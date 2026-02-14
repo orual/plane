@@ -60,7 +60,6 @@ export class IssueTypeService extends APIService {
     return this.delete(`/api/workspaces/${workspaceSlug}/issue-types/${issueTypeId}/`)
       .then(() => undefined)
       .catch((error) => {
-         
         throw error?.response?.data;
       });
   }
@@ -105,7 +104,6 @@ export class IssueTypeService extends APIService {
     return this.delete(`/api/workspaces/${workspaceSlug}/projects/${projectId}/issue-types/${projectIssueTypeId}/`)
       .then(() => undefined)
       .catch((error) => {
-         
         throw error?.response?.data;
       });
   }

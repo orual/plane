@@ -47,11 +47,7 @@ export const FilterIssueTypes = observer(function FilterIssueTypes(props: Props)
   if (!previewEnabled) {
     return (
       <div className="flex items-center justify-center h-20 px-4">
-        <button
-          onClick={() => setPreviewEnabled(true)}
-          className="text-sm text-text-color-accent-primary hover:text-text-color-accent-primary"
-          type="button"
-        >
+        <button onClick={() => setPreviewEnabled(true)} className="text-sm text-accent-primary" type="button">
           Show filters
         </button>
       </div>
@@ -61,24 +57,20 @@ export const FilterIssueTypes = observer(function FilterIssueTypes(props: Props)
   return (
     <div className="space-y-3 p-4">
       <div className="flex items-center gap-2">
-        <h4 className="text-sm font-medium text-text-color-primary">Issue types</h4>
-        <button
-          onClick={() => setPreviewEnabled(false)}
-          className="ml-auto text-xs text-text-color-tertiary"
-          type="button"
-        >
+        <h4 className="text-sm font-medium text-primary">Issue types</h4>
+        <button onClick={() => setPreviewEnabled(false)} className="ml-auto text-xs text-tertiary" type="button">
           Hide
         </button>
       </div>
 
       {filteredIssueTypes.length === 0 ? (
-        <p className="text-xs text-text-color-tertiary">No issue types found</p>
+        <p className="text-xs text-tertiary">No issue types found</p>
       ) : (
         <div className="space-y-2">
           {filteredIssueTypes.map((issueType) => (
             <div
               key={issueType.id}
-              className="flex items-center gap-2 cursor-pointer hover:bg-layer-2-hover p-2 rounded"
+              className="flex items-center gap-2 cursor-pointer hover:bg-layer-1-hover p-2 rounded"
             >
               <Checkbox
                 checked={appliedFilters?.includes(issueType.id) ?? false}
@@ -86,7 +78,7 @@ export const FilterIssueTypes = observer(function FilterIssueTypes(props: Props)
               />
               <div className="flex items-center gap-2 flex-1">
                 <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: issueType.logo_props.color }} />
-                <span className="text-sm text-text-color-secondary">{issueType.name}</span>
+                <span className="text-sm text-secondary">{issueType.name}</span>
               </div>
             </div>
           ))}
