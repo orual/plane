@@ -4,7 +4,7 @@
 
 import { test as base, Page } from "@playwright/test";
 import { authenticateAndGetToken } from "../helpers/auth";
-import { createWorkspace, createProject, createIssueType, getProjectStates } from "../helpers/api";
+import { createWorkspace, createProject } from "../helpers/api";
 import { randomUUID } from "crypto";
 
 interface AuthSession {
@@ -20,8 +20,6 @@ interface TestFixtures {
   testEmail: string;
   workspaceSlug: string;
   projectId: string;
-  issueTypeId: string;
-  stateId: string;
 }
 
 export const test = base.extend<TestFixtures>({
@@ -64,29 +62,6 @@ export const test = base.extend<TestFixtures>({
     });
 
     await use(project.id);
-  },
-
-  issueTypeId: async ({ request, authToken, workspaceSlug }, use) => {
-    // Create an issue type in the workspace
-    const issueType = await createIssueType(request, authToken, workspaceSlug, {
-      name: `Test Issue Type ${Math.random().toString(36).substring(7)}`,
-      description: "Test issue type for E2E tests",
-      logo_props: { color: "#3B82F6" },
-    });
-
-    await use(issueType.id);
-  },
-
-  stateId: async ({ request, authToken, workspaceSlug, projectId }, use) => {
-    // Get the first available state (usually "Backlog")
-    const states = await getProjectStates(request, authToken, workspaceSlug, projectId);
-    const state = states[0];
-
-    if (!state) {
-      throw new Error("No states found for project");
-    }
-
-    await use(state.id);
   },
 });
 

@@ -22,23 +22,6 @@ interface IssueTypeCreatePayload {
   };
 }
 
-interface IssueCreatePayload {
-  name: string;
-  description?: string;
-  type_id?: string;
-  priority?: string;
-  state_id?: string;
-}
-
-interface IssuePropertyCreatePayload {
-  name: string;
-  field_type: string;
-  options?: Array<{
-    label: string;
-    color: string;
-  }>;
-}
-
 interface PropertyDefinitionCreatePayload {
   name: string;
   property_type: string;
@@ -55,7 +38,7 @@ export const API_BASE_URL = process.env.API_BASE_URL || "http://localhost:8000";
 export async function createWorkspace(request: APIRequestContext, token: string, payload: WorkspaceCreatePayload) {
   const response = await request.post(`${API_BASE_URL}/api/workspaces/`, {
     headers: {
-      Cookie: `sessionid=${token}`,
+      Cookie: `session-id=${token}`,
       "Content-Type": "application/json",
     },
     data: payload,
@@ -79,7 +62,7 @@ export async function createProject(
 ) {
   const response = await request.post(`${API_BASE_URL}/api/workspaces/${workspaceSlug}/projects/`, {
     headers: {
-      Cookie: `sessionid=${token}`,
+      Cookie: `session-id=${token}`,
       "Content-Type": "application/json",
     },
     data: {
@@ -106,7 +89,7 @@ export async function createIssueType(
 ) {
   const response = await request.post(`${API_BASE_URL}/api/workspaces/${workspaceSlug}/issue-types/`, {
     headers: {
-      Cookie: `sessionid=${token}`,
+      Cookie: `session-id=${token}`,
       "Content-Type": "application/json",
     },
     data: {
@@ -124,128 +107,6 @@ export async function createIssueType(
 }
 
 /**
- * Link an issue type to a project via the API.
- */
-export async function linkIssueTypeToProject(
-  request: APIRequestContext,
-  token: string,
-  workspaceSlug: string,
-  projectId: string,
-  issueTypeId: string
-) {
-  const response = await request.post(
-    `${API_BASE_URL}/api/workspaces/${workspaceSlug}/projects/${projectId}/issue-types/`,
-    {
-      headers: {
-        Cookie: `sessionid=${token}`,
-        "Content-Type": "application/json",
-      },
-      data: {
-        issue_type_id: issueTypeId,
-      },
-    }
-  );
-
-  if (!response.ok()) {
-    throw new Error(`Failed to link issue type: ${response.status()} ${await response.text()}`);
-  }
-
-  return response.json();
-}
-
-/**
- * Get issue states for a project via the API.
- */
-export async function getProjectStates(
-  request: APIRequestContext,
-  token: string,
-  workspaceSlug: string,
-  projectId: string
-) {
-  const response = await request.get(`${API_BASE_URL}/api/workspaces/${workspaceSlug}/projects/${projectId}/states/`, {
-    headers: {
-      Cookie: `sessionid=${token}`,
-    },
-  });
-
-  if (!response.ok()) {
-    throw new Error(`Failed to fetch states: ${response.status()} ${await response.text()}`);
-  }
-
-  return response.json();
-}
-
-/**
- * Create an issue via the API.
- */
-export async function createIssue(
-  request: APIRequestContext,
-  token: string,
-  workspaceSlug: string,
-  projectId: string,
-  payload: IssueCreatePayload
-) {
-  const response = await request.post(`${API_BASE_URL}/api/workspaces/${workspaceSlug}/projects/${projectId}/issues/`, {
-    headers: {
-      Cookie: `sessionid=${token}`,
-      "Content-Type": "application/json",
-    },
-    data: payload,
-  });
-
-  if (!response.ok()) {
-    throw new Error(`Failed to create issue: ${response.status()} ${await response.text()}`);
-  }
-
-  return response.json();
-}
-
-/**
- * Create an issue property (custom field) via the API.
- */
-export async function createIssueProperty(
-  request: APIRequestContext,
-  token: string,
-  workspaceSlug: string,
-  projectId: string,
-  payload: IssuePropertyCreatePayload
-) {
-  const response = await request.post(
-    `${API_BASE_URL}/api/workspaces/${workspaceSlug}/projects/${projectId}/issue-properties/`,
-    {
-      headers: {
-        Cookie: `sessionid=${token}`,
-        "Content-Type": "application/json",
-      },
-      data: payload,
-    }
-  );
-
-  if (!response.ok()) {
-    throw new Error(`Failed to create issue property: ${response.status()} ${await response.text()}`);
-  }
-
-  return response.json();
-}
-
-/**
- * Get all workspaces for the authenticated user via the API.
- */
-export async function getWorkspaces(request: APIRequestContext, token: string) {
-  const response = await request.get(`${API_BASE_URL}/api/workspaces/`, {
-    headers: {
-      Cookie: `sessionid=${token}`,
-    },
-  });
-
-  if (!response.ok()) {
-    throw new Error(`Failed to fetch workspaces: ${response.status()} ${await response.text()}`);
-  }
-
-  return response.json();
-}
-
-/**
  * Create a property definition via the API.
  * Property definitions are workspace-scoped at /api/workspaces/{slug}/property-definitions/.
  */
@@ -257,7 +118,7 @@ export async function createPropertyDefinition(
 ) {
   const response = await request.post(`${API_BASE_URL}/api/workspaces/${workspaceSlug}/property-definitions/`, {
     headers: {
-      Cookie: `sessionid=${token}`,
+      Cookie: `session-id=${token}`,
       "Content-Type": "application/json",
     },
     data: payload,
@@ -278,7 +139,7 @@ export async function createPropertyDefinition(
 export async function getWorkspaceIssueTypes(request: APIRequestContext, token: string, workspaceSlug: string) {
   const response = await request.get(`${API_BASE_URL}/api/workspaces/${workspaceSlug}/issue-types/`, {
     headers: {
-      Cookie: `sessionid=${token}`,
+      Cookie: `session-id=${token}`,
     },
   });
 
@@ -297,7 +158,7 @@ export async function getWorkspaceIssueTypes(request: APIRequestContext, token: 
 export async function getPropertyDefinitions(request: APIRequestContext, token: string, workspaceSlug: string) {
   const response = await request.get(`${API_BASE_URL}/api/workspaces/${workspaceSlug}/property-definitions/`, {
     headers: {
-      Cookie: `sessionid=${token}`,
+      Cookie: `session-id=${token}`,
     },
   });
 
@@ -307,30 +168,4 @@ export async function getPropertyDefinitions(request: APIRequestContext, token: 
 
   const data = await response.json();
   return Array.isArray(data) ? data : (data.results ?? []);
-}
-
-/**
- * Get a single issue via the API (for verification of type_id).
- */
-export async function getIssue(
-  request: APIRequestContext,
-  token: string,
-  workspaceSlug: string,
-  projectId: string,
-  issueId: string
-) {
-  const response = await request.get(
-    `${API_BASE_URL}/api/workspaces/${workspaceSlug}/projects/${projectId}/issues/${issueId}/`,
-    {
-      headers: {
-        Cookie: `sessionid=${token}`,
-      },
-    }
-  );
-
-  if (!response.ok()) {
-    throw new Error(`Failed to fetch issue: ${response.status()} ${await response.text()}`);
-  }
-
-  return response.json();
 }

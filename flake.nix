@@ -62,6 +62,7 @@
           PLAYWRIGHT_BROWSERS_PATH = "${pkgs.playwright-driver.browsers}";
           PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD = "1";
           PLAYWRIGHT_SKIP_VALIDATE_HOST_REQUIREMENTS = true;
+          PLAYWRIGHT_HOST_PLATFORM_OVERRIDE = "ubuntu-24.04";
 
           # uv: use Nix-provided Python, not a downloaded one
           UV_PYTHON_DOWNLOADS = "never";

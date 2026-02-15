@@ -5,11 +5,6 @@
  */
 
 import { defineConfig, devices } from "@playwright/test";
-import path from "path";
-
-const nixBrowserPath = process.env.PLAYWRIGHT_BROWSERS_PATH
-  ? path.join(process.env.PLAYWRIGHT_BROWSERS_PATH, "chromium")
-  : undefined;
 
 export default defineConfig({
   testDir: "./tests",
@@ -27,17 +22,11 @@ export default defineConfig({
     trace: "on-first-retry",
     screenshot: "only-on-failure",
     video: "retain-on-failure",
-    launchArgs: nixBrowserPath ? ["--disable-dev-shm-usage"] : undefined,
   },
   projects: [
     {
       name: "chromium",
-      use: {
-        ...devices["Desktop Chrome"],
-        executablePath: process.env.PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD ? nixBrowserPath : undefined,
-      },
+      use: { ...devices["Desktop Chrome"] },
     },
   ],
-  // Don't expect servers to be launched; they should already be running
-  webServer: undefined,
 });
