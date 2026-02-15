@@ -10,10 +10,9 @@ import { BLOCK_HEIGHT } from "@/components/gantt-chart/constants";
 import {
   calculateConnectorPath,
   getConnectorEndpoints,
-  getConnectorStyle
-  
+  getConnectorStyle,
 } from "@/plane-web/helpers/dependency-path-calculator";
-import type {BlockRect} from "@/plane-web/helpers/dependency-path-calculator";
+import type { BlockRect } from "@/plane-web/helpers/dependency-path-calculator";
 
 type ConnectorProps = {
   sourceBlock: IGanttBlock;

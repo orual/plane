@@ -5,12 +5,12 @@
  */
 
 import { observer } from "mobx-react";
+import type { TIssueRelationTypes, IGanttBlock } from "@plane/types";
+import { EIssueServiceType } from "@plane/types";
 import { useTimeLineChartStore } from "@/hooks/use-timeline-chart";
 import { useIssueDetail } from "@/hooks/store/use-issue-detail";
 import { Connector } from "./connector";
 import { filterVisibleDependencies } from "./visibility-filter";
-import type { TIssueRelationTypes, IGanttBlock } from "@plane/types";
-import { EIssueServiceType } from "@plane/types";
 
 type Props = {
   isEpic?: boolean;
@@ -37,7 +37,8 @@ export const TimelineDependencyPaths = observer(function TimelineDependencyPaths
   const issueDetailStore = useIssueDetail(isEpic ? EIssueServiceType.EPICS : EIssueServiceType.ISSUES);
 
   // Get block data from timeline store
-
+  // Timeline store interface doesn't expose blocksMap and blockIds, but they exist on the store instance.
+  // We use type casting to access these internal properties needed for dependency visualization.
   const blocksMap = (timelineStore as unknown as Record<string, unknown>).blocksMap as
     | Record<string, IGanttBlock>
     | undefined;
@@ -45,36 +46,20 @@ export const TimelineDependencyPaths = observer(function TimelineDependencyPaths
   const blockIds = (timelineStore as unknown as Record<string, unknown>).blockIds as string[] | undefined;
 
   // Get relation data from issue detail store
-
-  const relationMap = (issueDetailStore?.relation as unknown as Record<string, unknown>).relationMap as
-    | Record<string, Record<TIssueRelationTypes, string[]>>
-    | undefined;
+  // The relation store property may not be defined if the store hasn't been initialized yet.
+  const relationMap = issueDetailStore?.relation
+    ? ((issueDetailStore.relation as unknown as Record<string, unknown>).relationMap as
+        | Record<string, Record<TIssueRelationTypes, string[]>>
+        | undefined)
+    : undefined;
 
   // Early return if required data is missing
-  if (!blocksMap || !blockIds || !relationMap) {
+  if (!blocksMap || !blockIds || !issueDetailStore || !relationMap) {
     return null;
   }
 
   // Compute visible dependencies using the filtering helper
   const visibleDependencies = filterVisibleDependencies(blockIds, blocksMap, relationMap);
-
-  // If no visible dependencies, render empty SVG
-  if (visibleDependencies.length === 0) {
-    return (
-      <svg
-        className="absolute top-0 left-0 w-full h-full pointer-events-none"
-        style={{
-          overflow: "visible",
-        }}
-      >
-        <defs>
-          <marker id="dep-arrowhead" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
-            <polygon points="0 0, 8 3, 0 6" fill="currentColor" />
-          </marker>
-        </defs>
-      </svg>
-    );
-  }
 
   return (
     <svg

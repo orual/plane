@@ -5,13 +5,8 @@
  */
 
 import { describe, it, expect } from "vitest";
-import {
-  calculateConnectorPath,
-  getConnectorEndpoints,
-  getConnectorStyle
-  
-} from "./dependency-path-calculator";
-import type {BlockRect} from "./dependency-path-calculator";
+import { calculateConnectorPath, getConnectorEndpoints, getConnectorStyle } from "./dependency-path-calculator";
+import type { BlockRect } from "./dependency-path-calculator";
 
 const BLOCK_HEIGHT = 44;
 
@@ -239,14 +234,16 @@ describe("dependency-path-calculator", () => {
 
     it("should handle duplicate relation type (non-scheduling)", () => {
       const result = getConnectorStyle("duplicate");
-      // Non-scheduling types should return a default style
-      expect(result).toBeDefined();
+      // Non-scheduling types should return dashed gray style
+      expect(result.strokeDasharray).toBe("6 3");
+      expect(result.stroke).toBe("var(--color-text-quaternary)");
     });
 
     it("should handle relates_to relation type (non-scheduling)", () => {
       const result = getConnectorStyle("relates_to");
-      // Non-scheduling types should return a default style
-      expect(result).toBeDefined();
+      // Non-scheduling types should return dashed gray style
+      expect(result.strokeDasharray).toBe("6 3");
+      expect(result.stroke).toBe("var(--color-text-quaternary)");
     });
   });
 });

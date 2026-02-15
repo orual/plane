@@ -53,7 +53,9 @@ export function filterVisibleDependencies(
   const visibleDependencies: VisibleDependency[] = [];
 
   // Iterate through all blocks to find scheduling relations
-  for (const blockId of blockIds) {
+  for (let i = 0; i < blockIds.length; i++) {
+    const blockId = blockIds[i];
+    const sourceRowIndex = i;
     const blockRelations = relationMap[blockId];
     if (!blockRelations) continue;
 
@@ -63,7 +65,6 @@ export function filterVisibleDependencies(
 
       for (const relatedBlockId of relatedBlockIds) {
         // Only render if both source and target blocks are in the visible list
-        const sourceRowIndex = blockIds.indexOf(blockId);
         const targetRowIndex = blockIds.indexOf(relatedBlockId);
 
         if (sourceRowIndex === -1 || targetRowIndex === -1) continue;
