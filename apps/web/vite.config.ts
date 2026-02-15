@@ -28,8 +28,6 @@ export default defineConfig(() => ({
       "next/link": path.resolve(__dirname, "app/compat/next/link.tsx"),
       "next/navigation": path.resolve(__dirname, "app/compat/next/navigation.ts"),
       "next/script": path.resolve(__dirname, "app/compat/next/script.tsx"),
-      // HW-specific paths
-      "@/plane-web": path.resolve(__dirname, "./hw"),
     },
     dedupe: ["react", "react-dom", "@headlessui/react"],
   },

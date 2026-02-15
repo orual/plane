@@ -62,9 +62,8 @@ describe("Relation Type Expansion", () => {
       ];
 
       allRelationTypes.forEach((relType) => {
-         
         const reverse = REVERSE_RELATIONS[relType];
-         
+
         const roundtrip = REVERSE_RELATIONS[reverse as TIssueRelationTypes];
         expect(roundtrip).toBe(relType);
       });
@@ -172,7 +171,6 @@ describe("Relation Type Expansion", () => {
       ];
 
       expectedTypes.forEach((relType) => {
-         
         expect(ISSUE_RELATION_OPTIONS[relType]).toBeDefined();
       });
     });

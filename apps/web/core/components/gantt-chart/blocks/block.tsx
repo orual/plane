@@ -46,8 +46,14 @@ export const GanttChartBlock = observer(function GanttChartBlock(props: Props) {
     updateBlockDates,
   } = props;
   // store hooks
-  const { updateActiveBlockId, getBlockById, getIsCurrentDependencyDragging, currentView, previewBlockIds, hasConflict } =
-    useTimeLineChartStore();
+  const {
+    updateActiveBlockId,
+    getBlockById,
+    getIsCurrentDependencyDragging,
+    currentView,
+    previewBlockIds,
+    hasConflict,
+  } = useTimeLineChartStore();
   // refs
   const resizableRef = useRef<HTMLDivElement>(null);
 

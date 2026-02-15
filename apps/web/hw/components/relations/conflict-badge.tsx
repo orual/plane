@@ -71,18 +71,13 @@ export const ConflictBadge = observer(function ConflictBadge(props: ConflictBadg
 
   const conflicts = detectDependencyConflicts(issueId, issueDates, relationMap, getIssueDates);
 
-  // Filter to only conflicts related to this specific predecessor and relation type
-  const relevantConflicts = conflicts.filter(
-    (conflict) => conflict.predecessorIssueId === relationIssueId && conflict.relationType === relationType
-  );
-
   // If no conflict for this specific relation, render nothing
-  if (relevantConflicts.length === 0) {
+  if (conflicts.length === 0) {
     return null;
   }
 
   // Build tooltip content
-  const tooltipContent = relevantConflicts.map((conflict) => conflict.message).join("; ");
+  const tooltipContent = conflicts.map((conflict) => conflict.message).join("; ");
 
   return (
     <Tooltip tooltipContent={tooltipContent}>
