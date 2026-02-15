@@ -2,6 +2,8 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 # See the LICENSE file for details.
 
+from rest_framework import serializers
+
 from plane.app.serializers import BaseSerializer
 from plane.db.models import IssueType, ProjectIssueType
 
@@ -26,6 +28,8 @@ class IssueTypeSerializer(BaseSerializer):
 
 
 class ProjectIssueTypeSerializer(BaseSerializer):
+    issue_type_id = serializers.PrimaryKeyRelatedField(source="issue_type", queryset=IssueType.objects.all())
+
     class Meta:
         model = ProjectIssueType
         fields = [

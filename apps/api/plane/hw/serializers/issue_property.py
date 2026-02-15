@@ -4,6 +4,7 @@
 
 from rest_framework import serializers
 from plane.app.serializers import BaseSerializer
+from plane.db.models import Issue, IssueType
 from plane.hw.models import IssuePropertyDefinition, IssuePropertyValue
 
 
@@ -53,6 +54,10 @@ def validate_property_value(value, property_definition):
 class PropertyDefinitionSerializer(BaseSerializer):
     """Serializer for property definitions with type-aware validation."""
 
+    issue_type_id = serializers.PrimaryKeyRelatedField(
+        source="issue_type", queryset=IssueType.objects.all(), required=False, allow_null=True
+    )
+
     class Meta:
         model = IssuePropertyDefinition
         fields = [
@@ -90,6 +95,11 @@ class PropertyDefinitionSerializer(BaseSerializer):
 
 class IssuePropertyValueSerializer(BaseSerializer):
     """Serializer for property values with type validation."""
+
+    issue_id = serializers.PrimaryKeyRelatedField(source="issue", queryset=Issue.objects.all())
+    property_definition_id = serializers.PrimaryKeyRelatedField(
+        source="property_definition", queryset=IssuePropertyDefinition.objects.all()
+    )
 
     class Meta:
         model = IssuePropertyValue
