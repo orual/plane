@@ -32,6 +32,7 @@ from plane.db.models import (
 from plane.bgtasks.issue_activities_task import issue_activity
 from plane.utils.issue_relation_mapper import get_actual_relation
 from plane.utils.host import base_host
+from plane.hw.services.cycle_detection import detect_dependency_cycle
 
 # Relation types that require swapping issue_id and related_issue_id during storage
 _SWAP_RELATION_TYPES = ["blocking", "start_after", "finish_after", "implements"]
@@ -235,6 +236,46 @@ class IssueRelationViewSet(BaseViewSet):
 
         issues = request.data.get("issues", [])
         project = Project.objects.get(pk=project_id)
+
+        # Get the stored relation type (normalized form)
+        stored_relation_type = get_actual_relation(relation_type)
+
+        # Check for self-referencing across the entire issues list
+        if issue_id in issues:
+            return Response(
+                {
+                    "error": "cycle_detected",
+                    "detail": "An issue cannot be related to itself",
+                    "cycle_path": [str(issue_id)],
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # Check for cycles only for dependency relation types
+        # Symmetric types (relates_to, duplicate) don't participate in cycle detection
+        if stored_relation_type in {"blocked_by", "start_before", "finish_before", "implemented_by"}:
+            for related_issue in issues:
+                # Determine source and target based on relation direction
+                if relation_type in _SWAP_RELATION_TYPES:
+                    # For incoming types, the current issue is the source
+                    source_issue_id = issue_id
+                    target_issue_id = related_issue
+                else:
+                    # For stored types, the related issue is the source
+                    source_issue_id = related_issue
+                    target_issue_id = issue_id
+
+                # Check for cycles
+                cycle_path = detect_dependency_cycle(source_issue_id, target_issue_id, stored_relation_type)
+                if cycle_path:
+                    return Response(
+                        {
+                            "error": "cycle_detected",
+                            "detail": "Creating this relation would form a dependency cycle",
+                            "cycle_path": [str(issue_id) for issue_id in cycle_path],
+                        },
+                        status=status.HTTP_400_BAD_REQUEST,
+                    )
 
         issue_relation = IssueRelation.objects.bulk_create(
             [
