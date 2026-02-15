@@ -53,14 +53,14 @@ export const TimelineDependencyPaths = observer(function TimelineDependencyPaths
 
   return (
     <svg
-      className="absolute top-0 left-0 w-full h-full pointer-events-none"
+      className="absolute top-0 left-0 w-full h-full pointer-events-none z-10"
       style={{
         overflow: "visible",
       }}
     >
       <defs>
         <marker id="dep-arrowhead" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
-          <polygon points="0 0, 8 3, 0 6" fill="currentColor" />
+          <polygon points="0 0, 8 3, 0 6" fill="context-stroke" />
         </marker>
       </defs>
       <g>

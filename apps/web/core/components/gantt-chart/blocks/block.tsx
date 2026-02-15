@@ -24,6 +24,7 @@ import { ConflictIndicator } from "@/plane-web/components/gantt-chart/blocks/con
 type Props = {
   blockId: string;
   showAllBlocks: boolean;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   blockToRender: (data: any) => React.ReactNode;
   enableBlockLeftResize: boolean;
   enableBlockRightResize: boolean;
@@ -101,7 +102,7 @@ export const GanttChartBlock = observer(function GanttChartBlock(props: Props) {
         >
           <div
             className={cn("relative h-full w-full", {
-              "ring-1 ring-orange-500": blockHasConflict,
+              "border-2 border-warning-strong rounded-sm": blockHasConflict,
             })}
             onMouseEnter={() => updateActiveBlockId(blockId)}
             onMouseLeave={() => updateActiveBlockId(null)}

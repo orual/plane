@@ -19,7 +19,11 @@ export class IssuesTimeLineStore extends BaseTimeLineStore implements IIssuesTim
     super(_rootStore);
 
     autorun(() => {
+      // eslint-disable-next-line @typescript-eslint/unbound-method
       const getIssueById = this.rootStore.issue.issues.getIssueById;
+      // Access currentViewData so MobX tracks it as a dependency — ensures
+      // block positions are recalculated when the view changes (different dayWidth).
+      const _viewData = this.currentViewData;
       this.updateBlocks(getIssueById);
     });
   }

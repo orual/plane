@@ -7,11 +7,11 @@
 /**
  * Dependency path calculator for SVG connector rendering.
  *
- * This module provides pure functions for calculating SVG path data for
- * right-angle connectors between gantt blocks. The paths are used to
- * visualize dependency relations (blocking, temporal) between issues.
+ * Pure functions for calculating SVG bezier path data for dependency
+ * connectors between gantt blocks. Supports FS (S-curve), SS/FF (U-turn),
+ * and same-row (straight line) configurations.
  *
- * Only pure functions — no React, no MobX, fully testable.
+ * No React, no MobX — fully testable.
  */
 
 import type { TIssueRelationTypes } from "@plane/types";
@@ -49,16 +49,12 @@ export type ConnectorStyle = {
 };
 
 /**
- * Midpoint offset for the vertical segment in right-angle paths (pixels).
- */
-const CONNECTOR_MIDPOINT_OFFSET = 20;
-
-/**
- * Calculate a right-angle SVG path between two blocks.
+ * Calculate a cubic bezier SVG path between two blocks.
  *
- * The path exits the source horizontally, makes a right-angle turn at
- * a midpoint (CONNECTOR_MIDPOINT_OFFSET from the source), then enters
- * the target horizontally.
+ * For opposite-side connectors (FS: right→left) the curve flows naturally
+ * as an S-curve. For same-side connectors (SS: left→left, FF: right→right)
+ * the curve forms a symmetric U-turn where both control points share the
+ * same x-position, bulging past the outermost block.
  *
  * @param source Source block rectangle
  * @param target Target block rectangle
@@ -72,32 +68,57 @@ export function calculateConnectorPath(
   sourceEndpoint: ConnectorEndpoint,
   targetEndpoint: ConnectorEndpoint
 ): ConnectorPath {
-  // Calculate source point (center of the chosen edge)
   const sourceX = sourceEndpoint === "left" ? source.left : source.left + source.width;
   const sourceY = source.top + source.height / 2;
   const sourcePoint = { x: sourceX, y: sourceY };
 
-  // Calculate target point (center of the chosen edge)
   const targetX = targetEndpoint === "left" ? target.left : target.left + target.width;
   const targetY = target.top + target.height / 2;
   const targetPoint = { x: targetX, y: targetY };
 
-  // Calculate midpoint x-coordinate for the vertical segment
-  // Start from source, go horizontally by CONNECTOR_MIDPOINT_OFFSET, then go vertical
-  const midX = sourceX + (sourceEndpoint === "right" ? CONNECTOR_MIDPOINT_OFFSET : -CONNECTOR_MIDPOINT_OFFSET);
+  // Same row — straight horizontal line
+  if (Math.abs(targetY - sourceY) < 1) {
+    return {
+      d: `M ${sourceX} ${sourceY} L ${targetX} ${targetY}`,
+      sourcePoint,
+      targetPoint,
+    };
+  }
 
-  // Build the SVG path with right-angle routing:
-  // 1. Move to source point
-  // 2. Line horizontally by CONNECTOR_MIDPOINT_OFFSET
-  // 3. Line vertically to target level
-  // 4. Line horizontally to target point
-  const pathData = `M ${sourceX} ${sourceY} L ${midX} ${sourceY} L ${midX} ${targetY} L ${targetX} ${targetY}`;
+  const sourceDir = sourceEndpoint === "right" ? 1 : -1;
+  const targetDir = targetEndpoint === "right" ? 1 : -1;
+  const isSameSide = sourceDir === targetDir;
 
-  return {
-    d: pathData,
-    sourcePoint,
-    targetPoint,
-  };
+  let cp1x: number;
+  let cp2x: number;
+
+  const verticalDistance = Math.abs(targetY - sourceY);
+
+  if (isSameSide) {
+    // SS/FF: Both control points at the same x-position to create a
+    // symmetric U-turn. The bulge extends past whichever endpoint is
+    // further in the exit direction.
+    const padding = Math.max(70, Math.min(180, verticalDistance * 0.7));
+    const outerX = sourceDir > 0 ? Math.max(sourceX, targetX) : Math.min(sourceX, targetX);
+    const bulgeX = outerX + sourceDir * padding;
+    cp1x = bulgeX;
+    cp2x = bulgeX;
+  } else {
+    // FS: S-curve — offset scales with both horizontal and vertical distance
+    // so the curve approaches the target gently even when blocks are far apart
+    // vertically but close horizontally.
+    const horizontalDistance = Math.abs(targetX - sourceX);
+    const cpOffset = Math.max(40, Math.min(160, Math.max(horizontalDistance * 0.3, verticalDistance * 0.4)));
+    cp1x = sourceX + sourceDir * cpOffset;
+    cp2x = targetX + targetDir * cpOffset;
+  }
+
+  const cp1y = sourceY;
+  const cp2y = targetY;
+
+  const pathData = `M ${sourceX} ${sourceY} C ${cp1x} ${cp1y}, ${cp2x} ${cp2y}, ${targetX} ${targetY}`;
+
+  return { d: pathData, sourcePoint, targetPoint };
 }
 
 /**
@@ -156,36 +177,36 @@ export function getConnectorEndpoints(relationType: TIssueRelationTypes): {
  */
 export function getConnectorStyle(relationType: TIssueRelationTypes): ConnectorStyle {
   switch (relationType) {
-    // Blocking: solid line
+    // Blocking: solid line (purple)
     case "blocking":
     case "blocked_by":
       return {
         strokeDasharray: "",
-        stroke: "var(--color-text-tertiary)",
+        stroke: "var(--extended-color-purple-500)",
       };
 
-    // Temporal: start_before/start_after (blue, dashed)
+    // Temporal: start_before/start_after (indigo, dashed)
     case "start_before":
     case "start_after":
       return {
         strokeDasharray: "6 3",
-        stroke: "var(--color-blue-500)",
+        stroke: "var(--extended-color-indigo-500)",
       };
 
-    // Temporal: finish_before/finish_after (purple, dashed)
+    // Temporal: finish_before/finish_after (pink, dashed)
     case "finish_before":
     case "finish_after":
       return {
         strokeDasharray: "6 3",
-        stroke: "var(--color-purple-500)",
+        stroke: "var(--extended-color-pink-500)",
       };
 
-    // Structural: implemented_by/implements (green, dashed)
+    // Structural: implemented_by/implements (emerald, dashed)
     case "implemented_by":
     case "implements":
       return {
         strokeDasharray: "6 3",
-        stroke: "var(--color-green-500)",
+        stroke: "var(--extended-color-emerald-500)",
       };
 
     // Non-scheduling relations (default gray, dashed)
@@ -194,7 +215,43 @@ export function getConnectorStyle(relationType: TIssueRelationTypes): ConnectorS
     default:
       return {
         strokeDasharray: "6 3",
-        stroke: "var(--color-text-quaternary)",
+        stroke: "var(--text-color-secondary)",
       };
+  }
+}
+
+/**
+ * Human-readable label for a relation type, used in connector tooltips.
+ *
+ * Returns the forward-direction label (e.g., "blocks" not "blocked by")
+ * since connectors are only rendered for forward types.
+ *
+ * @param relationType The issue relation type
+ * @returns Label text for display
+ */
+export function getRelationLabel(relationType: TIssueRelationTypes): string {
+  switch (relationType) {
+    case "blocking":
+      return "blocks";
+    case "blocked_by":
+      return "blocked by";
+    case "start_before":
+      return "starts before";
+    case "start_after":
+      return "starts after";
+    case "finish_before":
+      return "finishes before";
+    case "finish_after":
+      return "finishes after";
+    case "implements":
+      return "implements";
+    case "implemented_by":
+      return "implemented by";
+    case "relates_to":
+      return "relates to";
+    case "duplicate":
+      return "duplicate of";
+    default:
+      return relationType;
   }
 }

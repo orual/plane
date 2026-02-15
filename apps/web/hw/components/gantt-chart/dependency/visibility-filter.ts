@@ -18,18 +18,17 @@ export interface VisibleDependency {
 }
 
 /**
- * Scheduling relation types that should render as connectors.
- * Non-scheduling relations (relates_to, duplicate) are excluded.
+ * Forward scheduling relation types that should render as connectors.
+ * Only the "forward" direction of each pair is included to avoid
+ * rendering duplicate paths. The relation store keeps both sides
+ * (e.g., A.blocking=[B] and B.blocked_by=[A]), so we only render
+ * from the predecessor's perspective.
  */
-const SCHEDULING_TYPES: TIssueRelationTypes[] = [
-  "blocking",
-  "blocked_by",
-  "start_before",
-  "start_after",
-  "finish_before",
-  "finish_after",
-  "implemented_by",
-  "implements",
+const FORWARD_SCHEDULING_TYPES: TIssueRelationTypes[] = [
+  "blocking", // FS: source blocks target
+  "start_before", // SS: source starts before target
+  "finish_before", // FF: source finishes before target
+  "implements", // structural FS: source implements target
 ];
 
 /**
@@ -65,7 +64,7 @@ export function filterVisibleDependencies(
     const blockRelations = relationMap[blockId];
     if (!blockRelations) continue;
 
-    for (const relationType of SCHEDULING_TYPES) {
+    for (const relationType of FORWARD_SCHEDULING_TYPES) {
       const relatedBlockIds = blockRelations[relationType];
       if (!relatedBlockIds || relatedBlockIds.length === 0) continue;
 

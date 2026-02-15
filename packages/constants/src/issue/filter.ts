@@ -354,11 +354,12 @@ export const filterActivityOnSelectedFilters = (
   filters: TActivityFilters[]
 ): TIssueActivityComment[] =>
   activity.filter((activity) => {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-enum-comparison
     if (activity.activity_type === EActivityFilterType.DEFAULT) return true;
     return filters.includes(activity.activity_type as TActivityFilters);
   });
 
-export const ENABLE_ISSUE_DEPENDENCIES = false;
+export const ENABLE_ISSUE_DEPENDENCIES = true;
 
 export const BASE_ACTIVITY_FILTER_TYPES = [
   EActivityFilterType.ACTIVITY,

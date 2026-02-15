@@ -229,7 +229,7 @@ describe("filterVisibleDependencies", () => {
       expect(result.some((d) => d.relationType === "finish_before")).toBe(true);
     });
 
-    it("should include implemented_by and implements relations", () => {
+    it("should include implements (forward) but exclude implemented_by (inverse)", () => {
       const blockIds = ["block-1", "block-2"];
       const blocksMap: Record<string, IGanttBlock> = {
         "block-1": createBlockWithPosition("block-1"),
@@ -252,11 +252,38 @@ describe("filterVisibleDependencies", () => {
 
       const result = filterVisibleDependencies(blockIds, blocksMap, relationMap);
 
-      expect(result).toHaveLength(1);
-      expect(result[0].relationType).toBe("implemented_by");
+      // implemented_by is an inverse type — only forward types are rendered
+      expect(result).toHaveLength(0);
     });
 
-    it("should include start_after and finish_after relations", () => {
+    it("should include implements relation as forward type", () => {
+      const blockIds = ["block-1", "block-2"];
+      const blocksMap: Record<string, IGanttBlock> = {
+        "block-1": createBlockWithPosition("block-1"),
+        "block-2": createBlockWithPosition("block-2"),
+      };
+      const relationMap: Record<string, Record<TIssueRelationTypes, string[]>> = {
+        "block-1": {
+          blocking: [],
+          blocked_by: [],
+          start_before: [],
+          start_after: [],
+          finish_before: [],
+          finish_after: [],
+          implemented_by: [],
+          implements: ["block-2"],
+          relates_to: [],
+          duplicate: [],
+        },
+      };
+
+      const result = filterVisibleDependencies(blockIds, blocksMap, relationMap);
+
+      expect(result).toHaveLength(1);
+      expect(result[0].relationType).toBe("implements");
+    });
+
+    it("should exclude inverse types: start_after and finish_after", () => {
       const blockIds = ["block-1", "block-2", "block-3"];
       const blocksMap: Record<string, IGanttBlock> = {
         "block-1": createBlockWithPosition("block-1"),
@@ -280,9 +307,8 @@ describe("filterVisibleDependencies", () => {
 
       const result = filterVisibleDependencies(blockIds, blocksMap, relationMap);
 
-      expect(result).toHaveLength(2);
-      expect(result.some((d) => d.relationType === "start_after")).toBe(true);
-      expect(result.some((d) => d.relationType === "finish_after")).toBe(true);
+      // start_after and finish_after are inverse types — not rendered
+      expect(result).toHaveLength(0);
     });
   });
 
@@ -452,7 +478,7 @@ describe("filterVisibleDependencies", () => {
       expect(result.filter((d) => d.relationType === "start_before")).toHaveLength(1);
     });
 
-    it("should include blocked_by relations", () => {
+    it("should exclude blocked_by (inverse) — only blocking (forward) is rendered", () => {
       const blockIds = ["block-1", "block-2"];
       const blocksMap: Record<string, IGanttBlock> = {
         "block-1": createBlockWithPosition("block-1"),
@@ -475,8 +501,50 @@ describe("filterVisibleDependencies", () => {
 
       const result = filterVisibleDependencies(blockIds, blocksMap, relationMap);
 
+      expect(result).toHaveLength(0);
+    });
+
+    it("should not produce duplicates for bidirectional relation pairs", () => {
+      const blockIds = ["block-1", "block-2"];
+      const blocksMap: Record<string, IGanttBlock> = {
+        "block-1": createBlockWithPosition("block-1"),
+        "block-2": createBlockWithPosition("block-2"),
+      };
+      // Both sides of the same dependency
+      const relationMap: Record<string, Record<TIssueRelationTypes, string[]>> = {
+        "block-1": {
+          blocking: ["block-2"],
+          blocked_by: [],
+          start_before: [],
+          start_after: [],
+          finish_before: [],
+          finish_after: [],
+          implemented_by: [],
+          implements: [],
+          relates_to: [],
+          duplicate: [],
+        },
+        "block-2": {
+          blocking: [],
+          blocked_by: ["block-1"],
+          start_before: [],
+          start_after: [],
+          finish_before: [],
+          finish_after: [],
+          implemented_by: [],
+          implements: [],
+          relates_to: [],
+          duplicate: [],
+        },
+      };
+
+      const result = filterVisibleDependencies(blockIds, blocksMap, relationMap);
+
+      // Only one connector: blocking from block-1 → block-2
       expect(result).toHaveLength(1);
-      expect(result[0].relationType).toBe("blocked_by");
+      expect(result[0].sourceBlockId).toBe("block-1");
+      expect(result[0].targetBlockId).toBe("block-2");
+      expect(result[0].relationType).toBe("blocking");
     });
 
     it("should compute correct row indices for visible dependencies", () => {

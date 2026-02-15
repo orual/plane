@@ -33,8 +33,8 @@ export const ConflictIndicator = observer(function ConflictIndicator(props: Conf
 
   return (
     <Tooltip tooltipContent={tooltipContent}>
-      <div className="absolute -top-1 -right-1 z-10">
-        <AlertTriangle className="h-3.5 w-3.5 text-orange-500" strokeWidth={2} />
+      <div className="absolute -top-2 -right-2 z-10 flex h-5 w-5 items-center justify-center rounded-full bg-warning-primary shadow-sm">
+        <AlertTriangle className="h-3 w-3 text-white" strokeWidth={2.5} fill="none" />
       </div>
     </Tooltip>
   );
