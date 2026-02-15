@@ -28,7 +28,14 @@ export const useGanttResizable = (
   const ganttContainerDimensions = useRef<DOMRect | undefined>();
   const currMouseEvent = useRef<MouseEvent | undefined>();
   // states
-  const { currentViewData, updateBlockPosition, setIsDragging, getUpdatedPositionAfterDrag } = useTimeLineChartStore();
+  const {
+    currentViewData,
+    updateBlockPosition,
+    setIsDragging,
+    getUpdatedPositionAfterDrag,
+    computePreviewPositions,
+    clearPreviewPositions,
+  } = useTimeLineChartStore();
   const [isMoving, setIsMoving] = useState<"left" | "right" | "move" | undefined>();
 
   // handle block resize from the left end
@@ -110,6 +117,9 @@ export const useGanttResizable = (
 
       // call update blockPosition
       if (deltaWidth || deltaLeft) updateBlockPosition(block.id, deltaLeft, deltaWidth);
+
+      // compute preview positions for downstream dependents in real-time
+      computePreviewPositions(block.id);
     };
 
     // remove event listeners and call updateBlockDates
@@ -119,6 +129,9 @@ export const useGanttResizable = (
       document.removeEventListener("mousemove", handleMouseMove);
       ganttContainerElement.removeEventListener("scroll", handleOnScroll);
       document.removeEventListener("mouseup", handleMouseUp);
+
+      // Clear preview positions before reconciling with server
+      clearPreviewPositions();
 
       // update half blocks only when the missing side of the block is directly dragged
       const shouldUpdateHalfBlock =
