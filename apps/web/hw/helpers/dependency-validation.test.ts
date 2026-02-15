@@ -5,7 +5,7 @@
  */
 
 import { describe, it, expect } from "vitest";
-import { detectCycleInMemory } from "./dependency-validation";
+import { detectCycleInMemory, inferRelationType } from "./dependency-validation";
 import type { DependencyRelationMap } from "./dependency-validation";
 
 describe("Cycle Detection Helper (detectCycleInMemory)", () => {
@@ -476,5 +476,40 @@ describe("Cycle Detection Helper (detectCycleInMemory)", () => {
       expect(result).not.toBeNull();
       expect(result).toEqual(["3", "1", "2", "3"]);
     });
+  });
+});
+
+describe("Dependency type inference from drag endpoints (inferRelationType)", () => {
+  /**
+   * Test AC4.2: right → left should infer "blocking" (Finish-to-Start)
+   */
+  it("should infer 'blocking' for right → left drag", () => {
+    const result = inferRelationType("right", "left");
+    expect(result).toBe("blocking");
+  });
+
+  /**
+   * Test AC4.3: left → left should infer "start_before" (Start-to-Start)
+   */
+  it("should infer 'start_before' for left → left drag", () => {
+    const result = inferRelationType("left", "left");
+    expect(result).toBe("start_before");
+  });
+
+  /**
+   * Test AC4.4: right → right should infer "finish_before" (Finish-to-Finish)
+   */
+  it("should infer 'finish_before' for right → right drag", () => {
+    const result = inferRelationType("right", "right");
+    expect(result).toBe("finish_before");
+  });
+
+  /**
+   * Edge case: left → right should map to "finish_before" as closest match
+   * (no Start-to-Finish type exists in the backend model)
+   */
+  it("should infer 'finish_before' for left → right drag (unusual direction)", () => {
+    const result = inferRelationType("left", "right");
+    expect(result).toBe("finish_before");
   });
 });

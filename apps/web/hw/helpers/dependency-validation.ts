@@ -5,15 +5,17 @@
  */
 
 /**
- * Cycle detection for dependency relations on the frontend.
+ * Dependency validation for relations on the frontend.
  *
- * This module provides a pure function to detect cycles in the in-memory
- * relation graph from the MobX store. It operates on a plain Record structure
- * (relationMap) and performs DFS to check if creating a new relation would
- * form a cycle.
+ * This module provides pure functions to:
+ * 1. Detect cycles in the in-memory relation graph from the MobX store.
+ *    It operates on a plain Record structure (relationMap) and performs DFS
+ *    to check if creating a new relation would form a cycle.
+ * 2. Infer the relation type from drag endpoint pairs.
  *
- * Only scheduling/dependency types participate: blocking, blocked_by,
- * start_before, start_after, finish_before, finish_after, implemented_by, implements.
+ * Only scheduling/dependency types participate in cycle detection:
+ * blocking, blocked_by, start_before, start_after, finish_before,
+ * finish_after, implemented_by, implements.
  * Symmetric types (relates_to, duplicate) are excluded.
  */
 
@@ -153,4 +155,31 @@ function dfsTraverseCycle(
   }
 
   return null;
+}
+
+/**
+ * Infer the relation type from source and target drag endpoints.
+ *
+ * Mapping based on project scheduling conventions:
+ * - right → left: "blocking" (Finish-to-Start, blocking relation)
+ * - left → left: "start_before" (Start-to-Start)
+ * - right → right: "finish_before" (Finish-to-Finish)
+ * - left → right: "finish_before" (unusual direction, mapped to FF as closest match)
+ *
+ * @param sourceEndpoint The endpoint of the source block ("left" or "right")
+ * @param targetEndpoint The endpoint of the target block ("left" or "right")
+ * @returns The inferred relation type
+ */
+export function inferRelationType(
+  sourceEndpoint: "left" | "right",
+  targetEndpoint: "left" | "right"
+): TIssueRelationTypes {
+  if (sourceEndpoint === "right" && targetEndpoint === "left") {
+    return "blocking";
+  }
+  if (sourceEndpoint === "left" && targetEndpoint === "left") {
+    return "start_before";
+  }
+  // Both "right → right" and "left → right" map to finish_before
+  return "finish_before";
 }
