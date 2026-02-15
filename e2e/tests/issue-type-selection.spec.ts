@@ -77,21 +77,32 @@ test.describe("Project Issue Types Toggle", () => {
 
     const firstToggle = items.first().locator("[data-test='project-issue-type-toggle'] button[role='switch']");
 
-    // If the toggle is currently OFF, turn it ON first so we can test turning it OFF
+    // Capture the type name before any toggling.
+    const typeName = await items.first().locator("p").first().textContent();
+    expect(typeName).toBeTruthy();
+
+    // If the toggle is currently OFF, turn it ON first so we can test turning it OFF.
     const currentState = await firstToggle.getAttribute("aria-checked");
     if (currentState === "false") {
-      await firstToggle.click();
+      await Promise.all([
+        page.waitForResponse(
+          (resp) => resp.url().includes(`/projects/${projectId}/issue-types`) && resp.request().method() === "POST"
+        ),
+        firstToggle.click(),
+      ]);
       await expect(firstToggle).toHaveAttribute("aria-checked", "true", { timeout: 5000 });
     }
 
-    // Now toggle it OFF
-    await firstToggle.click();
+    // Toggle it OFF and wait for the DELETE to complete.
+    await Promise.all([
+      page.waitForResponse(
+        (resp) => resp.url().includes(`/projects/${projectId}/issue-types`) && resp.request().method() === "DELETE"
+      ),
+      firstToggle.click(),
+    ]);
 
     // Verify the toggle state changed to OFF
     await expect(firstToggle).toHaveAttribute("aria-checked", "false", { timeout: 5000 });
-
-    // Wait for the DELETE request to complete before verifying via API
-    await page.waitForLoadState("networkidle");
 
     // Verify via API that the issue type is no longer linked
     const response = await request.get(
@@ -107,8 +118,6 @@ test.describe("Project Issue Types Toggle", () => {
     const linkedTypes = await response.json();
     const data = Array.isArray(linkedTypes) ? linkedTypes : (linkedTypes.results ?? []);
 
-    // Get the issue type name from the first item to check it's not in linked types
-    const typeName = await items.first().locator("p").first().textContent();
     const stillLinked = data.find(
       (t: { issue_type_detail?: { name: string } }) => t.issue_type_detail?.name === typeName
     );

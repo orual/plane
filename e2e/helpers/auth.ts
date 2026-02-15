@@ -12,6 +12,34 @@ export const SESSION_COOKIE_NAME = "session-id";
 // Must score >= 3 on zxcvbn (Plane's password strength requirement).
 const TEST_PASSWORD = "E2eTestPass!word456";
 
+const RATE_LIMIT_RETRIES = 8;
+const RATE_LIMIT_BASE_DELAY_MS = 1000;
+
+/**
+ * Retry a request function on HTTP 429 with exponential backoff + jitter.
+ * Handles the API's rate limiter that triggers when parallel workers
+ * all hit auth endpoints simultaneously.
+ */
+async function withRateLimitRetry<T>(fn: () => Promise<T>, label: string): Promise<T> {
+  for (let attempt = 1; attempt <= RATE_LIMIT_RETRIES; attempt++) {
+    try {
+      return await fn();
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      if (message.includes("429") && attempt < RATE_LIMIT_RETRIES) {
+        const delay = RATE_LIMIT_BASE_DELAY_MS * 2 ** (attempt - 1) + Math.random() * 1000;
+        console.log(
+          `[auth] ${label}: rate limited (attempt ${attempt}/${RATE_LIMIT_RETRIES}), retrying in ${Math.round(delay)}ms...`
+        );
+        await new Promise((resolve) => setTimeout(resolve, delay));
+        continue;
+      }
+      throw error;
+    }
+  }
+  throw new Error(`[auth] ${label}: exhausted all ${RATE_LIMIT_RETRIES} retries.`);
+}
+
 /**
  * Get a CSRF token from the API.
  * The response also sets a `csrftoken` cookie on the request context,
@@ -24,53 +52,6 @@ async function getCsrfToken(request: APIRequestContext): Promise<string> {
   }
   const data = await response.json();
   return data.csrf_token;
-}
-
-/**
- * Ensure the Plane instance is initialized.
- * If the instance exists but first-user setup hasn't been completed,
- * create the initial admin via the god-mode sign-up endpoint.
- *
- * Prerequisite: the API server must be running and `register_instance`
- * management command must have been executed (this happens automatically
- * on first `manage.py migrate`).
- */
-async function ensureInstanceSetup(request: APIRequestContext): Promise<void> {
-  const response = await request.get(`${API_BASE_URL}/api/instances/`);
-  if (!response.ok()) {
-    throw new Error(
-      `Cannot reach instance API (${response.status()}). ` +
-        "Ensure the API server is running and 'python manage.py register_instance' has been executed."
-    );
-  }
-
-  const data = await response.json();
-  if (data.instance?.is_setup_done) return;
-
-  const csrfToken = await getCsrfToken(request);
-  const setupResponse = await request.post(`${API_BASE_URL}/api/instances/admins/sign-up/`, {
-    form: {
-      first_name: "E2E",
-      last_name: "Admin",
-      email: "e2e-admin@plane.test",
-      company_name: "E2E Testing",
-      password: TEST_PASSWORD,
-      confirm_password: TEST_PASSWORD,
-      is_telemetry_enabled: "False",
-      csrfmiddlewaretoken: csrfToken,
-    },
-  });
-
-  const finalUrl = setupResponse.url();
-  if (finalUrl.includes("error_code")) {
-    const url = new URL(finalUrl);
-    const errorCode = url.searchParams.get("error_code");
-    // 5150 = ADMIN_ALREADY_EXIST — instance was already set up, harmless.
-    if (errorCode !== "5150") {
-      const errorMessage = url.searchParams.get("error_message") || "unknown";
-      throw new Error(`Instance setup failed: ${errorMessage} (code ${errorCode})`);
-    }
-  }
 }
 
 /**
@@ -133,16 +114,20 @@ async function completeOnboarding(page: Page, name: string): Promise<void> {
 
 /**
  * Full authentication flow for E2E tests:
- * 1. Ensure the Plane instance is initialized (idempotent).
+ * 1. Stagger worker start to avoid thundering herd on the rate limiter.
  * 2. Sign up a fresh test user with email+password.
  * 3. Complete onboarding so the app doesn't block navigation.
  * 4. Return the session token for API calls.
  *
+ * Instance initialization is handled by globalSetup.ts before workers start.
  * The page's browser context is authenticated after this call.
  */
-export async function authenticateAndGetToken(page: Page, request: APIRequestContext, email: string): Promise<string> {
-  await ensureInstanceSetup(request);
-  const token = await signUpTestUser(page, email);
-  await completeOnboarding(page, "E2E Test User");
+export async function authenticateAndGetToken(page: Page, _request: APIRequestContext, email: string): Promise<string> {
+  // Stagger worker starts by 0–3s to spread out API requests and avoid
+  // tripping the rate limiter when running back-to-back.
+  await new Promise((resolve) => setTimeout(resolve, Math.random() * 3000));
+
+  const token = await withRateLimitRetry(() => signUpTestUser(page, email), "signUpTestUser");
+  await withRateLimitRetry(() => completeOnboarding(page, "E2E Test User"), "completeOnboarding");
   return token;
 }

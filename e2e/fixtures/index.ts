@@ -7,14 +7,29 @@ import { authenticateAndGetToken } from "../helpers/auth";
 import { createWorkspace, createProject } from "../helpers/api";
 import { randomUUID } from "crypto";
 
-interface AuthSession {
-  page: Page;
+interface WorkerAuth {
   token: string;
   email: string;
+  storageState: {
+    cookies: Array<{
+      name: string;
+      value: string;
+      domain: string;
+      path: string;
+      httpOnly: boolean;
+      secure: boolean;
+      sameSite: "Lax" | "None" | "Strict";
+      expires: number;
+    }>;
+    origins: Array<{ origin: string; localStorage: Array<{ name: string; value: string }> }>;
+  };
+}
+
+interface WorkerFixtures {
+  _workerAuth: WorkerAuth;
 }
 
 interface TestFixtures {
-  _authSession: AuthSession;
   authenticatedPage: Page;
   authToken: string;
   testEmail: string;
@@ -22,28 +37,44 @@ interface TestFixtures {
   projectId: string;
 }
 
-export const test = base.extend<TestFixtures>({
-  _authSession: async ({ page, request }, use) => {
-    const email = `test-${randomUUID().substring(0, 8)}@plane.test`;
-    const token = await authenticateAndGetToken(page, request, email);
-    await use({ page, token, email });
+export const test = base.extend<TestFixtures, WorkerFixtures>({
+  // Worker-scoped: authenticate once per worker to avoid hitting the API's
+  // 30/minute anonymous rate limit with per-test sign-ups.
+  _workerAuth: [
+    async ({ browser }, use) => {
+      const context = await browser.newContext();
+      const page = await context.newPage();
+      const email = `test-${randomUUID().substring(0, 8)}@plane.test`;
+      const token = await authenticateAndGetToken(page, page.request, email);
+
+      const state = await context.storageState();
+
+      await page.close();
+      await context.close();
+
+      await use({ token, email, storageState: state });
+    },
+    { scope: "worker" },
+  ],
+
+  // Test-scoped: each test gets a fresh page with the worker's session cookie.
+  authenticatedPage: async ({ browser, _workerAuth }, use) => {
+    const context = await browser.newContext({ storageState: _workerAuth.storageState });
+    const page = await context.newPage();
+    await use(page);
     await page.close();
+    await context.close();
   },
 
-  authenticatedPage: async ({ _authSession }, use) => {
-    await use(_authSession.page);
+  authToken: async ({ _workerAuth }, use) => {
+    await use(_workerAuth.token);
   },
 
-  authToken: async ({ _authSession }, use) => {
-    await use(_authSession.token);
-  },
-
-  testEmail: async ({ _authSession }, use) => {
-    await use(_authSession.email);
+  testEmail: async ({ _workerAuth }, use) => {
+    await use(_workerAuth.email);
   },
 
   workspaceSlug: async ({ request, authToken }, use) => {
-    // Create a workspace for this test
     const slugId = randomUUID().substring(0, 8);
     const workspace = await createWorkspace(request, authToken, {
       name: `Test Workspace ${slugId}`,
@@ -54,7 +85,6 @@ export const test = base.extend<TestFixtures>({
   },
 
   projectId: async ({ request, authToken, workspaceSlug }, use) => {
-    // Create a project in the workspace
     const projectNum = Math.floor(Math.random() * 10000);
     const project = await createProject(request, authToken, workspaceSlug, {
       name: `Test Project ${projectNum}`,

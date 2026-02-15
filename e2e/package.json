@@ -10,8 +10,8 @@
     "test:headed": "playwright test --headed"
   },
   "devDependencies": {
-    "@playwright/test": "=1.57.0",
-    "@types/node": "^22.0.0",
-    "typescript": "^5.4.0"
+    "@playwright/test": "1.57.0",
+    "@types/node": "catalog:",
+    "typescript": "catalog:"
   }
 }

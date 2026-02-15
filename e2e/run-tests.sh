@@ -15,4 +15,4 @@ export BASE_URL="${BASE_URL:-http://localhost:3000}"
 export API_BASE_URL="${API_BASE_URL:-http://localhost:8000}"
 
 # Run tests
-npx playwright test "$@"
+pnpm exec playwright test "$@"
