@@ -44,6 +44,16 @@ export interface IBaseTimelineStore {
   renderView: any;
   isDragging: boolean;
   isDependencyEnabled: boolean;
+  dependencyDragState: {
+    isDragging: boolean;
+    sourceBlockId: string | null;
+    sourceEndpoint: "left" | "right" | null;
+    cursorX: number;
+    cursorY: number;
+    hoveredTargetBlockId: string | null;
+    hoveredTargetEndpoint: "left" | "right" | null;
+    isValidTarget: boolean;
+  };
   //
   setBlockIds: (ids: string[]) => void;
   getBlockById: (blockId: string) => IGanttBlock;
@@ -65,6 +75,10 @@ export interface IBaseTimelineStore {
   getNumberOfDaysFromPosition: (position: number | undefined) => number | undefined;
   setIsDragging: (isDragging: boolean) => void;
   initGantt: () => void;
+  startDependencyDrag: (blockId: string, endpoint: "left" | "right") => void;
+  updateDependencyDragCursor: (x: number, y: number) => void;
+  setDependencyDragTarget: (blockId: string | null, endpoint: "left" | "right" | null, isValid: boolean) => void;
+  endDependencyDrag: () => void;
 
   getDateFromPositionOnGantt: (position: number, offsetDays: number) => Date | undefined;
   getPositionFromDateOnGantt: (date: string | Date, offSetWidth: number) => number | undefined;
@@ -84,6 +98,27 @@ export class BaseTimeLineStore implements IBaseTimelineStore {
 
   isDependencyEnabled = false;
 
+  // Dependency drag state (CE edition: stubs only)
+  dependencyDragState: {
+    isDragging: boolean;
+    sourceBlockId: string | null;
+    sourceEndpoint: "left" | "right" | null;
+    cursorX: number;
+    cursorY: number;
+    hoveredTargetBlockId: string | null;
+    hoveredTargetEndpoint: "left" | "right" | null;
+    isValidTarget: boolean;
+  } = {
+    isDragging: false,
+    sourceBlockId: null,
+    sourceEndpoint: null,
+    cursorX: 0,
+    cursorY: 0,
+    hoveredTargetBlockId: null,
+    hoveredTargetEndpoint: null,
+    isValidTarget: false,
+  };
+
   constructor(_rootStore: RootStore) {
     makeObservable(this, {
       // observables
@@ -94,6 +129,7 @@ export class BaseTimeLineStore implements IBaseTimelineStore {
       currentViewData: observable,
       activeBlockId: observable.ref,
       renderView: observable,
+      dependencyDragState: observable.deep,
       // actions
       setIsDragging: action,
       setBlockIds: action.bound,
@@ -102,6 +138,10 @@ export class BaseTimeLineStore implements IBaseTimelineStore {
       updateCurrentViewData: action.bound,
       updateActiveBlockId: action.bound,
       updateRenderView: action.bound,
+      startDependencyDrag: action.bound,
+      updateDependencyDragCursor: action.bound,
+      setDependencyDragTarget: action.bound,
+      endDependencyDrag: action.bound,
     });
 
     this.initGantt();
@@ -341,6 +381,38 @@ export class BaseTimeLineStore implements IBaseTimelineStore {
     });
   });
 
-  // Dummy method to return if the current Block's dependency is being dragged
-  getIsCurrentDependencyDragging = computedFn((blockId: string) => false);
+  /**
+   * @description check if the current block's dependency is being dragged
+   * CE edition: always returns false (drag not supported)
+   * @param {string} _blockId
+   */
+  getIsCurrentDependencyDragging = computedFn((_blockId: string) => false);
+
+  /**
+   * @description CE stub: start a dependency drag operation (not supported)
+   */
+  startDependencyDrag = (_blockId: string, _endpoint: "left" | "right") => {
+    // CE does not support dependency drag
+  };
+
+  /**
+   * @description CE stub: update cursor position during dependency drag (not supported)
+   */
+  updateDependencyDragCursor = (_x: number, _y: number) => {
+    // CE does not support dependency drag
+  };
+
+  /**
+   * @description CE stub: set the hovered target block during dependency drag (not supported)
+   */
+  setDependencyDragTarget = (_blockId: string | null, _endpoint: "left" | "right" | null, _isValid: boolean) => {
+    // CE does not support dependency drag
+  };
+
+  /**
+   * @description CE stub: end a dependency drag operation (not supported)
+   */
+  endDependencyDrag = () => {
+    // CE does not support dependency drag
+  };
 }

@@ -44,6 +44,16 @@ export interface IBaseTimelineStore {
   renderView: any;
   isDragging: boolean;
   isDependencyEnabled: boolean;
+  dependencyDragState: {
+    isDragging: boolean;
+    sourceBlockId: string | null;
+    sourceEndpoint: "left" | "right" | null;
+    cursorX: number;
+    cursorY: number;
+    hoveredTargetBlockId: string | null;
+    hoveredTargetEndpoint: "left" | "right" | null;
+    isValidTarget: boolean;
+  };
   //
   setBlockIds: (ids: string[]) => void;
   getBlockById: (blockId: string) => IGanttBlock;
@@ -65,6 +75,10 @@ export interface IBaseTimelineStore {
   getNumberOfDaysFromPosition: (position: number | undefined) => number | undefined;
   setIsDragging: (isDragging: boolean) => void;
   initGantt: () => void;
+  startDependencyDrag: (blockId: string, endpoint: "left" | "right") => void;
+  updateDependencyDragCursor: (x: number, y: number) => void;
+  setDependencyDragTarget: (blockId: string | null, endpoint: "left" | "right" | null, isValid: boolean) => void;
+  endDependencyDrag: () => void;
 
   getDateFromPositionOnGantt: (position: number, offsetDays: number) => Date | undefined;
   getPositionFromDateOnGantt: (date: string | Date, offSetWidth: number) => number | undefined;
@@ -84,6 +98,27 @@ export class BaseTimeLineStore implements IBaseTimelineStore {
 
   isDependencyEnabled = false;
 
+  // Dependency drag state
+  dependencyDragState: {
+    isDragging: boolean;
+    sourceBlockId: string | null;
+    sourceEndpoint: "left" | "right" | null;
+    cursorX: number;
+    cursorY: number;
+    hoveredTargetBlockId: string | null;
+    hoveredTargetEndpoint: "left" | "right" | null;
+    isValidTarget: boolean;
+  } = {
+    isDragging: false,
+    sourceBlockId: null,
+    sourceEndpoint: null,
+    cursorX: 0,
+    cursorY: 0,
+    hoveredTargetBlockId: null,
+    hoveredTargetEndpoint: null,
+    isValidTarget: false,
+  };
+
   constructor(_rootStore: RootStore) {
     makeObservable(this, {
       // observables
@@ -94,6 +129,7 @@ export class BaseTimeLineStore implements IBaseTimelineStore {
       currentViewData: observable,
       activeBlockId: observable.ref,
       renderView: observable,
+      dependencyDragState: observable.deep,
       // actions
       setIsDragging: action,
       setBlockIds: action.bound,
@@ -102,6 +138,10 @@ export class BaseTimeLineStore implements IBaseTimelineStore {
       updateCurrentViewData: action.bound,
       updateActiveBlockId: action.bound,
       updateRenderView: action.bound,
+      startDependencyDrag: action.bound,
+      updateDependencyDragCursor: action.bound,
+      setDependencyDragTarget: action.bound,
+      endDependencyDrag: action.bound,
     });
 
     this.initGantt();
@@ -341,6 +381,72 @@ export class BaseTimeLineStore implements IBaseTimelineStore {
     });
   });
 
-  // Dummy method to return if the current Block's dependency is being dragged
-  getIsCurrentDependencyDragging = computedFn((blockId: string) => false);
+  /**
+   * @description check if the current block's dependency is being dragged
+   * @param {string} blockId
+   */
+  getIsCurrentDependencyDragging = computedFn(
+    (blockId: string) =>
+      this.dependencyDragState.isDragging && this.dependencyDragState.sourceBlockId === blockId
+  );
+
+  /**
+   * @description start a dependency drag operation
+   * @param {string} blockId the source block ID
+   * @param {("left" | "right")} endpoint the endpoint ("left" or "right")
+   */
+  startDependencyDrag = (blockId: string, endpoint: "left" | "right") => {
+    runInAction(() => {
+      this.dependencyDragState.isDragging = true;
+      this.dependencyDragState.sourceBlockId = blockId;
+      this.dependencyDragState.sourceEndpoint = endpoint;
+      this.dependencyDragState.cursorX = 0;
+      this.dependencyDragState.cursorY = 0;
+      this.dependencyDragState.hoveredTargetBlockId = null;
+      this.dependencyDragState.hoveredTargetEndpoint = null;
+      this.dependencyDragState.isValidTarget = false;
+    });
+  };
+
+  /**
+   * @description update cursor position during dependency drag
+   * @param {number} x cursor x coordinate
+   * @param {number} y cursor y coordinate
+   */
+  updateDependencyDragCursor = (x: number, y: number) => {
+    runInAction(() => {
+      this.dependencyDragState.cursorX = x;
+      this.dependencyDragState.cursorY = y;
+    });
+  };
+
+  /**
+   * @description set the hovered target block during dependency drag
+   * @param {string | null} blockId the target block ID (null if no target)
+   * @param {("left" | "right" | null)} endpoint the target endpoint
+   * @param {boolean} isValid whether the target is valid
+   */
+  setDependencyDragTarget = (blockId: string | null, endpoint: "left" | "right" | null, isValid: boolean) => {
+    runInAction(() => {
+      this.dependencyDragState.hoveredTargetBlockId = blockId;
+      this.dependencyDragState.hoveredTargetEndpoint = endpoint;
+      this.dependencyDragState.isValidTarget = isValid;
+    });
+  };
+
+  /**
+   * @description end a dependency drag operation and reset state
+   */
+  endDependencyDrag = () => {
+    runInAction(() => {
+      this.dependencyDragState.isDragging = false;
+      this.dependencyDragState.sourceBlockId = null;
+      this.dependencyDragState.sourceEndpoint = null;
+      this.dependencyDragState.cursorX = 0;
+      this.dependencyDragState.cursorY = 0;
+      this.dependencyDragState.hoveredTargetBlockId = null;
+      this.dependencyDragState.hoveredTargetEndpoint = null;
+      this.dependencyDragState.isValidTarget = false;
+    });
+  };
 }
