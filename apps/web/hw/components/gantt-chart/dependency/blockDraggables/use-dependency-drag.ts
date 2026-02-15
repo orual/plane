@@ -5,7 +5,7 @@
  */
 
 import type { RefObject } from "react";
-import type { IGanttBlock, TIssueRelationTypes } from "@plane/types";
+import type { IGanttBlock } from "@plane/types";
 import { TOAST_TYPE, setToast } from "@plane/propel/toast";
 import { useTimeLineChartStore } from "@/hooks/use-timeline-chart";
 import { useIssueDetail } from "@/hooks/store/use-issue-detail";
@@ -40,23 +40,12 @@ export function useDependencyDrag(
     dependencyDragState,
   } = timelineStore;
 
-  // Access blocksMap and blockIds through type casting. These properties are public fields
-  // on the IBaseTimelineStore class but are not exposed in the IBaseTimelineStore interface.
-  // We need them to access the block position data during drag operations. The cast is safe
-  // because these fields are guaranteed to exist on the concrete store implementation.
-  const blocksMap = (timelineStore as unknown as Record<string, unknown>).blocksMap as
-    | Record<string, IGanttBlock>
-    | undefined;
-  const blockIds = (timelineStore as unknown as Record<string, unknown>).blockIds as string[] | undefined;
+  const blocksMap = timelineStore.blocksMap;
+  const blockIds = timelineStore.blockIds;
 
   const issueDetailStore = useIssueDetail();
-  // Access relationMap through type casting. It's a public field on the concrete relation store
-  // but not exposed in the interface. This cast is safe for the same reason as blocksMap/blockIds.
-  const relationMap = issueDetailStore?.relation
-    ? ((issueDetailStore.relation as unknown as Record<string, unknown>).relationMap as
-        | Record<string, Record<TIssueRelationTypes, string[]>>
-        | undefined)
-    : undefined;
+  // The relation store property may not be defined if the store hasn't been initialized yet.
+  const relationMap = issueDetailStore?.relation?.relationMap;
 
   const handleMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
     if (e.button !== 0) return; // Only left mouse button

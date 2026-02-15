@@ -5,7 +5,6 @@
  */
 
 import { observer } from "mobx-react";
-import type { IGanttBlock } from "@plane/types";
 import { useTimeLineChartStore } from "@/hooks/use-timeline-chart";
 import { BLOCK_HEIGHT } from "@/components/gantt-chart/constants";
 
@@ -27,14 +26,8 @@ export const TimelineDraggablePath = observer(function TimelineDraggablePath() {
   const timelineStore = useTimeLineChartStore();
   const { dependencyDragState } = timelineStore;
 
-  // Access blocksMap and blockIds through type casting. These properties are public fields
-  // on the IBaseTimelineStore class but are not exposed in the IBaseTimelineStore interface.
-  // We need them to access the block position data during drag operations. The cast is safe
-  // because these fields are guaranteed to exist on the concrete store implementation.
-  const blocksMap = (timelineStore as unknown as Record<string, unknown>).blocksMap as
-    | Record<string, IGanttBlock>
-    | undefined;
-  const blockIds = (timelineStore as unknown as Record<string, unknown>).blockIds as string[] | undefined;
+  const blocksMap = timelineStore.blocksMap;
+  const blockIds = timelineStore.blockIds;
 
   // If not dragging, render nothing
   if (!dependencyDragState.isDragging || !dependencyDragState.sourceBlockId) {

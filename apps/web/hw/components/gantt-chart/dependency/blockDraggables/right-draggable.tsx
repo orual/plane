@@ -37,11 +37,6 @@ export const RightDependencyDraggable = observer(function RightDependencyDraggab
         zIndex: 10,
       }}
       onMouseDown={handleMouseDown}
-      onKeyDown={(e) => {
-        if (e.key === "Enter" || e.key === " ") {
-          handleMouseDown(e as unknown as React.MouseEvent<HTMLDivElement>);
-        }
-      }}
     />
   );
 });

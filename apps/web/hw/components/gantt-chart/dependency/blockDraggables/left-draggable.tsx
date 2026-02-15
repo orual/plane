@@ -35,11 +35,6 @@ export const LeftDependencyDraggable = observer(function LeftDependencyDraggable
         zIndex: 10,
       }}
       onMouseDown={handleMouseDown}
-      onKeyDown={(e) => {
-        if (e.key === "Enter" || e.key === " ") {
-          handleMouseDown(e as unknown as React.MouseEvent<HTMLDivElement>);
-        }
-      }}
     />
   );
 });

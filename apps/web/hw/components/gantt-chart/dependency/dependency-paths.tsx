@@ -5,7 +5,6 @@
  */
 
 import { observer } from "mobx-react";
-import type { TIssueRelationTypes, IGanttBlock } from "@plane/types";
 import { EIssueServiceType } from "@plane/types";
 import { useTimeLineChartStore } from "@/hooks/use-timeline-chart";
 import { useIssueDetail } from "@/hooks/store/use-issue-detail";
@@ -37,21 +36,12 @@ export const TimelineDependencyPaths = observer(function TimelineDependencyPaths
   const issueDetailStore = useIssueDetail(isEpic ? EIssueServiceType.EPICS : EIssueServiceType.ISSUES);
 
   // Get block data from timeline store
-  // Timeline store interface doesn't expose blocksMap and blockIds, but they exist on the store instance.
-  // We use type casting to access these internal properties needed for dependency visualization.
-  const blocksMap = (timelineStore as unknown as Record<string, unknown>).blocksMap as
-    | Record<string, IGanttBlock>
-    | undefined;
-
-  const blockIds = (timelineStore as unknown as Record<string, unknown>).blockIds as string[] | undefined;
+  const blocksMap = timelineStore.blocksMap;
+  const blockIds = timelineStore.blockIds;
 
   // Get relation data from issue detail store
   // The relation store property may not be defined if the store hasn't been initialized yet.
-  const relationMap = issueDetailStore?.relation
-    ? ((issueDetailStore.relation as unknown as Record<string, unknown>).relationMap as
-        | Record<string, Record<TIssueRelationTypes, string[]>>
-        | undefined)
-    : undefined;
+  const relationMap = issueDetailStore?.relation?.relationMap;
 
   // Early return if required data is missing
   if (!blocksMap || !blockIds || !issueDetailStore || !relationMap) {
