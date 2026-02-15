@@ -1,5 +1,4 @@
 import pytest
-from pathlib import Path
 from plane_preview.types import RenderFile, PreviewTarget
 
 

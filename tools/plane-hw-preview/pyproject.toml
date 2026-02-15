@@ -29,8 +29,6 @@ plane-preview = "plane_preview.cli:main"
 
 [tool.ruff]
 line-length = 120
-quote-style = "double"
-indent-width = 4
 
 [tool.ruff.lint]
 select = ["E", "F"]

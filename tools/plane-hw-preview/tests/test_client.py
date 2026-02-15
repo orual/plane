@@ -2,14 +2,13 @@
 
 import json
 import logging
-from pathlib import Path
 
 import pytest
 import respx
-from httpx import AsyncClient, Client, Response
+from httpx import Response
 
 from plane_preview.client import PlaneClient
-from plane_preview.types import MAX_FILE_SIZE, PlaneAPIError, RenderFile
+from plane_preview.types import MAX_FILE_SIZE, PlaneAPIError
 
 
 @pytest.mark.unit

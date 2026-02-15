@@ -5,7 +5,6 @@ from pathlib import Path
 
 import httpx
 from tenacity import (
-    RetryError,
     Retrying,
     retry_if_exception_type,
     stop_after_attempt,
