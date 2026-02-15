@@ -18,11 +18,13 @@ class TestPlaneClient:
     @pytest.fixture
     def client(self):
         """Create a PlaneClient instance for testing."""
-        return PlaneClient(
+        c = PlaneClient(
             base_url="https://api.example.com",
             api_key="test-api-key",
             workspace="test-ws",
         )
+        yield c
+        c.close()
 
     @pytest.fixture
     def mock_respx(self):
@@ -71,14 +73,12 @@ class TestPlaneClient:
         )
 
         # Mock S3 upload
-        respx.post("https://s3.example.com/upload").mock(
-            return_value=Response(204)
-        )
+        respx.post("https://s3.example.com/upload").mock(return_value=Response(204))
 
         # Mock confirm upload endpoint
-        respx.patch(
-            "https://api.example.com/api/v1/workspaces/test-ws/assets/asset-uuid/"
-        ).mock(return_value=Response(204))
+        respx.patch("https://api.example.com/api/v1/workspaces/test-ws/assets/asset-uuid/").mock(
+            return_value=Response(204)
+        )
 
         # Mock comment creation endpoint
         comment_response = {"id": "comment-uuid"}
@@ -141,14 +141,10 @@ class TestPlaneClient:
         )
 
         # Mock S3 upload
-        respx.post("https://s3.example.com/upload").mock(
-            return_value=Response(204)
-        )
+        respx.post("https://s3.example.com/upload").mock(return_value=Response(204))
 
         # Mock confirm - fails twice then succeeds
-        confirm_route = respx.patch(
-            "https://api.example.com/api/v1/workspaces/test-ws/assets/asset-uuid/"
-        )
+        confirm_route = respx.patch("https://api.example.com/api/v1/workspaces/test-ws/assets/asset-uuid/")
         confirm_route.side_effect = [
             Response(500),
             Response(500),
@@ -187,9 +183,9 @@ class TestPlaneClient:
         ]
 
         # Mock confirm
-        respx.patch(
-            "https://api.example.com/api/v1/workspaces/test-ws/assets/asset-uuid/"
-        ).mock(return_value=Response(204))
+        respx.patch("https://api.example.com/api/v1/workspaces/test-ws/assets/asset-uuid/").mock(
+            return_value=Response(204)
+        )
 
         # Should eventually succeed
         result = client.upload_asset(render_file, "image/svg+xml")
@@ -203,9 +199,7 @@ class TestPlaneClient:
         render_file.write_bytes(b"<svg></svg>")
 
         # Mock presigned URL endpoint - always fails
-        respx.post("https://api.example.com/api/v1/workspaces/test-ws/assets/").mock(
-            return_value=Response(500)
-        )
+        respx.post("https://api.example.com/api/v1/workspaces/test-ws/assets/").mock(return_value=Response(500))
 
         # Should raise PlaneAPIError after exhausting retries
         with pytest.raises(PlaneAPIError):
@@ -245,14 +239,12 @@ class TestPlaneClient:
         )
 
         # Mock S3 upload
-        respx.post("https://s3.example.com/upload").mock(
-            return_value=Response(204)
-        )
+        respx.post("https://s3.example.com/upload").mock(return_value=Response(204))
 
         # Mock confirm
-        respx.patch(
-            "https://api.example.com/api/v1/workspaces/test-ws/assets/asset-uuid/"
-        ).mock(return_value=Response(204))
+        respx.patch("https://api.example.com/api/v1/workspaces/test-ws/assets/asset-uuid/").mock(
+            return_value=Response(204)
+        )
 
         # Mock comment creation - capture the request to verify HTML
         comment_requests = []

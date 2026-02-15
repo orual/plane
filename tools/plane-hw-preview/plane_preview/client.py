@@ -11,7 +11,7 @@ from tenacity import (
     wait_exponential,
 )
 
-from plane_preview.types import AssetUploadResult, MAX_FILE_SIZE, PlaneAPIError
+from plane_preview.types import MAX_FILE_SIZE, AssetUploadResult, PlaneAPIError, PreviewTarget
 
 logger = logging.getLogger(__name__)
 
@@ -92,15 +92,11 @@ class PlaneClient:
         # Check file size
         file_size = file_path.stat().st_size
         if file_size > MAX_FILE_SIZE:
-            logger.warning(
-                f"File {file_path.name} ({file_size} bytes) exceeds {MAX_FILE_SIZE} bytes limit, skipping"
-            )
+            logger.warning(f"File {file_path.name} ({file_size} bytes) exceeds {MAX_FILE_SIZE} bytes limit, skipping")
             return None
 
         # Step 1: Get presigned URL
-        asset_id, upload_data, asset_url = self._get_presigned_url(
-            file_path, file_size, mime_type
-        )
+        asset_id, upload_data, asset_url = self._get_presigned_url(file_path, file_size, mime_type)
 
         # Step 2: Upload to S3
         self._upload_to_s3(file_path, upload_data)
@@ -145,6 +141,7 @@ class PlaneClient:
             raise PlaneAPIError("Failed to get presigned URL after retries")
         except PlaneAPIError:
             raise
+        raise PlaneAPIError("Failed to get presigned URL: unexpected retry exhaustion")
 
     def _upload_to_s3(self, file_path: Path, upload_data: dict) -> None:
         """Upload file to presigned S3 URL.
@@ -173,13 +170,13 @@ class PlaneClient:
                             if response.status_code >= 500:
                                 raise _HTTPError(f"HTTP {response.status_code}")
                             if response.status_code not in (200, 204):
-                                raise PlaneAPIError(
-                                    f"Failed to upload to S3: {response.status_code}"
-                                )
+                                raise PlaneAPIError(f"Failed to upload to S3: {response.status_code}")
+                            return
             except _HTTPError:
                 raise PlaneAPIError("Failed to upload to S3 after retries")
             except PlaneAPIError:
                 raise
+            raise PlaneAPIError("Failed to upload to S3: unexpected retry exhaustion")
 
     def _confirm_upload(self, asset_id: str) -> None:
         """Confirm upload completion with Plane API.
@@ -250,19 +247,18 @@ class PlaneClient:
                         logger.warning(f"Issue {issue_id} not found")
                         return None
                     if response.status_code != 201:
-                        raise PlaneAPIError(
-                            f"Failed to create comment: {response.status_code}"
-                        )
+                        raise PlaneAPIError(f"Failed to create comment: {response.status_code}")
                     data = response.json()
                     return data.get("id")
         except _HTTPError:
             raise PlaneAPIError("Failed to create comment after retries")
         except PlaneAPIError:
             raise
+        raise PlaneAPIError("Failed to create comment: unexpected retry exhaustion")
 
     def post_preview(
         self,
-        targets: list,
+        targets: list[PreviewTarget],
         commit_sha: str,
         commit_url: str,
         branch: str,
@@ -290,14 +286,12 @@ class PlaneClient:
 
             # Skip if no uploads succeeded
             if not uploads:
-                logger.warning(
-                    f"Skipping preview for {target.issue_id}: all renders failed or were oversized"
-                )
+                logger.warning(f"Skipping preview for {target.issue_id}: all renders failed or were oversized")
                 continue
 
             # Build HTML comment
             html_parts = [
-                f"<h3>Hardware preview — commit <a href=\"{commit_url}\">{short_sha}</a></h3>",
+                f'<h3>Hardware preview — commit <a href="{commit_url}">{short_sha}</a></h3>',
                 f"<p>Branch: <code>{branch}</code></p>",
             ]
 

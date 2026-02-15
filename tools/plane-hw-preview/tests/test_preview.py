@@ -18,16 +18,16 @@ class TestPreviewPosting:
     @pytest.fixture
     def client(self):
         """Create a PlaneClient instance for testing."""
-        return PlaneClient(
+        c = PlaneClient(
             base_url="https://api.example.com",
             api_key="test-api-key",
             workspace="test-ws",
         )
+        yield c
+        c.close()
 
     @respx.mock
-    def test_multiple_renders_grouped_in_single_comment(
-        self, client, render_file_factory
-    ):
+    def test_multiple_renders_grouped_in_single_comment(self, client, render_file_factory):
         """Test AC1.2: Multiple renders for same issue are in one comment."""
         # Create a preview target with two render files
         render1 = render_file_factory(
@@ -74,20 +74,18 @@ class TestPreviewPosting:
                     },
                 )
 
-        respx.post("https://api.example.com/api/v1/workspaces/test-ws/assets/").side_effect = (
-            presigned_response
-        )
+        respx.post("https://api.example.com/api/v1/workspaces/test-ws/assets/").side_effect = presigned_response
 
         # Mock S3 uploads
         respx.post("https://s3.example.com/upload").mock(return_value=Response(204))
 
         # Mock confirm uploads
-        respx.patch(
-            "https://api.example.com/api/v1/workspaces/test-ws/assets/asset-uuid-1/"
-        ).mock(return_value=Response(204))
-        respx.patch(
-            "https://api.example.com/api/v1/workspaces/test-ws/assets/asset-uuid-2/"
-        ).mock(return_value=Response(204))
+        respx.patch("https://api.example.com/api/v1/workspaces/test-ws/assets/asset-uuid-1/").mock(
+            return_value=Response(204)
+        )
+        respx.patch("https://api.example.com/api/v1/workspaces/test-ws/assets/asset-uuid-2/").mock(
+            return_value=Response(204)
+        )
 
         # Capture comment creation request
         comment_requests = []
@@ -121,9 +119,7 @@ class TestPreviewPosting:
         assert "main" in comment_html
 
     @respx.mock
-    def test_multiple_issues_get_separate_comments(
-        self, client, render_file_factory
-    ):
+    def test_multiple_issues_get_separate_comments(self, client, render_file_factory):
         """Test AC1.3: Different issues get separate comments."""
         # Create two targets with different issue IDs and different renders
         render1 = render_file_factory(
@@ -175,20 +171,18 @@ class TestPreviewPosting:
                     },
                 )
 
-        respx.post("https://api.example.com/api/v1/workspaces/test-ws/assets/").side_effect = (
-            presigned_varied
-        )
+        respx.post("https://api.example.com/api/v1/workspaces/test-ws/assets/").side_effect = presigned_varied
 
         # Mock S3 uploads
         respx.post("https://s3.example.com/upload").mock(return_value=Response(204))
 
         # Mock confirm uploads
-        respx.patch(
-            "https://api.example.com/api/v1/workspaces/test-ws/assets/asset-1/"
-        ).mock(return_value=Response(204))
-        respx.patch(
-            "https://api.example.com/api/v1/workspaces/test-ws/assets/asset-2/"
-        ).mock(return_value=Response(204))
+        respx.patch("https://api.example.com/api/v1/workspaces/test-ws/assets/asset-1/").mock(
+            return_value=Response(204)
+        )
+        respx.patch("https://api.example.com/api/v1/workspaces/test-ws/assets/asset-2/").mock(
+            return_value=Response(204)
+        )
 
         # Capture comment creation requests
         comment_requests = []
@@ -256,9 +250,9 @@ class TestPreviewPosting:
         respx.post("https://s3.example.com/upload").mock(return_value=Response(204))
 
         # Mock confirm
-        respx.patch(
-            "https://api.example.com/api/v1/workspaces/test-ws/assets/asset-uuid/"
-        ).mock(return_value=Response(204))
+        respx.patch("https://api.example.com/api/v1/workspaces/test-ws/assets/asset-uuid/").mock(
+            return_value=Response(204)
+        )
 
         # Mock comment endpoint to return 404
         respx.post(
