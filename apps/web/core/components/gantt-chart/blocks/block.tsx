@@ -19,6 +19,7 @@ import { BLOCK_HEIGHT } from "../constants";
 // components
 import { ChartDraggable } from "../helpers";
 import { useGanttResizable } from "../helpers/blockResizables/use-gantt-resizable";
+import { ConflictIndicator } from "@/plane-web/components/gantt-chart/blocks/conflict-indicator";
 
 type Props = {
   blockId: string;
@@ -45,7 +46,7 @@ export const GanttChartBlock = observer(function GanttChartBlock(props: Props) {
     updateBlockDates,
   } = props;
   // store hooks
-  const { updateActiveBlockId, getBlockById, getIsCurrentDependencyDragging, currentView, previewBlockIds } =
+  const { updateActiveBlockId, getBlockById, getIsCurrentDependencyDragging, currentView, previewBlockIds, hasConflict } =
     useTimeLineChartStore();
   // refs
   const resizableRef = useRef<HTMLDivElement>(null);
@@ -64,6 +65,8 @@ export const GanttChartBlock = observer(function GanttChartBlock(props: Props) {
   if (!block || (!showAllBlocks && !isBlockVisibleOnChart)) return null;
 
   if (!block.data) return null;
+
+  const blockHasConflict = hasConflict(blockId);
 
   return (
     <div
@@ -91,7 +94,9 @@ export const GanttChartBlock = observer(function GanttChartBlock(props: Props) {
           forceRender={isCurrentDependencyDragging}
         >
           <div
-            className={cn("relative h-full w-full")}
+            className={cn("relative h-full w-full", {
+              "ring-1 ring-orange-500": blockHasConflict,
+            })}
             onMouseEnter={() => updateActiveBlockId(blockId)}
             onMouseLeave={() => updateActiveBlockId(null)}
           >
@@ -106,6 +111,7 @@ export const GanttChartBlock = observer(function GanttChartBlock(props: Props) {
               isMoving={isMoving}
               ganttContainerRef={ganttContainerRef}
             />
+            <ConflictIndicator blockId={blockId} />
           </div>
         </RenderIfVisible>
       )}

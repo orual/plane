@@ -23,6 +23,7 @@ import { usePlatformOS } from "@/hooks/use-platform-os";
 // plane web imports
 import { IssueIdentifier } from "@/plane-web/components/issues/issue-details/issue-identifier";
 import type { TIssueRelationTypes } from "@/plane-web/types";
+import { ConflictBadge } from "@/plane-web/components/relations/conflict-badge";
 // local imports
 import { useRelationOperations } from "../issue-detail-widgets/relations/helper";
 import { RelationIssueProperty } from "./properties";
@@ -148,6 +149,7 @@ export const RelationIssueListItem = observer(function RelationIssueListItem(pro
               <Tooltip tooltipContent={issue.name} isMobile={isMobile}>
                 <span className="flex-1 w-0 truncate text-13 text-primary">{issue.name}</span>
               </Tooltip>
+              <ConflictBadge issueId={issueId} relationIssueId={relationIssueId} relationType={relationKey} />
             </div>
             <div
               className="flex-shrink-0 text-13"
