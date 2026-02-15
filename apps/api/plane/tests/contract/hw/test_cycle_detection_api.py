@@ -11,14 +11,8 @@ Tests ensure the HTTP response format and status codes are correct.
 
 import pytest
 from rest_framework import status
-from uuid import uuid4
 
-from plane.db.models import (
-    IssueRelation,
-    Project,
-    ProjectMember,
-    WorkspaceMember,
-)
+from plane.db.models import ProjectMember, WorkspaceMember
 from plane.tests.factories import IssueFactory, ProjectFactory, WorkspaceFactory, UserFactory
 
 

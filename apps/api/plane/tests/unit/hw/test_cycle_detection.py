@@ -10,11 +10,10 @@ Tests are divided by acceptance criteria to ensure full coverage.
 """
 
 import pytest
-from uuid import uuid4
 
 from plane.hw.services.cycle_detection import detect_dependency_cycle
-from plane.db.models import IssueRelation, Issue, Project, Workspace, State
-from plane.tests.factories import IssueFactory, ProjectFactory, WorkspaceFactory, UserFactory
+from plane.db.models import IssueRelation
+from plane.tests.factories import IssueFactory, ProjectFactory, WorkspaceFactory
 
 
 @pytest.fixture
