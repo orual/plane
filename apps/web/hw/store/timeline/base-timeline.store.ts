@@ -24,8 +24,8 @@ import {
   getPositionFromDate,
 } from "@/components/gantt-chart/views/helpers";
 // helpers
-import type { ConflictInfo } from "@/plane-web/helpers/dependency-conflict";
-import { detectDependencyConflicts } from "@/plane-web/helpers/dependency-conflict";
+import type { ConflictInfo } from "../../helpers/dependency-conflict";
+import { detectDependencyConflicts } from "../../helpers/dependency-conflict";
 // store
 import type { RootStore } from "@/plane-web/store/root.store";
 
