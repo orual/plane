@@ -32,6 +32,10 @@ from plane.db.models import (
 from plane.bgtasks.issue_activities_task import issue_activity
 from plane.utils.issue_relation_mapper import get_actual_relation
 from plane.utils.host import base_host
+from plane.hw.services.cycle_detection import detect_dependency_cycle
+
+# Relation types that require swapping issue_id and related_issue_id during storage
+_SWAP_RELATION_TYPES = ["blocking", "start_after", "finish_after", "implements"]
 
 
 class IssueRelationViewSet(BaseViewSet):
@@ -98,6 +102,16 @@ class IssueRelationViewSet(BaseViewSet):
         finish_before_issues = issue_relations.filter(relation_type="finish_before", issue_id=issue_id).values_list(
             "related_issue_id", flat=True
         )
+
+        # get all implements issues (issues that this issue implements)
+        implements_issues = issue_relations.filter(
+            relation_type="implemented_by", related_issue_id=issue_id
+        ).values_list("issue_id", flat=True)
+
+        # get all implemented_by issues (issues that implement this issue)
+        implemented_by_issues_list = issue_relations.filter(
+            relation_type="implemented_by", issue_id=issue_id
+        ).values_list("related_issue_id", flat=True)
 
         queryset = (
             Issue.issue_objects.filter(workspace__slug=slug)
@@ -202,6 +216,12 @@ class IssueRelationViewSet(BaseViewSet):
             "finish_before": queryset.filter(pk__in=finish_before_issues)
             .annotate(relation_type=Value("finish_before", output_field=CharField()))
             .values(*fields),
+            "implements": queryset.filter(pk__in=implements_issues)
+            .annotate(relation_type=Value("implements", output_field=CharField()))
+            .values(*fields),
+            "implemented_by": queryset.filter(pk__in=implemented_by_issues_list)
+            .annotate(relation_type=Value("implemented_by", output_field=CharField()))
+            .values(*fields),
         }
 
         return Response(response_data, status=status.HTTP_200_OK)
@@ -217,12 +237,55 @@ class IssueRelationViewSet(BaseViewSet):
         issues = request.data.get("issues", [])
         project = Project.objects.get(pk=project_id)
 
+        # Get the stored relation type (normalized form)
+        stored_relation_type = get_actual_relation(relation_type)
+
+        # Convert issue_id to string for consistent comparison
+        issue_id_str = str(issue_id)
+
+        # Check for self-referencing across the entire issues list
+        if issue_id_str in issues:
+            return Response(
+                {
+                    "error": "cycle_detected",
+                    "detail": "An issue cannot be related to itself",
+                    "cycle_path": [issue_id_str],
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # Check for cycles only for dependency relation types
+        # Symmetric types (relates_to, duplicate) don't participate in cycle detection
+        if stored_relation_type in {"blocked_by", "start_before", "finish_before", "implemented_by"}:
+            for related_issue in issues:
+                # Determine source and target based on relation direction
+                if relation_type in _SWAP_RELATION_TYPES:
+                    # For incoming types, the current issue is the source
+                    source_issue_id = issue_id_str
+                    target_issue_id = related_issue
+                else:
+                    # For stored types, the related issue is the source
+                    source_issue_id = related_issue
+                    target_issue_id = issue_id_str
+
+                # Check for cycles
+                cycle_path = detect_dependency_cycle(source_issue_id, target_issue_id, stored_relation_type)
+                if cycle_path:
+                    return Response(
+                        {
+                            "error": "cycle_detected",
+                            "detail": "Creating this relation would form a dependency cycle",
+                            "cycle_path": [str(cid) for cid in cycle_path],
+                        },
+                        status=status.HTTP_400_BAD_REQUEST,
+                    )
+
         issue_relation = IssueRelation.objects.bulk_create(
             [
                 IssueRelation(
-                    issue_id=(issue if relation_type in ["blocking", "start_after", "finish_after"] else issue_id),
+                    issue_id=(issue if relation_type in _SWAP_RELATION_TYPES else issue_id),
                     related_issue_id=(
-                        issue_id if relation_type in ["blocking", "start_after", "finish_after"] else issue
+                        issue_id if relation_type in _SWAP_RELATION_TYPES else issue
                     ),
                     relation_type=(get_actual_relation(relation_type)),
                     project_id=project_id,
@@ -248,7 +311,7 @@ class IssueRelationViewSet(BaseViewSet):
             origin=base_host(request=request, is_app=True),
         )
 
-        if relation_type in ["blocking", "start_after", "finish_after"]:
+        if relation_type in _SWAP_RELATION_TYPES:
             return Response(
                 RelatedIssueSerializer(issue_relation, many=True).data,
                 status=status.HTTP_201_CREATED,

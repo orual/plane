@@ -3,6 +3,7 @@
  * SPDX-License-Identifier: AGPL-3.0-only
  * See the LICENSE file for details.
  */
+/* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment */
 
 import { isEqual, set } from "lodash-es";
 import { action, makeObservable, observable, runInAction } from "mobx";
@@ -23,6 +24,7 @@ import {
   getPositionFromDate,
 } from "@/components/gantt-chart/views/helpers";
 // helpers
+import type { ConflictInfo } from "@/plane-web/helpers/dependency-conflict";
 // store
 import type { RootStore } from "@/plane-web/store/root.store";
 
@@ -38,18 +40,33 @@ type BlockData = {
 
 export interface IBaseTimelineStore {
   // observables
+  blocksMap: Record<string, IGanttBlock>;
+  blockIds: string[] | undefined;
   currentView: TGanttViews;
   currentViewData: ChartDataType | undefined;
   activeBlockId: string | null;
   renderView: any;
   isDragging: boolean;
   isDependencyEnabled: boolean;
+  previewBlockIds: Set<string>;
+  dependencyDragState: {
+    isDragging: boolean;
+    sourceBlockId: string | null;
+    sourceEndpoint: "left" | "right" | null;
+    cursorX: number;
+    cursorY: number;
+    hoveredTargetBlockId: string | null;
+    hoveredTargetEndpoint: "left" | "right" | null;
+    isValidTarget: boolean;
+  };
   //
   setBlockIds: (ids: string[]) => void;
   getBlockById: (blockId: string) => IGanttBlock;
   // computed functions
   getIsCurrentDependencyDragging: (blockId: string) => boolean;
   isBlockActive: (blockId: string) => boolean;
+  getDependencyConflicts: (blockId: string) => Array<ConflictInfo>;
+  hasConflict: (blockId: string) => boolean;
   // actions
   updateCurrentView: (view: TGanttViews) => void;
   updateCurrentViewData: (data: ChartDataType | undefined) => void;
@@ -65,6 +82,12 @@ export interface IBaseTimelineStore {
   getNumberOfDaysFromPosition: (position: number | undefined) => number | undefined;
   setIsDragging: (isDragging: boolean) => void;
   initGantt: () => void;
+  startDependencyDrag: (blockId: string, endpoint: "left" | "right") => void;
+  updateDependencyDragCursor: (x: number, y: number) => void;
+  setDependencyDragTarget: (blockId: string | null, endpoint: "left" | "right" | null, isValid: boolean) => void;
+  endDependencyDrag: () => void;
+  computePreviewPositions: (draggedBlockId: string) => void;
+  clearPreviewPositions: () => void;
 
   getDateFromPositionOnGantt: (position: number, offsetDays: number) => Date | undefined;
   getPositionFromDateOnGantt: (date: string | Date, offSetWidth: number) => number | undefined;
@@ -79,10 +102,32 @@ export class BaseTimeLineStore implements IBaseTimelineStore {
   currentViewData: ChartDataType | undefined = undefined;
   activeBlockId: string | null = null;
   renderView: any = [];
+  previewBlockIds: Set<string> = new Set();
 
   rootStore: RootStore;
 
   isDependencyEnabled = false;
+
+  // Dependency drag state (CE edition: stubs only)
+  dependencyDragState: {
+    isDragging: boolean;
+    sourceBlockId: string | null;
+    sourceEndpoint: "left" | "right" | null;
+    cursorX: number;
+    cursorY: number;
+    hoveredTargetBlockId: string | null;
+    hoveredTargetEndpoint: "left" | "right" | null;
+    isValidTarget: boolean;
+  } = {
+    isDragging: false,
+    sourceBlockId: null,
+    sourceEndpoint: null,
+    cursorX: 0,
+    cursorY: 0,
+    hoveredTargetBlockId: null,
+    hoveredTargetEndpoint: null,
+    isValidTarget: false,
+  };
 
   constructor(_rootStore: RootStore) {
     makeObservable(this, {
@@ -94,6 +139,8 @@ export class BaseTimeLineStore implements IBaseTimelineStore {
       currentViewData: observable,
       activeBlockId: observable.ref,
       renderView: observable,
+      previewBlockIds: observable,
+      dependencyDragState: observable.deep,
       // actions
       setIsDragging: action,
       setBlockIds: action.bound,
@@ -102,6 +149,12 @@ export class BaseTimeLineStore implements IBaseTimelineStore {
       updateCurrentViewData: action.bound,
       updateActiveBlockId: action.bound,
       updateRenderView: action.bound,
+      startDependencyDrag: action.bound,
+      updateDependencyDragCursor: action.bound,
+      setDependencyDragTarget: action.bound,
+      endDependencyDrag: action.bound,
+      computePreviewPositions: action.bound,
+      clearPreviewPositions: action.bound,
     });
 
     this.initGantt();
@@ -341,6 +394,70 @@ export class BaseTimeLineStore implements IBaseTimelineStore {
     });
   });
 
-  // Dummy method to return if the current Block's dependency is being dragged
-  getIsCurrentDependencyDragging = computedFn((blockId: string) => false);
+  /**
+   * @description check if the current block's dependency is being dragged
+   * CE edition: always returns false (drag not supported)
+   * @param {string} _blockId
+   */
+  getIsCurrentDependencyDragging = computedFn((_blockId: string) => false);
+
+  /**
+   * @description CE stub: start a dependency drag operation (not supported)
+   */
+  startDependencyDrag = (_blockId: string, _endpoint: "left" | "right") => {
+    // CE does not support dependency drag
+  };
+
+  /**
+   * @description CE stub: update cursor position during dependency drag (not supported)
+   */
+  updateDependencyDragCursor = (_x: number, _y: number) => {
+    // CE does not support dependency drag
+  };
+
+  /**
+   * @description CE stub: set the hovered target block during dependency drag (not supported)
+   */
+  setDependencyDragTarget = (_blockId: string | null, _endpoint: "left" | "right" | null, _isValid: boolean) => {
+    // CE does not support dependency drag
+  };
+
+  /**
+   * @description CE stub: end a dependency drag operation (not supported)
+   */
+  endDependencyDrag = () => {
+    // CE does not support dependency drag
+  };
+
+  /**
+   * @description CE stub: compute preview positions for dependent blocks (not supported)
+   * Preview positions are a HW-only feature
+   */
+  computePreviewPositions = (_draggedBlockId: string) => {
+    // CE does not support dependency preview
+  };
+
+  /**
+   * @description CE stub: clear preview positions (not supported)
+   * Preview positions are a HW-only feature
+   */
+  clearPreviewPositions = () => {
+    // CE does not support dependency preview
+  };
+
+  /**
+   * @description CE stub: get dependency conflicts for a block (not supported)
+   * Conflict visualization is a HW-only feature — CE always returns empty array
+   * @param _blockId the block ID (unused in CE)
+   * @returns empty array (no conflicts in CE)
+   */
+  getDependencyConflicts = computedFn((_blockId: string): Array<ConflictInfo> => []);
+
+  /**
+   * @description CE stub: check if a block has conflicts (not supported)
+   * Conflict visualization is a HW-only feature — CE always returns false
+   * @param _blockId the block ID (unused in CE)
+   * @returns false (no conflicts in CE)
+   */
+  hasConflict = computedFn((_blockId: string): boolean => false);
 }

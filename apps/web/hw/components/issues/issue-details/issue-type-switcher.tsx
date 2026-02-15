@@ -60,12 +60,26 @@ export const IssueTypeSwitcher = observer(function IssueTypeSwitcher(props: TIss
 
   if (!issue) return null;
 
+  const selectedType = issueTypes.find((it) => it.id === currentTypeId);
+
   return (
     <CustomSelect
       value={currentTypeId}
       onChange={handleIssueTypeChange}
       disabled={disabled || issueTypes.length === 0}
-      label="Select type"
+      label={
+        selectedType ? (
+          <span className="flex items-center gap-2">
+            <span
+              className="h-3 w-3 flex-shrink-0 rounded-full"
+              style={{ backgroundColor: selectedType.logo_props.color }}
+            />
+            <span className="truncate">{selectedType.name}</span>
+          </span>
+        ) : (
+          "Select type"
+        )
+      }
       noChevron={false}
     >
       {issueTypes.map((issueType) => (

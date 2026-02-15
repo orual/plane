@@ -663,6 +663,10 @@ class IssueViewSet(BaseViewSet):
 
         current_instance = json.dumps(IssueDetailSerializer(issue).data, cls=DjangoJSONEncoder)
 
+        # Capture old dates for propagation check.
+        old_start_date = issue.start_date
+        old_target_date = issue.target_date
+
         requested_data = json.dumps(self.request.data, cls=DjangoJSONEncoder)
         serializer = IssueCreateSerializer(issue, data=request.data, partial=True, context={"project_id": project_id})
         if serializer.is_valid():
@@ -697,6 +701,28 @@ class IssueViewSet(BaseViewSet):
                     issue_id=str(serializer.data.get("id", None)),
                     user_id=request.user.id,
                 )
+
+            # Check if dates changed and propagate if necessary.
+            new_start_date = issue.start_date
+            new_target_date = issue.target_date
+            dates_changed = old_start_date != new_start_date or old_target_date != new_target_date
+
+            if dates_changed:
+                from plane.hw.services.propagation import propagate_dates
+
+                updated_dependents = propagate_dates(
+                    changed_issue_id=str(pk),
+                    old_start_date=old_start_date,
+                    old_target_date=old_target_date,
+                    new_start_date=new_start_date,
+                    new_target_date=new_target_date,
+                )
+
+                if updated_dependents:
+                    response_data = IssueSerializer(issue).data
+                    response_data["updated_dependents"] = updated_dependents
+                    return Response(response_data, status=status.HTTP_200_OK)
+
             return Response(status=status.HTTP_204_NO_CONTENT)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 

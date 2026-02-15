@@ -66,28 +66,43 @@ export function IssueTypeSelect<T extends Partial<TIssueFields>>(props: TIssueTy
     <Controller
       control={control}
       name={"type_id" as FieldPath<T>}
-      render={({ field: { value, onChange } }) => (
-        <CustomSelect
-          value={value}
-          onChange={(newValue: string | null) => {
-            onChange(newValue);
-            handleFormChange?.();
-          }}
-          disabled={disabled || issueTypes.length === 0}
-          label={placeholder}
-          buttonClassName={dropDownContainerClassName}
-          noChevron={!renderChevron}
-        >
-          {issueTypes.map((issueType) => (
-            <CustomSelect.Option key={issueType.id} value={issueType.id}>
-              <div className="flex items-center gap-2">
-                <div className="w-3 h-3 rounded-full" style={{ backgroundColor: issueType.logo_props.color }} />
-                <span>{issueType.name}</span>
-              </div>
-            </CustomSelect.Option>
-          ))}
-        </CustomSelect>
-      )}
+      render={({ field: { value, onChange } }) => {
+        const selectedType = issueTypes.find((it) => it.id === value);
+        return (
+          <CustomSelect
+            value={value}
+            onChange={(newValue: string | null) => {
+              onChange(newValue);
+              handleFormChange?.();
+            }}
+            disabled={disabled || issueTypes.length === 0}
+            label={
+              selectedType ? (
+                <span className="flex items-center gap-2">
+                  <span
+                    className="h-3 w-3 flex-shrink-0 rounded-full"
+                    style={{ backgroundColor: selectedType.logo_props.color }}
+                  />
+                  <span className="truncate">{selectedType.name}</span>
+                </span>
+              ) : (
+                placeholder
+              )
+            }
+            buttonClassName={dropDownContainerClassName}
+            noChevron={!renderChevron}
+          >
+            {issueTypes.map((issueType) => (
+              <CustomSelect.Option key={issueType.id} value={issueType.id}>
+                <div className="flex items-center gap-2">
+                  <div className="w-3 h-3 rounded-full" style={{ backgroundColor: issueType.logo_props.color }} />
+                  <span>{issueType.name}</span>
+                </div>
+              </CustomSelect.Option>
+            ))}
+          </CustomSelect>
+        );
+      }}
     />
   );
 }

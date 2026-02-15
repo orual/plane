@@ -957,6 +957,17 @@ export default {
       duplicate: "Duplicate of",
       blocked_by: "Blocked by",
       blocking: "Blocking",
+      start_before: "Starts before",
+      start_after: "Starts after",
+      finish_before: "Finishes before",
+      finish_after: "Finishes after",
+      implemented_by: "Implemented by",
+      implements: "Implements",
+      group: {
+        scheduling: "Scheduling",
+        structural: "Structural",
+        other: "Other",
+      },
     },
     copy_link: "Copy work item link",
     delete: {
