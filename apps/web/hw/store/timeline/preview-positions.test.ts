@@ -76,7 +76,8 @@ describe("BaseTimeLineStore - Preview Position Computation and Reconciliation", 
       },
     };
 
-    store = new BaseTimeLineStore(mockRootStore as any);
+    // @ts-expect-error - minimal mock structure for testing
+    store = new BaseTimeLineStore(mockRootStore);
     store.updateCurrentViewData(createMockChartData());
   });
 

@@ -4,8 +4,14 @@
  * See the LICENSE file for details.
  */
 
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import { REVERSE_RELATIONS } from "../../../core/constants/gantt-chart";
+
+vi.mock("@plane/propel/icons", () => ({
+  RelatedIcon: (props: Record<string, unknown>) => props,
+  DuplicatePropertyIcon: (props: Record<string, unknown>) => props,
+}));
+
 import { ISSUE_RELATION_OPTIONS, RELATION_GROUPS } from "./index";
 import type { TIssueRelationTypes } from "../../types";
 
