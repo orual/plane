@@ -180,8 +180,8 @@ describe("BaseTimeLineStore - Conflict Detection", () => {
       // Setup: Block B has no dates
       const blockB = createMockBlock({
         id: "block-b",
-        start_date: null,
-        target_date: null,
+        start_date: undefined,
+        target_date: undefined,
       });
 
       runInAction(() => {
@@ -495,11 +495,11 @@ describe("BaseTimeLineStore - Conflict Detection", () => {
       });
 
       // A is not in blocksMap, fallback to issue store which returns no dates
-      // Use vi.fn() typed as the getIssueById function
-      const getIssueFn = vi.fn<[id: string], MockIssue | undefined>();
+      // Create a mock function properly typed
+      const getIssueFn = vi.fn<(id: string) => MockIssue | undefined>();
       getIssueFn.mockReturnValue({
-        start_date: null,
-        target_date: null,
+        start_date: undefined,
+        target_date: undefined,
       });
       mockRootStore.issue.issueDetail.issue.getIssueById = getIssueFn;
 
@@ -542,7 +542,7 @@ describe("BaseTimeLineStore - Conflict Detection", () => {
       const blockA = createMockBlock({
         id: "block-a",
         start_date: "2024-01-10",
-        target_date: null,
+        target_date: undefined,
       });
       const blockB = createMockBlock({
         id: "block-b",
@@ -579,7 +579,7 @@ describe("BaseTimeLineStore - Conflict Detection", () => {
     it("should handle partial dates (only target_date)", () => {
       const blockA = createMockBlock({
         id: "block-a",
-        start_date: null,
+        start_date: undefined,
         target_date: "2024-01-12",
       });
       const blockB = createMockBlock({
