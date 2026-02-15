@@ -8,9 +8,9 @@ Plane is an open-source project management tool (issue tracking, cycles, modules
 
 LLMs represent a tremendous breakthrough in software engineering. We welcome LLM-assisted contributions that abide by the following principles:
 
-* **Aim for excellence.** LLMs should be used not as a speed multiplier but a quality multiplier. Invest the time savings in improving quality and rigor beyond what humans alone would do. Write tests that cover more edge cases. Refactor code to make it easier to understand. Tackle the TODOs. Aim for your code to have zero bugs.
-* **Spend time reviewing LLM output.** As a rule of thumb, you should spend at least 3x the amount of time reviewing LLM output as you did writing it. Think about every line and every design decision. Find ways to break code.
-* **Your code is your responsibility.** Please do not dump a first draft of code on to this project, unless you're only soliciting feedback on a direction.
+- **Aim for excellence.** LLMs should be used not as a speed multiplier but a quality multiplier. Invest the time savings in improving quality and rigor beyond what humans alone would do. Write tests that cover more edge cases. Refactor code to make it easier to understand. Tackle the TODOs. Aim for your code to have zero bugs.
+- **Spend time reviewing LLM output.** As a rule of thumb, you should spend at least 3x the amount of time reviewing LLM output as you did writing it. Think about every line and every design decision. Find ways to break code.
+- **Your code is your responsibility.** Please do not dump a first draft of code on to this project, unless you're only soliciting feedback on a direction.
 
 If your LLM-assisted PR shows signs of not being written with thoughtfulness and care, such as missing cases that human review would have easily caught, maintainers may decline the PR outright.
 
@@ -97,8 +97,19 @@ The API is organized into Django apps under `apps/api/plane/`:
 - `plane.space` — public/space API endpoints (`/api/public/`).
 - `plane.authentication` — auth backends and views.
 - `plane.bgtasks` — Celery background tasks.
+- `plane.hw` — hardware/enterprise edition features (dependency services, extended models).
 - `plane.license` — instance licensing.
 - `plane.utils` — utility functions.
+
+### HW/CE overlay pattern (frontend)
+
+The web app uses an overlay pattern for enterprise features:
+
+- `apps/web/hw/` — full feature implementations (dependency visualization, date propagation preview, conflict detection).
+- `apps/web/ce/` — community edition stubs that satisfy the same TypeScript interfaces with no-op or safe-default implementations.
+- `apps/web/core/` — shared code that imports from the `@/plane-web/` alias, which resolves to either `hw/` or `ce/` at build time.
+
+When working on HW features, always maintain the CE stub in parallel. Both must satisfy the same interface contract.
 
 ### State management (frontend)
 
@@ -211,6 +222,7 @@ Commits follow the pattern visible in this repository's history:
 ```
 
 Examples from the log:
+
 - `[WEB-5873] fix: user avatar ui consistency (#8495)`
 - `[GIT-44] refactor(auth): add PASSWORD_TOO_WEAK error code (#8522)`
 - `[WEB-1201] chore: dropdown options hierarchy improvements (#8501)`
