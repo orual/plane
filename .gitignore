@@ -121,3 +121,4 @@ result
 .venv/
 
 .devenv
+.worktrees/
