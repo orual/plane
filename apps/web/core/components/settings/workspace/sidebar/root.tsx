@@ -9,7 +9,7 @@ import { ScrollArea } from "@plane/propel/scrollarea";
 import { cn } from "@plane/utils";
 // local imports
 import { WorkspaceSettingsSidebarHeader } from "./header";
-import { WorkspaceSettingsSidebarItemCategories } from "./item-categories";
+import { WorkspaceSettingsSidebarItemCategories } from "@/plane-web/components/settings/workspace/sidebar/item-categories";
 
 type Props = {
   className?: string;

@@ -1,0 +1,17 @@
+{
+  "name": "plane-e2e",
+  "version": "1.0.0",
+  "description": "End-to-end tests for Plane using Playwright",
+  "private": true,
+  "scripts": {
+    "test": "playwright test",
+    "test:ui": "playwright test --ui",
+    "test:debug": "playwright test --debug",
+    "test:headed": "playwright test --headed"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.57.0",
+    "@types/node": "catalog:",
+    "typescript": "catalog:"
+  }
+}

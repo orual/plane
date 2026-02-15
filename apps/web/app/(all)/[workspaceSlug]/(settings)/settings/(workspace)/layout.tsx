@@ -12,9 +12,9 @@ import { NotAuthorizedView } from "@/components/auth-screens/not-authorized-view
 import { getWorkspaceActivePath, pathnameToAccessKey } from "@/components/settings/helper";
 import { SettingsMobileNav } from "@/components/settings/mobile/nav";
 // plane imports
-import { WORKSPACE_SETTINGS_ACCESS } from "@plane/constants";
 import type { EUserWorkspaceRoles } from "@plane/types";
 // components
+import { WORKSPACE_SETTINGS_ACCESS } from "@/plane-web/components/settings/workspace/layout-access";
 import { WorkspaceSettingsSidebarRoot } from "@/components/settings/workspace/sidebar";
 // hooks
 import { useUserPermissions } from "@/hooks/store/user";

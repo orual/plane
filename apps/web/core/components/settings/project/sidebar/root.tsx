@@ -8,7 +8,7 @@
 import { ScrollArea } from "@plane/propel/scrollarea";
 // local imports
 import { ProjectSettingsSidebarHeader } from "./header";
-import { ProjectSettingsSidebarItemCategories } from "./item-categories";
+import { ProjectSettingsSidebarItemCategories } from "@/plane-web/components/settings/project/sidebar/item-categories";
 
 type Props = {
   projectId: string;

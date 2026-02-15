@@ -6,7 +6,17 @@ import factory
 from uuid import uuid4
 from django.utils import timezone
 
-from plane.db.models import User, Workspace, WorkspaceMember, Project, ProjectMember
+from plane.db.models import (
+    User,
+    Workspace,
+    WorkspaceMember,
+    Project,
+    ProjectMember,
+    IssueType,
+    ProjectIssueType,
+    Issue,
+    State,
+)
 
 
 class UserFactory(factory.django.DjangoModelFactory):
@@ -81,5 +91,105 @@ class ProjectMemberFactory(factory.django.DjangoModelFactory):
     project = factory.SubFactory(ProjectFactory)
     member = factory.SubFactory(UserFactory)
     role = 20  # Admin role by default
+    created_at = factory.LazyFunction(timezone.now)
+    updated_at = factory.LazyFunction(timezone.now)
+
+
+class IssueTypeFactory(factory.django.DjangoModelFactory):
+    """Factory for creating IssueType instances"""
+
+    class Meta:
+        model = IssueType
+
+    id = factory.LazyFunction(uuid4)
+    name = factory.Sequence(lambda n: f"Issue Type {n}")
+    description = ""
+    logo_props = factory.LazyFunction(lambda: {"color": "#3B82F6"})
+    is_default = False
+    is_active = True
+    level = 0
+    workspace = factory.SubFactory(WorkspaceFactory)
+    created_at = factory.LazyFunction(timezone.now)
+    updated_at = factory.LazyFunction(timezone.now)
+
+
+class ProjectIssueTypeFactory(factory.django.DjangoModelFactory):
+    """Factory for creating ProjectIssueType instances"""
+
+    class Meta:
+        model = ProjectIssueType
+
+    id = factory.LazyFunction(uuid4)
+    issue_type = factory.SubFactory(IssueTypeFactory)
+    project = factory.SubFactory(ProjectFactory)
+    workspace = factory.LazyAttribute(lambda o: o.project.workspace)
+    level = 0
+    is_default = False
+    created_at = factory.LazyFunction(timezone.now)
+    updated_at = factory.LazyFunction(timezone.now)
+
+
+class StateFactory(factory.django.DjangoModelFactory):
+    """Factory for creating State instances"""
+
+    class Meta:
+        model = State
+
+    id = factory.LazyFunction(uuid4)
+    name = factory.Sequence(lambda n: f"State {n}")
+    group = "backlog"
+    project = factory.SubFactory(ProjectFactory)
+    workspace = factory.LazyAttribute(lambda o: o.project.workspace)
+    created_at = factory.LazyFunction(timezone.now)
+    updated_at = factory.LazyFunction(timezone.now)
+
+
+class IssueFactory(factory.django.DjangoModelFactory):
+    """Factory for creating Issue instances"""
+
+    class Meta:
+        model = Issue
+
+    id = factory.LazyFunction(uuid4)
+    name = factory.Sequence(lambda n: f"Issue {n}")
+    project = factory.SubFactory(ProjectFactory)
+    workspace = factory.LazyAttribute(lambda o: o.project.workspace)
+    state = factory.SubFactory(
+        StateFactory, project=factory.SelfAttribute("..project"), workspace=factory.SelfAttribute("..workspace")
+    )
+    created_by = factory.LazyAttribute(lambda o: o.project.created_by)
+    created_at = factory.LazyFunction(timezone.now)
+    updated_at = factory.LazyFunction(timezone.now)
+
+
+class PropertyDefinitionFactory(factory.django.DjangoModelFactory):
+    """Factory for creating IssuePropertyDefinition instances"""
+
+    class Meta:
+        model = "hw.IssuePropertyDefinition"
+
+    id = factory.LazyFunction(uuid4)
+    name = factory.Sequence(lambda n: f"Property {n}")
+    property_type = "text"
+    options = factory.LazyFunction(list)
+    is_required = False
+    sort_order = 65535
+    workspace = factory.SubFactory(WorkspaceFactory)
+    issue_type = None  # Universal by default
+    created_at = factory.LazyFunction(timezone.now)
+    updated_at = factory.LazyFunction(timezone.now)
+
+
+class PropertyValueFactory(factory.django.DjangoModelFactory):
+    """Factory for creating IssuePropertyValue instances"""
+
+    class Meta:
+        model = "hw.IssuePropertyValue"
+
+    id = factory.LazyFunction(uuid4)
+    issue = factory.SubFactory(IssueFactory)
+    property_definition = factory.SubFactory(PropertyDefinitionFactory)
+    value = factory.LazyFunction(lambda: {"value": "test"})
+    workspace = factory.LazyAttribute(lambda o: o.issue.workspace)
     created_at = factory.LazyFunction(timezone.now)
     updated_at = factory.LazyFunction(timezone.now)

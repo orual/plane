@@ -16,6 +16,7 @@ handler404 = "plane.app.views.error_404.custom_404_view"
 
 urlpatterns = [
     path("api/", include("plane.app.urls")),
+    path("api/", include("plane.hw.urls")),
     path("api/public/", include("plane.space.urls")),
     path("api/instances/", include("plane.license.urls")),
     path("api/v1/", include("plane.api.urls")),
@@ -39,6 +40,12 @@ if settings.ENABLE_DRF_SPECTACULAR:
     ]
 
 if settings.DEBUG:
+    from plane.hw.views import proxy_minio_upload
+
+    urlpatterns += [
+        re_path(r"^uploads/(?P<path>(?!.*\.\.)[\w\-./]+)$", proxy_minio_upload),
+        re_path(r"^uploads$", proxy_minio_upload),
+    ]
     try:
         import debug_toolbar
 
