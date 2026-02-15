@@ -4,7 +4,6 @@
  * See the LICENSE file for details.
  */
 
-import type { FC } from "react";
 import React from "react";
 import { observer } from "mobx-react";
 
@@ -16,7 +15,7 @@ import { CustomMenu } from "@plane/ui";
 // hooks
 import { useIssueDetail } from "@/hooks/store/use-issue-detail";
 // Plane-web
-import { useTimeLineRelationOptions } from "@/plane-web/components/relations";
+import { useTimeLineRelationOptions, RELATION_GROUPS } from "@/plane-web/components/relations";
 import type { TIssueRelationTypes } from "@/plane-web/types";
 
 type Props = {
@@ -51,23 +50,31 @@ export const RelationActionButton = observer(function RelationActionButton(props
       maxHeight="lg"
       closeOnSelect
     >
-      {Object.values(ISSUE_RELATION_OPTIONS).map((item, index) => {
-        if (!item) return <></>;
-
-        return (
-          <CustomMenu.MenuItem
-            key={index}
-            onClick={() => {
-              handleOnClick(item.key);
-            }}
-          >
-            <div className="flex items-center gap-2">
-              {item.icon(12)}
-              <span>{t(item.i18n_label)}</span>
-            </div>
+      {RELATION_GROUPS.map((group) => (
+        <div key={group.key}>
+          <CustomMenu.MenuItem className="cursor-default" disabled>
+            <div className="text-xs font-semibold text-secondary">{t(group.i18n_label)}</div>
           </CustomMenu.MenuItem>
-        );
-      })}
+          {group.types.map((type) => {
+            const item = ISSUE_RELATION_OPTIONS[type];
+            if (!item) return null;
+
+            return (
+              <CustomMenu.MenuItem
+                key={type}
+                onClick={() => {
+                  handleOnClick(item.key);
+                }}
+              >
+                <div className="flex items-center gap-2">
+                  {item.icon(12)}
+                  <span>{t(item.i18n_label)}</span>
+                </div>
+              </CustomMenu.MenuItem>
+            );
+          })}
+        </div>
+      ))}
     </CustomMenu>
   );
 });
