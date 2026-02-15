@@ -24,6 +24,28 @@ export const getRelationActivityContent = (activity: TIssueActivity | undefined)
         : `removed this work item as a duplicate of `;
     case "relates_to":
       return activity.old_value === "" ? `marked that this work item relates to ` : `removed the relation from `;
+    case "start_before":
+      return activity.old_value === ""
+        ? `marked this work item starts before `
+        : `removed the starts before relation from `;
+    case "start_after":
+      return activity.old_value === ""
+        ? `marked this work item starts after `
+        : `removed the starts after relation from `;
+    case "finish_before":
+      return activity.old_value === ""
+        ? `marked this work item finishes before `
+        : `removed the finishes before relation from `;
+    case "finish_after":
+      return activity.old_value === ""
+        ? `marked this work item finishes after `
+        : `removed the finishes after relation from `;
+    case "implemented_by":
+      return activity.old_value === ""
+        ? `marked this work item is implemented by `
+        : `removed the implemented by relation from `;
+    case "implements":
+      return activity.old_value === "" ? `marked this work item implements ` : `removed the implements relation from `;
   }
 
   return;
