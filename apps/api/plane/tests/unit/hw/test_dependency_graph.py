@@ -10,12 +10,10 @@ and date propagation services.
 """
 
 import pytest
-from unittest.mock import patch
 
 from plane.hw.services.dependency_graph import (
     build_dependency_graph,
     get_downstream_dependents,
-    DEPENDENCY_RELATION_TYPES,
     MAX_PROPAGATION_DEPTH,
 )
 from plane.db.models import IssueRelation
@@ -267,14 +265,14 @@ class TestBuildDependencyGraph:
         issue_c = IssueFactory(project=project_1)
 
         # Create chain: A is blocked_by B, B is blocked_by C
-        rel_ab = IssueRelation.objects.create(
+        IssueRelation.objects.create(
             issue=issue_a,
             related_issue=issue_b,
             relation_type="blocked_by",
             project=project_1,
             workspace=project_1.workspace,
         )
-        rel_bc = IssueRelation.objects.create(
+        IssueRelation.objects.create(
             issue=issue_b,
             related_issue=issue_c,
             relation_type="blocked_by",
@@ -422,8 +420,7 @@ class TestGetDownstreamDependents:
         result = get_downstream_dependents(str(issue_a.id), graph)
 
         # Result should include B, C, D (no duplicates)
-        unique_result = set(result)
-        assert len(unique_result) == 3
+        assert len(result) == 3
         assert str(issue_b.id) in result
         assert str(issue_c.id) in result
         assert str(issue_d.id) in result

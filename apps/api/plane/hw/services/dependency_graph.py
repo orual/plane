@@ -88,8 +88,10 @@ def get_downstream_dependents(start_issue_id: str, graph: dict[str, list[tuple[s
         return []
 
     visited = set()
+    queued = set()  # Track already-queued nodes to prevent duplicates
     result = []
     queue = deque([(start_issue_id, 0)])  # (issue_id, depth)
+    queued.add(start_issue_id)
 
     while queue:
         current_id, depth = queue.popleft()
@@ -111,8 +113,9 @@ def get_downstream_dependents(start_issue_id: str, graph: dict[str, list[tuple[s
         # Add dependents to queue and result.
         if current_id in graph:
             for dependent_id, _relation_type in graph[current_id]:
-                if dependent_id not in visited:
+                if dependent_id not in queued:
                     result.append(dependent_id)
                     queue.append((dependent_id, depth + 1))
+                    queued.add(dependent_id)
 
     return result

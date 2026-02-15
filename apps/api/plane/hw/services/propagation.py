@@ -18,8 +18,7 @@ When an issue has multiple predecessors, the constraint is the maximum (latest) 
 
 import logging
 import json
-from datetime import timedelta
-from typing import Optional
+from datetime import date, timedelta
 
 from django.db import transaction
 from django.utils import timezone
@@ -39,10 +38,10 @@ logger = logging.getLogger(__name__)
 
 def propagate_dates(
     changed_issue_id: str,
-    old_start_date: Optional[object],
-    old_target_date: Optional[object],
-    new_start_date: Optional[object],
-    new_target_date: Optional[object],
+    old_start_date: date | None,
+    old_target_date: date | None,
+    new_start_date: date | None,
+    new_target_date: date | None,
 ) -> list[dict]:
     """
     Compute cascading date updates for issues depending on a changed issue.
@@ -70,14 +69,28 @@ def propagate_dates(
     if not dependent_ids:
         return []
 
-    # Fetch all relations needed to determine predecessors and constraint types.
+    # Seed updates_dict with the changed issue's new dates so predecessors
+    # can reference them during propagation (makes parameters meaningful).
+    updates_dict: dict[str, dict] = {
+        changed_issue_id: {
+            "id": changed_issue_id,
+            "start_date": new_start_date,
+            "target_date": new_target_date,
+        }
+    }
+
+    # Build dependency graph already provides all relations; reuse it to build
+    # a map of issue_id -> list of (predecessor_id, relation_type).
+    # We need to query relations once to build the predecessor_map.
+    predecessor_map: dict[str, list[tuple[str, str]]] = {}
+
+    # Query relations once to build both the dependency graph direction
+    # (which was already done) and the predecessor map.
     relations = IssueRelation.objects.filter(
         relation_type__in=DEPENDENCY_RELATION_TYPES,
         deleted_at__isnull=True,
     ).values_list("issue_id", "related_issue_id", "relation_type")
 
-    # Build a map of issue_id -> list of (predecessor_id, relation_type)
-    predecessor_map: dict[str, list[tuple[str, str]]] = {}
     for issue_id, related_issue_id, relation_type in relations:
         key = str(issue_id)
         if key not in predecessor_map:
@@ -86,11 +99,26 @@ def propagate_dates(
 
     # Track which issues to update.
     updated_issues = []
-    updates_dict = {}
 
     # Fetch full Issue objects for dependent issues (to preserve duration).
     dependent_issue_objects = Issue.objects.filter(id__in=dependent_ids)
     dependent_dict = {str(issue.id): issue for issue in dependent_issue_objects}
+
+    # Pre-fetch all unique predecessor IDs to avoid N+1 queries.
+    all_predecessor_ids = set()
+    for predecessors in predecessor_map.values():
+        for pred_id, _rel_type in predecessors:
+            all_predecessor_ids.add(pred_id)
+
+    # Remove the changed_issue_id from the set since we'll handle it from updates_dict
+    all_predecessor_ids.discard(changed_issue_id)
+
+    # Batch fetch all predecessor issues
+    if all_predecessor_ids:
+        predecessor_issues = Issue.objects.filter(id__in=all_predecessor_ids)
+        predecessor_dict = {str(issue.id): issue for issue in predecessor_issues}
+    else:
+        predecessor_dict = {}
 
     # Process dependents in topological order (they come from BFS in topological order).
     for dependent_id in dependent_ids:
@@ -109,8 +137,10 @@ def propagate_dates(
         if not predecessors:
             continue
 
-        # Compute the constraint date from all predecessors.
-        max_constraint_date = None
+        # Compute constraint dates from all predecessors, maintaining separate constraints
+        # for start_date and target_date since different relation types affect different fields.
+        max_start_constraint = None
+        max_target_constraint = None
 
         for predecessor_id, relation_type in predecessors:
             # Get predecessor's current dates.
@@ -118,67 +148,70 @@ def propagate_dates(
             if predecessor_id in updates_dict:
                 pred_start = updates_dict[predecessor_id]["start_date"]
                 pred_target = updates_dict[predecessor_id]["target_date"]
+            elif predecessor_id in predecessor_dict:
+                # Use pre-fetched predecessor
+                pred_issue = predecessor_dict[predecessor_id]
+                pred_start = pred_issue.start_date
+                pred_target = pred_issue.target_date
             else:
-                # Otherwise, fetch from database (or use fresh if not yet saved).
-                try:
-                    pred_issue = Issue.objects.get(id=predecessor_id)
-                    pred_start = pred_issue.start_date
-                    pred_target = pred_issue.target_date
-                except Issue.DoesNotExist:
-                    continue
+                # Predecessor not found (should not happen if relations are valid)
+                continue
 
-            # Compute constraint based on relation type.
-            constraint_date = None
-
+            # Compute constraints based on relation type.
             if relation_type == "blocked_by":
                 # Finish-to-Start: successor start_date >= predecessor target_date + 1 day
                 if pred_target:
-                    constraint_date = pred_target + timedelta(days=1)
+                    constraint = pred_target + timedelta(days=1)
+                    if max_start_constraint is None:
+                        max_start_constraint = constraint
+                    else:
+                        max_start_constraint = max(max_start_constraint, constraint)
             elif relation_type == "start_before":
                 # Start-to-Start: successor start_date >= predecessor start_date
                 if pred_start:
-                    constraint_date = pred_start
+                    if max_start_constraint is None:
+                        max_start_constraint = pred_start
+                    else:
+                        max_start_constraint = max(max_start_constraint, pred_start)
             elif relation_type == "finish_before":
                 # Finish-to-Finish: successor target_date >= predecessor target_date
                 if pred_target:
-                    constraint_date = pred_target
+                    if max_target_constraint is None:
+                        max_target_constraint = pred_target
+                    else:
+                        max_target_constraint = max(max_target_constraint, pred_target)
+            elif relation_type == "implemented_by":
+                # implemented_by follows FS logic: successor start_date >= predecessor target_date + 1 day
+                if pred_target:
+                    constraint = pred_target + timedelta(days=1)
+                    if max_start_constraint is None:
+                        max_start_constraint = constraint
+                    else:
+                        max_start_constraint = max(max_start_constraint, constraint)
 
-            # Take the maximum constraint date across all predecessors.
-            if constraint_date:
-                if max_constraint_date is None:
-                    max_constraint_date = constraint_date
-                else:
-                    max_constraint_date = max(max_constraint_date, constraint_date)
-
-        if max_constraint_date is None:
+        if max_start_constraint is None and max_target_constraint is None:
             continue
-
-        # Determine which date field(s) to update based on relation types.
-        update_start_date = False
-        update_target_date = False
-
-        for _predecessor_id, relation_type in predecessors:
-            if relation_type in ("blocked_by", "start_before"):
-                update_start_date = True
-            if relation_type == "finish_before":
-                update_target_date = True
 
         # Update dates if the constraint is later than the current date.
         new_start = dependent_issue.start_date
         new_target = dependent_issue.target_date
 
-        if update_start_date and max_constraint_date > dependent_issue.start_date:
+        if max_start_constraint and max_start_constraint > dependent_issue.start_date:
             # Shift start_date and preserve duration by shifting target_date.
-            date_delta = max_constraint_date - dependent_issue.start_date
-            new_start = max_constraint_date
+            date_delta = max_start_constraint - dependent_issue.start_date
+            new_start = max_start_constraint
             if new_target:
                 new_target = new_target + date_delta
 
-        if update_target_date and max_constraint_date > dependent_issue.target_date:
-            new_target = max_constraint_date
+        if max_target_constraint and max_target_constraint > dependent_issue.target_date:
+            new_target = max_target_constraint
 
         # If dates changed, mark for update.
         if new_start != dependent_issue.start_date or new_target != dependent_issue.target_date:
+            # Capture old dates BEFORE mutation for activity logging
+            old_start_str = str(dependent_issue.start_date) if dependent_issue.start_date else ""
+            old_target_str = str(dependent_issue.target_date) if dependent_issue.target_date else ""
+
             dependent_issue.start_date = new_start
             dependent_issue.target_date = new_target
             updated_issues.append(dependent_issue)
@@ -186,6 +219,8 @@ def propagate_dates(
                 "id": dependent_id,
                 "start_date": new_start,
                 "target_date": new_target,
+                "old_start": old_start_str,
+                "old_target": old_target_str,
             }
 
     # Perform bulk update in a transaction (AC5.7).
@@ -195,6 +230,7 @@ def propagate_dates(
 
             # Fire activity tasks for each updated issue.
             for issue_obj in updated_issues:
+                update_info = updates_dict[str(issue_obj.id)]
                 issue_activity.delay(
                     type="issue.activity.updated",
                     requested_data=json.dumps(
@@ -207,8 +243,8 @@ def propagate_dates(
                     current_instance=json.dumps(
                         {
                             "id": str(issue_obj.id),
-                            "start_date": str(issue_obj.start_date),
-                            "target_date": str(issue_obj.target_date),
+                            "start_date": update_info["old_start"],
+                            "target_date": update_info["old_target"],
                         },
                         cls=DjangoJSONEncoder,
                     ),
@@ -219,5 +255,13 @@ def propagate_dates(
                     origin="propagation",
                 )
 
-    # Return the list of updates.
-    return list(updates_dict.values())
+    # Return the list of updates (exclude old dates used for logging).
+    return [
+        {
+            "id": update["id"],
+            "start_date": update["start_date"],
+            "target_date": update["target_date"],
+        }
+        for update in updates_dict.values()
+        if update["id"] != changed_issue_id  # Don't include the changed issue itself
+    ]

@@ -202,14 +202,15 @@ class TestDatePropagationAPI:
 
         # B should be updated with max constraint
         assert response.status_code == status.HTTP_200_OK
-        if response.data.get("updated_dependents"):
-            # At least B should be updated
-            updated_b = next(
-                (d for d in response.data["updated_dependents"] if d["id"] == str(issue_b.id)),
-                None,
-            )
-            if updated_b:
-                assert updated_b["start_date"] == date(2026, 1, 16)
+        assert "updated_dependents" in response.data
+        assert len(response.data["updated_dependents"]) > 0
+        # At least B should be updated
+        updated_b = next(
+            (d for d in response.data["updated_dependents"] if d["id"] == str(issue_b.id)),
+            None,
+        )
+        assert updated_b is not None, "Issue B should be in updated_dependents"
+        assert updated_b["start_date"] == date(2026, 1, 16)
 
     def test_no_date_skip_api(self, session_client_auth, project):
         """Test AC5.8: Issues without dates are not updated."""
@@ -242,10 +243,9 @@ class TestDatePropagationAPI:
         )
 
         # B should not be in updated_dependents since it has no dates
-        assert response.status_code in (status.HTTP_200_OK, status.HTTP_204_NO_CONTENT)
-        if "updated_dependents" in response.data:
-            updated_ids = {dep["id"] for dep in response.data["updated_dependents"]}
-            assert str(issue_b.id) not in updated_ids
+        # When no dependents are updated, the response should be 204
+        assert response.status_code == status.HTTP_204_NO_CONTENT
+        assert "updated_dependents" not in response.data
 
     def test_non_date_update_no_propagation(self, session_client_auth, project):
         """Test that non-date updates don't trigger propagation."""

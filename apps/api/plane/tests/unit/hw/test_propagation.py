@@ -10,11 +10,11 @@ dependency chains.
 """
 
 import pytest
-from datetime import date, timedelta
-from unittest.mock import patch, MagicMock
+from datetime import date
+from unittest.mock import patch
 
 from plane.hw.services.propagation import propagate_dates
-from plane.db.models import IssueRelation, Issue
+from plane.db.models import IssueRelation
 from plane.tests.factories import IssueFactory, ProjectFactory, WorkspaceFactory
 
 
