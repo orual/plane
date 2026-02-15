@@ -1,6 +1,6 @@
 # HW dependency services
 
-Last verified: 2026-02-15
+Last verified: 2026-02-15 <!-- dep-viz-propagation -->
 
 ## Purpose
 
@@ -32,6 +32,30 @@ dependency chains.
   (cycle detection on relation creation)
 - **Boundary**: These services are synchronous. Do not import Celery task
   runners directly; activity logging uses `issue_activity.delay()`.
+
+## API contract effects
+
+These services change the behavior of two existing API endpoints:
+
+### `IssueViewSet.partial_update` (`PATCH /api/.../issues/<id>/`)
+
+- **Without date propagation**: returns `204 No Content` (unchanged behavior).
+- **With date propagation**: when `start_date` or `target_date` changes and
+  downstream dependents are affected, returns `200 OK` with the serialized
+  issue plus an `updated_dependents` array:
+  ```json
+  { ...issue_fields, "updated_dependents": [{ "id": "...", "start_date": "...", "target_date": "..." }] }
+  ```
+  The frontend uses `updated_dependents` to reconcile preview positions with
+  the server-authoritative state.
+
+### `IssueRelationViewSet.create` (`POST /api/.../issues/<id>/relations/`)
+
+- **Self-reference guard**: returns `400` with `{"error": "cycle_detected",
+"detail": "An issue cannot be related to itself", "cycle_path": ["<id>"]}`.
+- **Cycle detection**: for dependency relation types, returns `400` with
+  `{"error": "cycle_detected", "detail": "Creating this relation would form
+a dependency cycle", "cycle_path": ["A", "B", "C", "A"]}`.
 
 ## Key decisions
 

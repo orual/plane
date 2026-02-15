@@ -1,6 +1,6 @@
 # HW web overlay (hardware/enterprise features)
 
-Last verified: 2026-02-15
+Last verified: 2026-02-15 <!-- dep-viz-propagation -->
 
 ## Purpose
 
@@ -16,6 +16,14 @@ with matching CE stubs in `apps/web/ce/`.
   - Preview positions: `computePreviewPositions`, `clearPreviewPositions`,
     `previewBlockIds`
   - Conflict detection: `getDependencyConflicts`, `hasConflict`
+- **Exposes** (via HW/CE overlay components, imported by `core/` through
+  `@/plane-web/` alias):
+  - `TimelineDependencyPaths` -- SVG overlay rendering dependency connectors
+  - `ConflictIndicator` -- visual indicator on gantt blocks with constraint
+    violations
+  - `ConflictBadge` -- badge component for relation UI showing conflict count
+  - `DependencyLeftDraggable`, `DependencyRightDraggable` -- drag handles on
+    block edges for creating dependencies
 - **Guarantees**:
   - Every method on `IBaseTimelineStore` has a CE stub in
     `apps/web/ce/store/timeline/base-timeline.store.ts` (stubs are no-ops or
@@ -53,6 +61,9 @@ When adding a new HW feature:
   start_before (SS), right-to-right/left-to-right = finish_before (FF).
 - Preview positions are computed from the in-memory relation graph during drag,
   then reconciled with the server response after drop.
+- Server reconciliation: `base-issues.store.ts` processes the
+  `updated_dependents` array from the API response to update dependent issue
+  dates in the MobX store, ensuring client state matches server state.
 
 ## Key files
 
