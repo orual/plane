@@ -188,7 +188,7 @@ class TestCycleDetection:
         )
 
         assert cycle_path is not None
-        assert cycle_path == [str(issue_a.id)]
+        assert cycle_path == [str(issue_a.id), str(issue_a.id)]
 
     def test_no_cycle(self, project_1):
         """

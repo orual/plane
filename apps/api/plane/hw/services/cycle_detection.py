@@ -59,9 +59,10 @@ def detect_dependency_cycle(
         For example, [A, B, C, A] represents the cycle A→B→C→A.
     """
 
-    # Self-referencing is a degenerate cycle.
+    # Self-referencing is a degenerate cycle (A→A).
     if source_issue_id == target_issue_id:
-        return [source_issue_id]
+        # Cycle path for self-reference is just [A, A].
+        return [source_issue_id, source_issue_id]
 
     # Only check dependency relation types; symmetric types don't form cycles.
     if relation_type not in DEPENDENCY_RELATION_TYPES:
@@ -72,8 +73,10 @@ def detect_dependency_cycle(
     path = _dfs_find_cycle(target_issue_id, source_issue_id, set(), [])
 
     if path:
-        # Append source_issue_id to complete the cycle.
-        return path + [source_issue_id]
+        # Prepend source_issue_id to complete the cycle.
+        # path is the chain from target to source, so prepending source gives:
+        # source → target → ... → source
+        return [source_issue_id] + path
 
     return None
 
@@ -109,7 +112,8 @@ def _dfs_find_cycle(
 
     # Check if we've reached the target.
     if current_issue_id == target_issue_id:
-        return path
+        # Include the target node in the path to complete the chain.
+        return path + [current_issue_id]
 
     # Avoid revisiting nodes to prevent infinite loops in traversal.
     if current_issue_id in visited:
