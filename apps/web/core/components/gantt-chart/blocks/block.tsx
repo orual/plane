@@ -45,13 +45,15 @@ export const GanttChartBlock = observer(function GanttChartBlock(props: Props) {
     updateBlockDates,
   } = props;
   // store hooks
-  const { updateActiveBlockId, getBlockById, getIsCurrentDependencyDragging, currentView } = useTimeLineChartStore();
+  const { updateActiveBlockId, getBlockById, getIsCurrentDependencyDragging, currentView, previewBlockIds } =
+    useTimeLineChartStore();
   // refs
   const resizableRef = useRef<HTMLDivElement>(null);
 
   const block = getBlockById(blockId);
 
   const isCurrentDependencyDragging = getIsCurrentDependencyDragging(blockId);
+  const isPreviewBlock = previewBlockIds.has(blockId);
 
   const { isMoving, handleBlockDrag } = useGanttResizable(block, resizableRef, ganttContainerRef, updateBlockDates);
 
@@ -66,7 +68,8 @@ export const GanttChartBlock = observer(function GanttChartBlock(props: Props) {
   return (
     <div
       className={cn("relative z-[5]", {
-        "transition-all": !!isMoving && currentView === "week",
+        "transition-all duration-150": (!!isMoving && currentView === "week") || isPreviewBlock,
+        "opacity-50": isPreviewBlock,
         "pointer-events-none": !isBlockVisibleOnChart,
       })}
       id={`gantt-block-${block.id}`}
