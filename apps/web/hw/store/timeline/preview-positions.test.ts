@@ -9,8 +9,19 @@ import { runInAction } from "mobx";
 import type { IGanttBlock, ChartDataType } from "@plane/types";
 import { BaseTimeLineStore } from "./base-timeline.store";
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type MockRootStore = any;
+/**
+ * Minimal typed mock structure for root store.
+ * Only includes the properties accessed by BaseTimeLineStore.
+ */
+type MockRootStore = {
+  issue: {
+    issueDetail: {
+      relation: {
+        relationMap: Record<string, Record<string, string[]>>;
+      };
+    };
+  };
+};
 
 /**
  * Create a mock Gantt block with optional overrides.
@@ -35,15 +46,16 @@ function createMockBlock(overrides?: Partial<IGanttBlock>): IGanttBlock {
  */
 function createMockChartData(): ChartDataType {
   return {
-    startDate: new Date("2024-01-01"),
-    endDate: new Date("2024-12-31"),
     key: "week",
     i18n_title: "Week",
     data: {
       startDate: new Date("2024-01-01"),
+      currentDate: new Date("2024-01-15"),
+      endDate: new Date("2024-12-31"),
+      approxFilterRange: 180,
       dayWidth: 40,
     },
-  } as unknown as ChartDataType;
+  };
 }
 
 describe("BaseTimeLineStore - Preview Position Computation and Reconciliation", () => {
@@ -64,7 +76,7 @@ describe("BaseTimeLineStore - Preview Position Computation and Reconciliation", 
       },
     };
 
-    store = new BaseTimeLineStore(mockRootStore);
+    store = new BaseTimeLineStore(mockRootStore as any);
     store.updateCurrentViewData(createMockChartData());
   });
 
@@ -306,18 +318,29 @@ describe("BaseTimeLineStore - Preview Position Computation and Reconciliation", 
         "block-a": { blocking: ["block-b"] },
       };
 
-      // Simulate preview: move A, which shifts B
+      // Simulate preview: move A to marginLeft 150, which shifts B
       runInAction(() => {
         store.blocksMap["block-a"].position = { marginLeft: 150, width: 50 };
       });
       store.computePreviewPositions("block-a");
 
+      // Capture preview position (A.marginLeft + A.width + dayWidth = 150 + 50 + 40 = 240)
       const previewPosition = store.blocksMap["block-b"].position?.marginLeft;
+      expect(previewPosition).toBe(240);
 
-      // Server returns same date (Jan 16 -> Jan 19 with new A dates)
-      // This means the preview was correct
-      // Position should not change (zero jank)
-      expect(previewPosition).toEqual(store.blocksMap["block-b"].position?.marginLeft);
+      // Verify block B is in preview set
+      expect(store.previewBlockIds.has("block-b")).toBe(true);
+
+      // Server reconciliation: server returns the same position (preview was correct)
+      // Simulate server updating with matching position (zero jank means no position change)
+      const positionBeforeReconciliation = store.blocksMap["block-b"].position?.marginLeft;
+      runInAction(() => {
+        store.blocksMap["block-b"].start_date = "2024-01-16"; // Same date as predicted
+        store.blocksMap["block-b"].target_date = "2024-01-20";
+      });
+
+      // Position should remain at 240 (zero jank)
+      expect(store.blocksMap["block-b"].position?.marginLeft).toBe(positionBeforeReconciliation);
     });
 
     it("should snap to server position when concurrent edit changed graph (AC6.5)", () => {

@@ -395,8 +395,7 @@ export class BaseTimeLineStore implements IBaseTimelineStore {
    * @param {string} blockId
    */
   getIsCurrentDependencyDragging = computedFn(
-    (blockId: string) =>
-      this.dependencyDragState.isDragging && this.dependencyDragState.sourceBlockId === blockId
+    (blockId: string) => this.dependencyDragState.isDragging && this.dependencyDragState.sourceBlockId === blockId
   );
 
   /**
@@ -466,11 +465,7 @@ export class BaseTimeLineStore implements IBaseTimelineStore {
    * @param depth current traversal depth (max 100)
    * @returns set of downstream dependent block IDs
    */
-  private findDownstreamDependents(
-    blockId: string,
-    visited: Set<string> = new Set(),
-    depth: number = 0
-  ): Set<string> {
+  private findDownstreamDependents(blockId: string, visited: Set<string> = new Set(), depth: number = 0): Set<string> {
     const dependents = new Set<string>();
 
     // Depth limit to prevent unbounded traversal
@@ -503,7 +498,12 @@ export class BaseTimeLineStore implements IBaseTimelineStore {
     const finishBeforeDependents = issueRelations["finish_before"] ?? [];
     const implementsDependents = issueRelations["implements"] ?? [];
 
-    const allDependents = [...blockingDependents, ...startBeforeDependents, ...finishBeforeDependents, ...implementsDependents];
+    const allDependents = [
+      ...blockingDependents,
+      ...startBeforeDependents,
+      ...finishBeforeDependents,
+      ...implementsDependents,
+    ];
 
     for (const dependent of allDependents) {
       if (!dependents.has(dependent)) {
@@ -533,90 +533,74 @@ export class BaseTimeLineStore implements IBaseTimelineStore {
     // If no dependents, do nothing (AC6.6)
     if (dependents.size === 0) return;
 
+    const dayWidth = this.currentViewData.data.dayWidth;
+
     runInAction(() => {
       const relationMap = this.rootStore.issue.issueDetail.relation.relationMap;
+
+      // Build a reverse lookup map: targetBlockId -> Set of {relationType, predecessorId}
+      // This avoids O(4*N*D) scans per dependent, reducing to O(N) preprocessing + O(D) per dependent
+      const reverseLookup: Record<string, Array<{ relationType: string; predecessorId: string }>> = {};
+
+      for (const [predecessorId, relations] of Object.entries(relationMap)) {
+        const { blocking = [], start_before = [], finish_before = [], implements: implementsRels = [] } = relations;
+
+        // Add blocking relations
+        for (const targetId of blocking) {
+          if (!reverseLookup[targetId]) reverseLookup[targetId] = [];
+          reverseLookup[targetId].push({ relationType: "blocking", predecessorId });
+        }
+
+        // Add start_before relations
+        for (const targetId of start_before) {
+          if (!reverseLookup[targetId]) reverseLookup[targetId] = [];
+          reverseLookup[targetId].push({ relationType: "start_before", predecessorId });
+        }
+
+        // Add finish_before relations
+        for (const targetId of finish_before) {
+          if (!reverseLookup[targetId]) reverseLookup[targetId] = [];
+          reverseLookup[targetId].push({ relationType: "finish_before", predecessorId });
+        }
+
+        // Add implements relations
+        for (const targetId of implementsRels) {
+          if (!reverseLookup[targetId]) reverseLookup[targetId] = [];
+          reverseLookup[targetId].push({ relationType: "implements", predecessorId });
+        }
+      }
 
       for (const dependentId of dependents) {
         const dependentBlock = this.blocksMap[dependentId];
         if (!dependentBlock || !dependentBlock.position) continue;
 
-        // Compute constraints from all predecessors
+        // Compute constraints from all predecessors via the reverse lookup
         let maxMarginLeft: number | null = null;
         let maxRightEdge: number | null = null;
 
-        // Find predecessors with blocking relation (this block blocks dependent)
-        const blockingPredecessors = Object.entries(relationMap)
-          .filter(([_key, val]) => {
-            const relationsForType = (val as Record<string, string[] | undefined>).blocking ?? [];
-            return relationsForType.includes(dependentId);
-          })
-          .map(([key]) => key);
+        const predecessorList = reverseLookup[dependentId];
+        if (!predecessorList) continue;
 
-        for (const predId of blockingPredecessors) {
-          const predBlock = this.blocksMap[predId];
-          if (predBlock?.position && this.currentViewData) {
+        for (const { relationType, predecessorId } of predecessorList) {
+          const predBlock = this.blocksMap[predecessorId];
+          if (!predBlock?.position) continue;
+
+          if (relationType === "blocking" || relationType === "implements") {
             // FS: successor marginLeft = predecessor marginLeft + predecessor width + dayWidth (one day gap)
-            const dayWidth = this.currentViewData.data.dayWidth;
             const constrainedMarginLeft = predBlock.position.marginLeft + predBlock.position.width + dayWidth;
             if (maxMarginLeft === null || constrainedMarginLeft > maxMarginLeft) {
               maxMarginLeft = constrainedMarginLeft;
             }
-          }
-        }
-
-        // Find predecessors with start_before relation
-        const startBeforePredecessors = Object.entries(relationMap)
-          .filter(([_key, val]) => {
-            const relationsForType = (val as Record<string, string[] | undefined>).start_before ?? [];
-            return relationsForType.includes(dependentId);
-          })
-          .map(([key]) => key);
-
-        for (const predId of startBeforePredecessors) {
-          const predBlock = this.blocksMap[predId];
-          if (predBlock?.position) {
+          } else if (relationType === "start_before") {
             // SS: successor marginLeft = predecessor marginLeft
             if (maxMarginLeft === null || predBlock.position.marginLeft > maxMarginLeft) {
               maxMarginLeft = predBlock.position.marginLeft;
             }
-          }
-        }
-
-        // Find predecessors with finish_before relation
-        const finishBeforePredecessors = Object.entries(relationMap)
-          .filter(([_key, val]) => {
-            const relationsForType = (val as Record<string, string[] | undefined>).finish_before ?? [];
-            return relationsForType.includes(dependentId);
-          })
-          .map(([key]) => key);
-
-        for (const predId of finishBeforePredecessors) {
-          const predBlock = this.blocksMap[predId];
-          if (predBlock?.position) {
+          } else if (relationType === "finish_before") {
             // FF: successor right edge = predecessor right edge
             const constrainedRightEdge = predBlock.position.marginLeft + predBlock.position.width;
             if (maxRightEdge === null || constrainedRightEdge > maxRightEdge) {
               maxRightEdge = constrainedRightEdge;
-            }
-          }
-        }
-
-        // Find predecessors with implements relation
-        const implementsPredecessors = Object.entries(relationMap)
-          .filter(([_key, val]) => {
-            const relationsForType = (val as Record<string, string[] | undefined>).implements ?? [];
-            return relationsForType.includes(dependentId);
-          })
-          .map(([key]) => key);
-
-        for (const predId of implementsPredecessors) {
-          const predBlock = this.blocksMap[predId];
-          if (predBlock?.position && this.currentViewData) {
-            // FS: successor marginLeft = predecessor marginLeft + predecessor width + dayWidth
-            const dayWidth = this.currentViewData.data.dayWidth;
-            const constrainedMarginLeft = predBlock.position.marginLeft + predBlock.position.width + dayWidth;
-            if (maxMarginLeft === null || constrainedMarginLeft > maxMarginLeft) {
-              maxMarginLeft = constrainedMarginLeft;
             }
           }
         }

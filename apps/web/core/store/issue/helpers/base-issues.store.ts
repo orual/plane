@@ -784,17 +784,15 @@ export abstract class BaseIssuesStore implements IBaseIssuesStore {
       const response = await this.issueService.updateIssueDates(workspaceSlug, projectId, updates);
 
       // Process updated_dependents from server response for date propagation
-      if (response && "updated_dependents" in response && response.updated_dependents && Array.isArray(response.updated_dependents)) {
+      if (response?.updated_dependents && Array.isArray(response.updated_dependents)) {
+        const updatedDependents = response.updated_dependents;
         runInAction(() => {
-          const updatedDependents = response.updated_dependents;
-          if (updatedDependents) {
-            for (const dep of updatedDependents) {
-              const dates: Partial<TIssue> = {};
-              if (dep.start_date) dates.start_date = dep.start_date;
-              if (dep.target_date) dates.target_date = dep.target_date;
+          for (const dep of updatedDependents) {
+            const dates: Partial<TIssue> = {};
+            if (dep.start_date) dates.start_date = dep.start_date;
+            if (dep.target_date) dates.target_date = dep.target_date;
 
-              this.issueUpdate(workspaceSlug, projectId, dep.id, dates, false);
-            }
+            this.issueUpdate(workspaceSlug, projectId, dep.id, dates, false);
           }
         });
       }
