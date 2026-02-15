@@ -27,7 +27,10 @@ export const TimelineDraggablePath = observer(function TimelineDraggablePath() {
   const timelineStore = useTimeLineChartStore();
   const { dependencyDragState } = timelineStore;
 
-  // Access blocksMap and blockIds through type casting (they exist on the store but not in the interface)
+  // Access blocksMap and blockIds through type casting. These properties are public fields
+  // on the IBaseTimelineStore class but are not exposed in the IBaseTimelineStore interface.
+  // We need them to access the block position data during drag operations. The cast is safe
+  // because these fields are guaranteed to exist on the concrete store implementation.
   const blocksMap = (timelineStore as unknown as Record<string, unknown>).blocksMap as
     | Record<string, IGanttBlock>
     | undefined;
