@@ -17,13 +17,16 @@ When an issue has multiple predecessors, the constraint is the maximum (latest) 
 """
 
 import logging
+import json
 from datetime import timedelta
 from typing import Optional
 
 from django.db import transaction
+from django.utils import timezone
+from django.core.serializers.json import DjangoJSONEncoder
 
 from plane.db.models import Issue, IssueRelation
-from plane.bgtasks.issue_tasks import issue_activity
+from plane.bgtasks.issue_activities_task import issue_activity
 
 from .dependency_graph import (
     DEPENDENCY_RELATION_TYPES,
@@ -67,17 +70,11 @@ def propagate_dates(
     if not dependent_ids:
         return []
 
-    # Fetch all dependent issues in a single query.
-    dependents = {
-        str(issue.id): issue
-        for issue in Issue.objects.filter(id__in=dependent_ids).values("id", "start_date", "target_date")
-    }
-
     # Fetch all relations needed to determine predecessors and constraint types.
     relations = IssueRelation.objects.filter(
         relation_type__in=DEPENDENCY_RELATION_TYPES,
         deleted_at__isnull=True,
-    ).values("issue_id", "related_issue_id", "relation_type")
+    ).values_list("issue_id", "related_issue_id", "relation_type")
 
     # Build a map of issue_id -> list of (predecessor_id, relation_type)
     predecessor_map: dict[str, list[tuple[str, str]]] = {}
@@ -200,9 +197,25 @@ def propagate_dates(
             for issue_obj in updated_issues:
                 issue_activity.delay(
                     type="issue.activity.updated",
+                    requested_data=json.dumps(
+                        {
+                            "start_date": str(issue_obj.start_date),
+                            "target_date": str(issue_obj.target_date),
+                        },
+                        cls=DjangoJSONEncoder,
+                    ),
+                    current_instance=json.dumps(
+                        {
+                            "id": str(issue_obj.id),
+                            "start_date": str(issue_obj.start_date),
+                            "target_date": str(issue_obj.target_date),
+                        },
+                        cls=DjangoJSONEncoder,
+                    ),
                     issue_id=str(issue_obj.id),
                     project_id=str(issue_obj.project_id),
                     actor_id=None,
+                    epoch=int(timezone.now().timestamp()),
                     origin="propagation",
                 )
 
