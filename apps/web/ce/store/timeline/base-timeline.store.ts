@@ -3,6 +3,7 @@
  * SPDX-License-Identifier: AGPL-3.0-only
  * See the LICENSE file for details.
  */
+/* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment */
 
 import { isEqual, set } from "lodash-es";
 import { action, makeObservable, observable, runInAction } from "mobx";
@@ -23,6 +24,7 @@ import {
   getPositionFromDate,
 } from "@/components/gantt-chart/views/helpers";
 // helpers
+import type { ConflictInfo } from "@/plane-web/helpers/dependency-conflict";
 // store
 import type { RootStore } from "@/plane-web/store/root.store";
 
@@ -63,6 +65,8 @@ export interface IBaseTimelineStore {
   // computed functions
   getIsCurrentDependencyDragging: (blockId: string) => boolean;
   isBlockActive: (blockId: string) => boolean;
+  getDependencyConflicts: (blockId: string) => Array<ConflictInfo>;
+  hasConflict: (blockId: string) => boolean;
   // actions
   updateCurrentView: (view: TGanttViews) => void;
   updateCurrentViewData: (data: ChartDataType | undefined) => void;
@@ -440,4 +444,20 @@ export class BaseTimeLineStore implements IBaseTimelineStore {
   clearPreviewPositions = () => {
     // CE does not support dependency preview
   };
+
+  /**
+   * @description CE stub: get dependency conflicts for a block (not supported)
+   * Conflict visualization is a HW-only feature — CE always returns empty array
+   * @param _blockId the block ID (unused in CE)
+   * @returns empty array (no conflicts in CE)
+   */
+  getDependencyConflicts = computedFn((_blockId: string): Array<ConflictInfo> => []);
+
+  /**
+   * @description CE stub: check if a block has conflicts (not supported)
+   * Conflict visualization is a HW-only feature — CE always returns false
+   * @param _blockId the block ID (unused in CE)
+   * @returns false (no conflicts in CE)
+   */
+  hasConflict = computedFn((_blockId: string): boolean => false);
 }

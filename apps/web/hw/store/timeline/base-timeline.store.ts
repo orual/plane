@@ -3,6 +3,7 @@
  * SPDX-License-Identifier: AGPL-3.0-only
  * See the LICENSE file for details.
  */
+/* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment */
 
 import { isEqual, set } from "lodash-es";
 import { action, makeObservable, observable, runInAction } from "mobx";
@@ -23,6 +24,8 @@ import {
   getPositionFromDate,
 } from "@/components/gantt-chart/views/helpers";
 // helpers
+import type { ConflictInfo } from "@/plane-web/helpers/dependency-conflict";
+import { detectDependencyConflicts } from "@/plane-web/helpers/dependency-conflict";
 // store
 import type { RootStore } from "@/plane-web/store/root.store";
 
@@ -63,6 +66,8 @@ export interface IBaseTimelineStore {
   // computed functions
   getIsCurrentDependencyDragging: (blockId: string) => boolean;
   isBlockActive: (blockId: string) => boolean;
+  getDependencyConflicts: (blockId: string) => Array<ConflictInfo>;
+  hasConflict: (blockId: string) => boolean;
   // actions
   updateCurrentView: (view: TGanttViews) => void;
   updateCurrentViewData: (data: ChartDataType | undefined) => void;
@@ -633,4 +638,55 @@ export class BaseTimeLineStore implements IBaseTimelineStore {
       this.previewBlockIds.clear();
     });
   };
+
+  /**
+   * Get dependency conflicts for a block
+   * Uses computedFn for MobX reactivity — automatically updates when dates or relations change
+   * @param blockId the block to check for conflicts
+   * @returns array of ConflictInfo objects describing violations, or empty array
+   */
+  getDependencyConflicts = computedFn((blockId: string): Array<ConflictInfo> => {
+    const block = this.blocksMap[blockId];
+    if (!block) return [];
+
+    const issueDates = {
+      start_date: block.start_date ?? null,
+      target_date: block.target_date ?? null,
+    };
+
+    // Get the relation map from the issue detail store
+    const relationMap = this.rootStore.issue.issueDetail.relation.relationMap;
+
+    // Lookup function to get dates from blocks or issues
+    const getIssueDates = (id: string) => {
+      // First try to get from blocksMap
+      const blockData = this.blocksMap[id];
+      if (blockData) {
+        return {
+          start_date: blockData.start_date ?? null,
+          target_date: blockData.target_date ?? null,
+        };
+      }
+
+      // Fall back to issue store
+      const issueData = this.rootStore.issue.issueDetail.issue.getIssueById(id);
+      if (issueData) {
+        return {
+          start_date: issueData.start_date ?? null,
+          target_date: issueData.target_date ?? null,
+        };
+      }
+
+      return undefined;
+    };
+
+    return detectDependencyConflicts(blockId, issueDates, relationMap, getIssueDates);
+  });
+
+  /**
+   * Convenience method to check if a block has any conflicts
+   * @param blockId the block to check
+   * @returns true if the block has any dependency conflicts
+   */
+  hasConflict = computedFn((blockId: string): boolean => this.getDependencyConflicts(blockId).length > 0);
 }
