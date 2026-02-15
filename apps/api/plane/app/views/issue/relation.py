@@ -33,6 +33,9 @@ from plane.bgtasks.issue_activities_task import issue_activity
 from plane.utils.issue_relation_mapper import get_actual_relation
 from plane.utils.host import base_host
 
+# Relation types that require swapping issue_id and related_issue_id during storage
+_SWAP_RELATION_TYPES = ["blocking", "start_after", "finish_after", "implements"]
+
 
 class IssueRelationViewSet(BaseViewSet):
     serializer_class = IssueRelationSerializer
@@ -236,9 +239,9 @@ class IssueRelationViewSet(BaseViewSet):
         issue_relation = IssueRelation.objects.bulk_create(
             [
                 IssueRelation(
-                    issue_id=(issue if relation_type in ["blocking", "start_after", "finish_after", "implements"] else issue_id),
+                    issue_id=(issue if relation_type in _SWAP_RELATION_TYPES else issue_id),
                     related_issue_id=(
-                        issue_id if relation_type in ["blocking", "start_after", "finish_after", "implements"] else issue
+                        issue_id if relation_type in _SWAP_RELATION_TYPES else issue
                     ),
                     relation_type=(get_actual_relation(relation_type)),
                     project_id=project_id,
@@ -264,7 +267,7 @@ class IssueRelationViewSet(BaseViewSet):
             origin=base_host(request=request, is_app=True),
         )
 
-        if relation_type in ["blocking", "start_after", "finish_after", "implements"]:
+        if relation_type in _SWAP_RELATION_TYPES:
             return Response(
                 RelatedIssueSerializer(issue_relation, many=True).data,
                 status=status.HTTP_201_CREATED,

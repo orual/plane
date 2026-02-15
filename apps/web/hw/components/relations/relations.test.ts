@@ -7,7 +7,7 @@
 import { describe, it, expect } from "vitest";
 import { REVERSE_RELATIONS } from "../../../core/constants/gantt-chart";
 import { ISSUE_RELATION_OPTIONS, RELATION_GROUPS } from "./index";
-import type { TIssueRelationTypes } from "../types";
+import type { TIssueRelationTypes } from "../../types";
 
 describe("Relation Type Expansion", () => {
   describe("REVERSE_RELATIONS (AC1.3 - Bidirectional mapping)", () => {
@@ -62,11 +62,11 @@ describe("Relation Type Expansion", () => {
       ];
 
       allRelationTypes.forEach((relType) => {
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
+         
         const reverse = REVERSE_RELATIONS[relType];
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
+         
         const roundtrip = REVERSE_RELATIONS[reverse as TIssueRelationTypes];
-        expect(roundtrip).toBe(relType, `${relType} -> ${reverse} -> ${String(roundtrip)} should equal ${relType}`);
+        expect(roundtrip).toBe(relType);
       });
     });
   });
@@ -172,7 +172,7 @@ describe("Relation Type Expansion", () => {
       ];
 
       expectedTypes.forEach((relType) => {
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+         
         expect(ISSUE_RELATION_OPTIONS[relType]).toBeDefined();
       });
     });
@@ -187,7 +187,6 @@ describe("Relation Type Expansion", () => {
      */
     it("should have key property matching the relation type", () => {
       Object.entries(ISSUE_RELATION_OPTIONS).forEach(([relType, option]) => {
-         
         expect(option.key).toBe(relType as TIssueRelationTypes);
       });
     });

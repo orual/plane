@@ -6,7 +6,7 @@ import pytest
 from rest_framework import status
 
 from plane.db.models import Issue, IssueRelation, Project, ProjectMember
-from plane.tests.factories import IssueFactory, UserFactory, ProjectFactory, WorkspaceFactory
+from plane.tests.factories import WorkspaceFactory
 
 
 @pytest.fixture
