@@ -131,7 +131,7 @@ def _dfs_find_cycle(
     ).values_list("issue_id", flat=True)
 
     for dependent_issue_id in dependent_relations:
-        result = _dfs_find_cycle(dependent_issue_id, target_issue_id, visited, current_path, depth + 1)
+        result = _dfs_find_cycle(str(dependent_issue_id), target_issue_id, visited, current_path, depth + 1)
         if result is not None:
             return result
 
