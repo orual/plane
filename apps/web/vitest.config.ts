@@ -17,12 +17,27 @@ export default defineConfig({
     setupFiles: [path.resolve(__dirname, "./vitest.setup.ts")],
   },
   resolve: {
-    alias: {
-      "@": path.resolve(__dirname, "./core"),
-      "@/app": path.resolve(__dirname, "./app"),
-      "@/helpers": path.resolve(__dirname, "./helpers"),
-      "@/styles": path.resolve(__dirname, "./styles"),
-      "@/plane-web": path.resolve(__dirname, "./hw"),
-    },
+    alias: [
+      {
+        find: "@",
+        replacement: path.resolve(__dirname, "./core"),
+      },
+      {
+        find: "@/app",
+        replacement: path.resolve(__dirname, "./app"),
+      },
+      {
+        find: "@/helpers",
+        replacement: path.resolve(__dirname, "./helpers"),
+      },
+      {
+        find: "@/styles",
+        replacement: path.resolve(__dirname, "./styles"),
+      },
+      {
+        find: "@/plane-web",
+        replacement: path.resolve(__dirname, "./hw"),
+      },
+    ],
   },
 });
