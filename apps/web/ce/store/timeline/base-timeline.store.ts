@@ -46,6 +46,7 @@ export interface IBaseTimelineStore {
   renderView: any;
   isDragging: boolean;
   isDependencyEnabled: boolean;
+  previewBlockIds: Set<string>;
   dependencyDragState: {
     isDragging: boolean;
     sourceBlockId: string | null;
@@ -81,6 +82,8 @@ export interface IBaseTimelineStore {
   updateDependencyDragCursor: (x: number, y: number) => void;
   setDependencyDragTarget: (blockId: string | null, endpoint: "left" | "right" | null, isValid: boolean) => void;
   endDependencyDrag: () => void;
+  computePreviewPositions: (draggedBlockId: string) => void;
+  clearPreviewPositions: () => void;
 
   getDateFromPositionOnGantt: (position: number, offsetDays: number) => Date | undefined;
   getPositionFromDateOnGantt: (date: string | Date, offSetWidth: number) => number | undefined;
@@ -95,6 +98,7 @@ export class BaseTimeLineStore implements IBaseTimelineStore {
   currentViewData: ChartDataType | undefined = undefined;
   activeBlockId: string | null = null;
   renderView: any = [];
+  previewBlockIds: Set<string> = new Set();
 
   rootStore: RootStore;
 
@@ -131,6 +135,7 @@ export class BaseTimeLineStore implements IBaseTimelineStore {
       currentViewData: observable,
       activeBlockId: observable.ref,
       renderView: observable,
+      previewBlockIds: observable,
       dependencyDragState: observable.deep,
       // actions
       setIsDragging: action,
@@ -144,6 +149,8 @@ export class BaseTimeLineStore implements IBaseTimelineStore {
       updateDependencyDragCursor: action.bound,
       setDependencyDragTarget: action.bound,
       endDependencyDrag: action.bound,
+      computePreviewPositions: action.bound,
+      clearPreviewPositions: action.bound,
     });
 
     this.initGantt();
@@ -416,5 +423,21 @@ export class BaseTimeLineStore implements IBaseTimelineStore {
    */
   endDependencyDrag = () => {
     // CE does not support dependency drag
+  };
+
+  /**
+   * @description CE stub: compute preview positions for dependent blocks (not supported)
+   * Preview positions are a HW-only feature
+   */
+  computePreviewPositions = (_draggedBlockId: string) => {
+    // CE does not support dependency preview
+  };
+
+  /**
+   * @description CE stub: clear preview positions (not supported)
+   * Preview positions are a HW-only feature
+   */
+  clearPreviewPositions = () => {
+    // CE does not support dependency preview
   };
 }

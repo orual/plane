@@ -46,6 +46,7 @@ export interface IBaseTimelineStore {
   renderView: any;
   isDragging: boolean;
   isDependencyEnabled: boolean;
+  previewBlockIds: Set<string>;
   dependencyDragState: {
     isDragging: boolean;
     sourceBlockId: string | null;
@@ -81,6 +82,8 @@ export interface IBaseTimelineStore {
   updateDependencyDragCursor: (x: number, y: number) => void;
   setDependencyDragTarget: (blockId: string | null, endpoint: "left" | "right" | null, isValid: boolean) => void;
   endDependencyDrag: () => void;
+  computePreviewPositions: (draggedBlockId: string) => void;
+  clearPreviewPositions: () => void;
 
   getDateFromPositionOnGantt: (position: number, offsetDays: number) => Date | undefined;
   getPositionFromDateOnGantt: (date: string | Date, offSetWidth: number) => number | undefined;
@@ -95,6 +98,7 @@ export class BaseTimeLineStore implements IBaseTimelineStore {
   currentViewData: ChartDataType | undefined = undefined;
   activeBlockId: string | null = null;
   renderView: any = [];
+  previewBlockIds: Set<string> = new Set();
 
   rootStore: RootStore;
 
@@ -131,6 +135,7 @@ export class BaseTimeLineStore implements IBaseTimelineStore {
       currentViewData: observable,
       activeBlockId: observable.ref,
       renderView: observable,
+      previewBlockIds: observable,
       dependencyDragState: observable.deep,
       // actions
       setIsDragging: action,
@@ -144,6 +149,8 @@ export class BaseTimeLineStore implements IBaseTimelineStore {
       updateDependencyDragCursor: action.bound,
       setDependencyDragTarget: action.bound,
       endDependencyDrag: action.bound,
+      computePreviewPositions: action.bound,
+      clearPreviewPositions: action.bound,
     });
 
     this.initGantt();
@@ -449,6 +456,197 @@ export class BaseTimeLineStore implements IBaseTimelineStore {
       this.dependencyDragState.hoveredTargetBlockId = null;
       this.dependencyDragState.hoveredTargetEndpoint = null;
       this.dependencyDragState.isValidTarget = false;
+    });
+  };
+
+  /**
+   * Find downstream dependents of a block by traversing the relation graph
+   * @param blockId the source block ID
+   * @param visited set of already-visited block IDs
+   * @param depth current traversal depth (max 100)
+   * @returns set of downstream dependent block IDs
+   */
+  private findDownstreamDependents(
+    blockId: string,
+    visited: Set<string> = new Set(),
+    depth: number = 0
+  ): Set<string> {
+    const dependents = new Set<string>();
+
+    // Depth limit to prevent unbounded traversal
+    if (depth >= 100) return dependents;
+
+    // Avoid revisiting nodes
+    if (visited.has(blockId)) return dependents;
+    visited.add(blockId);
+
+    // Get all relations from the relation store
+    const relationMap = this.rootStore.issue.issueDetail.relation.relationMap;
+    const issueRelations = relationMap[blockId];
+
+    if (!issueRelations) return dependents;
+
+    // Relation types that affect downstream blocks:
+    // - "blocking": A blocks B, so if A moves right, B must move right (A's successors are B's)
+    // - "start_before": A starts before B, so if A starts later, B must start later (A's successors are B's)
+    // - "finish_before": A finishes before B, so if A finishes later, B must finish later (A's successors are B's)
+    // - "implemented_by": A is implemented by B (structural FS), so B must complete after A (B's predecessors include A)
+
+    // For A to have dependents, we look at relations where A is the predecessor:
+    // - "blocking": relationMap[A].blocking = [B, C] means A blocks B, C
+    // - "start_before": relationMap[A].start_before = [B] means A starts before B
+    // - "finish_before": relationMap[A].finish_before = [B] means A finishes before B
+    // - "implements": relationMap[A].implements = [B] means A implements B (A is predecessor, B is successor)
+
+    const blockingDependents = issueRelations["blocking"] ?? [];
+    const startBeforeDependents = issueRelations["start_before"] ?? [];
+    const finishBeforeDependents = issueRelations["finish_before"] ?? [];
+    const implementsDependents = issueRelations["implements"] ?? [];
+
+    const allDependents = [...blockingDependents, ...startBeforeDependents, ...finishBeforeDependents, ...implementsDependents];
+
+    for (const dependent of allDependents) {
+      if (!dependents.has(dependent)) {
+        dependents.add(dependent);
+        // Recursively find dependents of this dependent
+        const transitiveDependents = this.findDownstreamDependents(dependent, visited, depth + 1);
+        transitiveDependents.forEach((d) => dependents.add(d));
+      }
+    }
+
+    return dependents;
+  }
+
+  /**
+   * Compute preview positions for all downstream dependents of a dragged block
+   * @param draggedBlockId the block being dragged
+   */
+  computePreviewPositions = (draggedBlockId: string) => {
+    if (!this.currentViewData) return;
+
+    const draggedBlock = this.blocksMap[draggedBlockId];
+    if (!draggedBlock || !draggedBlock.position) return;
+
+    // Find all downstream dependents
+    const dependents = this.findDownstreamDependents(draggedBlockId);
+
+    // If no dependents, do nothing (AC6.6)
+    if (dependents.size === 0) return;
+
+    runInAction(() => {
+      const relationMap = this.rootStore.issue.issueDetail.relation.relationMap;
+
+      for (const dependentId of dependents) {
+        const dependentBlock = this.blocksMap[dependentId];
+        if (!dependentBlock || !dependentBlock.position) continue;
+
+        // Compute constraints from all predecessors
+        let maxMarginLeft: number | null = null;
+        let maxRightEdge: number | null = null;
+
+        // Find predecessors with blocking relation (this block blocks dependent)
+        const blockingPredecessors = Object.entries(relationMap)
+          .filter(([_key, val]) => {
+            const relationsForType = (val as Record<string, string[] | undefined>).blocking ?? [];
+            return relationsForType.includes(dependentId);
+          })
+          .map(([key]) => key);
+
+        for (const predId of blockingPredecessors) {
+          const predBlock = this.blocksMap[predId];
+          if (predBlock?.position && this.currentViewData) {
+            // FS: successor marginLeft = predecessor marginLeft + predecessor width + dayWidth (one day gap)
+            const dayWidth = this.currentViewData.data.dayWidth;
+            const constrainedMarginLeft = predBlock.position.marginLeft + predBlock.position.width + dayWidth;
+            if (maxMarginLeft === null || constrainedMarginLeft > maxMarginLeft) {
+              maxMarginLeft = constrainedMarginLeft;
+            }
+          }
+        }
+
+        // Find predecessors with start_before relation
+        const startBeforePredecessors = Object.entries(relationMap)
+          .filter(([_key, val]) => {
+            const relationsForType = (val as Record<string, string[] | undefined>).start_before ?? [];
+            return relationsForType.includes(dependentId);
+          })
+          .map(([key]) => key);
+
+        for (const predId of startBeforePredecessors) {
+          const predBlock = this.blocksMap[predId];
+          if (predBlock?.position) {
+            // SS: successor marginLeft = predecessor marginLeft
+            if (maxMarginLeft === null || predBlock.position.marginLeft > maxMarginLeft) {
+              maxMarginLeft = predBlock.position.marginLeft;
+            }
+          }
+        }
+
+        // Find predecessors with finish_before relation
+        const finishBeforePredecessors = Object.entries(relationMap)
+          .filter(([_key, val]) => {
+            const relationsForType = (val as Record<string, string[] | undefined>).finish_before ?? [];
+            return relationsForType.includes(dependentId);
+          })
+          .map(([key]) => key);
+
+        for (const predId of finishBeforePredecessors) {
+          const predBlock = this.blocksMap[predId];
+          if (predBlock?.position) {
+            // FF: successor right edge = predecessor right edge
+            const constrainedRightEdge = predBlock.position.marginLeft + predBlock.position.width;
+            if (maxRightEdge === null || constrainedRightEdge > maxRightEdge) {
+              maxRightEdge = constrainedRightEdge;
+            }
+          }
+        }
+
+        // Find predecessors with implements relation
+        const implementsPredecessors = Object.entries(relationMap)
+          .filter(([_key, val]) => {
+            const relationsForType = (val as Record<string, string[] | undefined>).implements ?? [];
+            return relationsForType.includes(dependentId);
+          })
+          .map(([key]) => key);
+
+        for (const predId of implementsPredecessors) {
+          const predBlock = this.blocksMap[predId];
+          if (predBlock?.position && this.currentViewData) {
+            // FS: successor marginLeft = predecessor marginLeft + predecessor width + dayWidth
+            const dayWidth = this.currentViewData.data.dayWidth;
+            const constrainedMarginLeft = predBlock.position.marginLeft + predBlock.position.width + dayWidth;
+            if (maxMarginLeft === null || constrainedMarginLeft > maxMarginLeft) {
+              maxMarginLeft = constrainedMarginLeft;
+            }
+          }
+        }
+
+        // Update the dependent block position if we have constraints
+        if (maxMarginLeft !== null) {
+          set(this.blocksMap, [dependentId, "position"], {
+            marginLeft: maxMarginLeft,
+            width: dependentBlock.position.width,
+          });
+          this.previewBlockIds.add(dependentId);
+        } else if (maxRightEdge !== null) {
+          // FF constraint only
+          const newMarginLeft = maxRightEdge - dependentBlock.position.width;
+          set(this.blocksMap, [dependentId, "position"], {
+            marginLeft: newMarginLeft,
+            width: dependentBlock.position.width,
+          });
+          this.previewBlockIds.add(dependentId);
+        }
+      }
+    });
+  };
+
+  /**
+   * Clear preview positions
+   */
+  clearPreviewPositions = () => {
+    runInAction(() => {
+      this.previewBlockIds.clear();
     });
   };
 }
