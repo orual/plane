@@ -37,15 +37,17 @@ export const TimelineDependencyPaths = observer(function TimelineDependencyPaths
 
   // Get block data from timeline store
    
-  const blocksMap: Record<string, IGanttBlock> | undefined = (timelineStore as Record<string, unknown>).blocksMap;
+  const blocksMap = (timelineStore as unknown as Record<string, unknown>).blocksMap as
+    | Record<string, IGanttBlock>
+    | undefined;
    
-  const blockIds: string[] | undefined = (timelineStore as Record<string, unknown>).blockIds;
+  const blockIds = (timelineStore as unknown as Record<string, unknown>).blockIds as string[] | undefined;
 
   // Get relation data from issue detail store
    
-  const relationMap: Record<string, Record<TIssueRelationTypes, string[]>> | undefined = (
-    issueDetailStore?.relation as Record<string, unknown> | undefined
-  )?.relationMap;
+  const relationMap = (issueDetailStore?.relation as unknown as Record<string, unknown>).relationMap as
+    | Record<string, Record<TIssueRelationTypes, string[]>>
+    | undefined;
 
   // Early return if required data is missing
   if (!blocksMap || !blockIds || !relationMap) {
