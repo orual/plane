@@ -1,0 +1,40 @@
+# plane-hw-preview configuration
+# Copy this file to your repository root as .plane-preview.yml
+
+plane:
+  # Your Plane instance URL
+  base_url: https://plane.example.com
+  # Workspace slug (from your Plane URL)
+  workspace: my-workspace
+
+# Map commit message prefixes to Plane projects.
+# When a commit message contains "PWR-42", it matches the project
+# configured with prefix "PWR" and links to issue 42 in that project.
+commit_patterns:
+  - prefix: "PWR"
+    project: "power-stage"
+  # - prefix: "CTRL"
+  #   project: "control-board"
+
+# Map file paths to Plane projects and default issues.
+# Used as fallback when commit messages don't contain issue identifiers.
+# More specific patterns take priority over broader ones.
+path_mappings:
+  - pattern: "hardware/power-stage/**"
+    project: "power-stage"
+    default_issue: "PWR-1"
+  # - pattern: "hardware/control/**"
+  #   project: "control-board"
+  #   default_issue: "CTRL-1"
+
+# Configure render commands per file type.
+# If omitted and KiBot is on PATH, KiCad files are rendered with KiBot defaults.
+# renderers:
+#   - match: "**/*.kicad_sch"
+#     command: "kibot -c {config} -d {output_dir} -b {file}"
+#     config: "hardware/kibot.yaml"
+#     formats: ["png", "svg"]
+#   - match: "**/*.kicad_pcb"
+#     command: "kibot -c {config} -d {output_dir} -b {file}"
+#     config: "hardware/kibot.yaml"
+#     formats: ["png", "svg"]
