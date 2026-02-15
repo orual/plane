@@ -240,13 +240,16 @@ class IssueRelationViewSet(BaseViewSet):
         # Get the stored relation type (normalized form)
         stored_relation_type = get_actual_relation(relation_type)
 
+        # Convert issue_id to string for consistent comparison
+        issue_id_str = str(issue_id)
+
         # Check for self-referencing across the entire issues list
-        if issue_id in issues:
+        if issue_id_str in issues:
             return Response(
                 {
                     "error": "cycle_detected",
                     "detail": "An issue cannot be related to itself",
-                    "cycle_path": [str(issue_id)],
+                    "cycle_path": [issue_id_str],
                 },
                 status=status.HTTP_400_BAD_REQUEST,
             )
@@ -258,12 +261,12 @@ class IssueRelationViewSet(BaseViewSet):
                 # Determine source and target based on relation direction
                 if relation_type in _SWAP_RELATION_TYPES:
                     # For incoming types, the current issue is the source
-                    source_issue_id = issue_id
+                    source_issue_id = issue_id_str
                     target_issue_id = related_issue
                 else:
                     # For stored types, the related issue is the source
                     source_issue_id = related_issue
-                    target_issue_id = issue_id
+                    target_issue_id = issue_id_str
 
                 # Check for cycles
                 cycle_path = detect_dependency_cycle(source_issue_id, target_issue_id, stored_relation_type)
@@ -272,7 +275,7 @@ class IssueRelationViewSet(BaseViewSet):
                         {
                             "error": "cycle_detected",
                             "detail": "Creating this relation would form a dependency cycle",
-                            "cycle_path": [str(issue_id) for issue_id in cycle_path],
+                            "cycle_path": [str(cid) for cid in cycle_path],
                         },
                         status=status.HTTP_400_BAD_REQUEST,
                     )

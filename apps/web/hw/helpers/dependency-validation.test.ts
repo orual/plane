@@ -5,8 +5,8 @@
  */
 
 import { describe, it, expect } from "vitest";
-import { detectCycleInMemory  } from "./dependency-validation";
-import type {DependencyRelationMap} from "./dependency-validation";
+import { detectCycleInMemory } from "./dependency-validation";
+import type { DependencyRelationMap } from "./dependency-validation";
 
 describe("Cycle Detection Helper (detectCycleInMemory)", () => {
   describe("AC2.3 - Direct cycle detection", () => {
@@ -326,9 +326,9 @@ describe("Cycle Detection Helper (detectCycleInMemory)", () => {
     });
 
     /**
-     * Test: Target has no outgoing relations.
+     * Test: Target has no outgoing relations, but source blocks target creating a cycle.
      */
-    it("should return null when target has no outgoing relations", () => {
+    it("should detect cycle when target has outgoing relations creating a loop", () => {
       const relationMap: DependencyRelationMap = {
         A: {
           blocking: ["B"],

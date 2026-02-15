@@ -19,7 +19,6 @@ and follow all downstream dependents (issues that depend on the target). If we
 reach the source issue, creating the relation would form a cycle.
 """
 
-from typing import Optional
 from plane.db.models import IssueRelation
 
 
@@ -40,7 +39,7 @@ def detect_dependency_cycle(
     source_issue_id: str,
     target_issue_id: str,
     relation_type: str,
-) -> Optional[list[str]]:
+) -> list[str] | None:
     """
     Detect if creating a relation would form a cycle in the dependency graph.
 
@@ -87,7 +86,7 @@ def _dfs_find_cycle(
     visited: set[str],
     path: list[str],
     depth: int = 0,
-) -> Optional[list[str]]:
+) -> list[str] | None:
     """
     DFS helper to find if target_issue_id is reachable from current_issue_id.
 
