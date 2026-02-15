@@ -49,6 +49,9 @@
             # Docker (for infrastructure services: PostgreSQL, Redis, RabbitMQ, MinIO)
             docker
             docker-compose
+
+            # KiCad CLI for hardware design rendering (kicad-cli sch/pcb export svg)
+            kicad
           ] ++ pythonLibs;
 
           # Dynamic linker configuration for Nix environments.
