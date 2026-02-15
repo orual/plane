@@ -203,6 +203,7 @@ class PlaneClient:
             raise PlaneAPIError("Failed to confirm upload after retries")
         except PlaneAPIError:
             raise
+        raise PlaneAPIError("Failed to confirm upload: unexpected retry exhaustion")
 
     def create_comment(
         self,
