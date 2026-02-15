@@ -6,15 +6,49 @@
 
 import { describe, it, expect, beforeEach } from "vitest";
 import { BaseTimeLineStore } from "./base-timeline.store";
-import type { RootStore } from "@/plane-web/store/root.store";
+
+type MockIssue = {
+  start_date?: string | null;
+  target_date?: string | null;
+};
+
+type MockIssueDetail = {
+  getIssueById: (id: string) => MockIssue | undefined;
+};
+
+type MockRelation = {
+  relationMap: Record<string, Record<string, Array<string>>>;
+};
+
+/**
+ * Minimal typed mock structure for root store.
+ * Only includes the properties accessed by BaseTimeLineStore.
+ */
+type MockRootStore = {
+  issue: {
+    issueDetail: {
+      relation: MockRelation;
+      issue: MockIssueDetail;
+    };
+  };
+};
 
 /**
  * Mock RootStore for testing timeline store in isolation.
  */
-function createMockRootStore(): RootStore {
+function createMockRootStore(): MockRootStore {
   return {
-    // Minimal mock implementation
-  } as unknown as RootStore;
+    issue: {
+      issueDetail: {
+        relation: {
+          relationMap: {},
+        },
+        issue: {
+          getIssueById: () => undefined,
+        },
+      },
+    },
+  };
 }
 
 describe("Dependency Drag State Management (BaseTimeLineStore)", () => {
@@ -22,6 +56,7 @@ describe("Dependency Drag State Management (BaseTimeLineStore)", () => {
 
   beforeEach(() => {
     const mockRootStore = createMockRootStore();
+    // @ts-expect-error - Mock implementation provides necessary properties
     timelineStore = new BaseTimeLineStore(mockRootStore);
   });
 

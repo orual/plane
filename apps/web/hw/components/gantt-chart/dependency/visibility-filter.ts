@@ -52,6 +52,12 @@ export function filterVisibleDependencies(
 ): VisibleDependency[] {
   const visibleDependencies: VisibleDependency[] = [];
 
+  // Pre-compute a map from blockId to its row index for O(1) lookup (fixes issue I1)
+  const blockIdToRowIndex = new Map<string, number>();
+  for (let i = 0; i < blockIds.length; i++) {
+    blockIdToRowIndex.set(blockIds[i], i);
+  }
+
   // Iterate through all blocks to find scheduling relations
   for (let i = 0; i < blockIds.length; i++) {
     const blockId = blockIds[i];
@@ -65,9 +71,11 @@ export function filterVisibleDependencies(
 
       for (const relatedBlockId of relatedBlockIds) {
         // Only render if both source and target blocks are in the visible list
-        const targetRowIndex = blockIds.indexOf(relatedBlockId);
+        // Use Map.get() for O(1) lookup instead of Array.indexOf() (was O(n))
+        const targetRowIndex = blockIdToRowIndex.get(relatedBlockId);
 
-        if (sourceRowIndex === -1 || targetRowIndex === -1) continue;
+        // Target must be in visible list; source is guaranteed by outer loop (fixes issue M1)
+        if (targetRowIndex === undefined) continue;
 
         const sourceBlock = blocksMap[blockId];
         const targetBlock = blocksMap[relatedBlockId];
