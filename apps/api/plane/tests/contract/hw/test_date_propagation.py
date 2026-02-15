@@ -245,7 +245,7 @@ class TestDatePropagationAPI:
         # B should not be in updated_dependents since it has no dates
         # When no dependents are updated, the response should be 204
         assert response.status_code == status.HTTP_204_NO_CONTENT
-        assert "updated_dependents" not in response.data
+        assert response.data is None
 
     def test_non_date_update_no_propagation(self, session_client_auth, project):
         """Test that non-date updates don't trigger propagation."""
@@ -281,7 +281,7 @@ class TestDatePropagationAPI:
         # Should return 204 (no propagation)
         assert response.status_code == status.HTTP_204_NO_CONTENT
         # No updated_dependents key
-        assert "updated_dependents" not in response.data
+        assert response.data is None
 
     def test_response_includes_issue_data(self, session_client_auth, project):
         """Test that 200 response includes the updated issue."""

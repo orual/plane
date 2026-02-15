@@ -203,7 +203,11 @@ def propagate_dates(
             if new_target:
                 new_target = new_target + date_delta
 
-        if max_target_constraint and max_target_constraint > dependent_issue.target_date:
+        if (
+            max_target_constraint
+            and dependent_issue.target_date
+            and max_target_constraint > dependent_issue.target_date
+        ):
             new_target = max_target_constraint
 
         # If dates changed, mark for update.
