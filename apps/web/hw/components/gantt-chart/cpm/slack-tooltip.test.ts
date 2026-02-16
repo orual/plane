@@ -128,17 +128,6 @@ describe("cpm-critical-path.AC5 - Slack visualization and tooltip enrichment", (
   });
 
   describe("AC5.1 + AC5.2: Slack bars with correct position and opacity", () => {
-    it("should verify slack bar opacity implementation (30%)", () => {
-      // Per AC5.2: slack bars render at ~30% opacity
-      // The implementation in additional-layers.tsx uses:
-      // backgroundColor: "rgba(60, 133, 217, 0.3)"
-      // which is exactly 30% opacity (0.3 alpha channel)
-
-      // This test verifies the implementation choice
-      const opacityAlpha = 0.3;
-      expect(opacityAlpha).toBe(0.3);
-    });
-
     it("should render slack bars only when CPM enabled and block has slack", () => {
       // Setup: A→B critical chain, A→C shorter (C has slack)
       const blockA = createMockBlock({
@@ -427,38 +416,15 @@ describe("cpm-critical-path.AC5 - Slack visualization and tooltip enrichment", (
       expect(cpmResultD?.isCritical).toBe(false);
 
       // Verify format: dates are YYYY-MM-DD strings
-      // @ts-expect-error - we've verified cpmResultD is defined above
+      if (!cpmResultD) throw new Error("expected cpmResultD to be defined");
       expect(cpmResultD.es).toMatch(/^\d{4}-\d{2}-\d{2}$/);
-      // @ts-expect-error - we've verified cpmResultD is defined above
       expect(cpmResultD.ef).toMatch(/^\d{4}-\d{2}-\d{2}$/);
-      // @ts-expect-error - we've verified cpmResultD is defined above
       expect(cpmResultD.ls).toMatch(/^\d{4}-\d{2}-\d{2}$/);
-      // @ts-expect-error - we've verified cpmResultD is defined above
       expect(cpmResultD.lf).toMatch(/^\d{4}-\d{2}-\d{2}$/);
 
       // Verify slack is a number
       expect(typeof cpmResultD?.slack).toBe("number");
       expect(cpmResultD?.slack).toBeGreaterThan(0);
-    });
-
-    it("should verify CpmTooltipContent data structure for non-critical blocks", () => {
-      // This test verifies the expected data structure available for CpmTooltipContent
-      // Per implementation in cpm-tooltip-content.tsx, non-critical blocks show:
-      // <div className="grid grid-cols-2 gap-x-4 gap-y-0.5">
-      //   <span className="text-custom-text-300">Early start</span>
-      //   <span>{cpmResult.es}</span>
-      //   <span className="text-custom-text-300">Early finish</span>
-      //   <span>{cpmResult.ef}</span>
-      //   <span className="text-custom-text-300">Late start</span>
-      //   <span>{cpmResult.ls}</span>
-      //   <span className="text-custom-text-300">Late finish</span>
-      //   <span>{cpmResult.lf}</span>
-      // </div>
-      // <div className="pt-1 text-custom-text-300">Total float: {cpmResult.slack.toFixed(1)} days</div>
-
-      // This is already tested in "should expose CPM data with correct fields and format"
-      // This test simply verifies the pattern is consistent throughout the suite
-      expect(true).toBe(true);
     });
   });
 
