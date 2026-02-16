@@ -190,7 +190,7 @@ class TestSignInEndpoint:
     def test_next_path_redirection(self, django_client, setup_user, setup_instance):
         """Test sign-in with next_path parameter"""
         url = reverse("sign-in")
-        next_path = "workspaces"
+        next_path = "/workspaces"
 
         # First make the request without following redirects
         response = django_client.post(
@@ -304,7 +304,7 @@ class TestMagicSignIn:
 
         # Use Django client to test the redirect flow without following redirects
         url = reverse("magic-sign-in")
-        next_path = "workspaces"
+        next_path = "/workspaces"
         response = django_client.post(
             url,
             {"email": "user@plane.so", "code": token, "next_path": next_path},

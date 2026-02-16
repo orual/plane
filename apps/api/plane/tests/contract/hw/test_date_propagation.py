@@ -91,6 +91,7 @@ class TestDatePropagationAPI:
             {
                 "target_date": "2026-01-13",
             },
+            format="json",
         )
 
         # Should return 200 with updated_dependents
@@ -146,6 +147,7 @@ class TestDatePropagationAPI:
             {
                 "target_date": "2026-01-13",
             },
+            format="json",
         )
 
         # Should update both B and C
@@ -198,6 +200,7 @@ class TestDatePropagationAPI:
             {
                 "target_date": "2026-01-15",
             },
+            format="json",
         )
 
         # B should be updated with max constraint
@@ -240,6 +243,7 @@ class TestDatePropagationAPI:
             {
                 "target_date": "2026-01-13",
             },
+            format="json",
         )
 
         # B should not be in updated_dependents since it has no dates
@@ -276,6 +280,7 @@ class TestDatePropagationAPI:
             {
                 "name": "New Name",
             },
+            format="json",
         )
 
         # Should return 204 (no propagation)
@@ -313,9 +318,10 @@ class TestDatePropagationAPI:
             {
                 "target_date": "2026-01-13",
             },
+            format="json",
         )
 
         # Response should include issue data and updated_dependents
         assert response.status_code == status.HTTP_200_OK
-        assert response.data["id"] == str(issue_b.id)
+        assert str(response.data["id"]) == str(issue_b.id)
         assert "updated_dependents" in response.data

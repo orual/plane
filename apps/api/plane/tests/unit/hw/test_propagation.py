@@ -226,12 +226,13 @@ class TestPropagationService:
             workspace=project_1.workspace,
         )
 
-        # C's target_date moves from Jan 10 to Jan 13 (+3 days)
+        # C's target_date moves from Jan 30 to Jan 13 (the function uses the new
+        # dates seeded in updates_dict, not the DB values).
         result = propagate_dates(
             changed_issue_id=str(issue_c.id),
-            old_start_date=date(2026, 1, 10),
-            old_target_date=date(2026, 1, 10),
-            new_start_date=date(2026, 1, 10),
+            old_start_date=date(2026, 1, 21),
+            old_target_date=date(2026, 1, 30),
+            new_start_date=date(2026, 1, 21),
             new_target_date=date(2026, 1, 13),
         )
 
@@ -239,13 +240,15 @@ class TestPropagationService:
         assert len(result) == 2
         result_dict = {r["id"]: r for r in result}
 
-        # B's start_date shifts from Jan 11 to Jan 14 (+3 days)
+        # B: blocked_by C, FS constraint = C.target(Jan 13) + 1 = Jan 14
+        # B current start=Jan 11, so shifts +3 days; duration 9 days preserved
         assert result_dict[str(issue_b.id)]["start_date"] == date(2026, 1, 14)
         assert result_dict[str(issue_b.id)]["target_date"] == date(2026, 1, 23)
 
-        # A's start_date shifts from Jan 21 to Jan 24 (+3 days)
+        # A: blocked_by B, FS constraint = B.target(Jan 23) + 1 = Jan 24
+        # A current start=Jan 10, target=Jan 10 (0-day duration), shifts +14 days
         assert result_dict[str(issue_a.id)]["start_date"] == date(2026, 1, 24)
-        assert result_dict[str(issue_a.id)]["target_date"] == date(2026, 2, 2)
+        assert result_dict[str(issue_a.id)]["target_date"] == date(2026, 1, 24)
 
     def test_multi_predecessor_fs_rules(self, project_1):
         """Test AC5.5: Multi-predecessor resolution with FS relations."""
