@@ -83,5 +83,5 @@ class TestProjectIssueTypeDetailSerializer:
         assert "issue_type_detail" in data
         assert data["issue_type_detail"]["name"] == "Design"
         assert data["issue_type_detail"]["logo_props"] == {"color": "#7C3AED"}
-        assert data["issue_type_id"] == str(issue_type.id)
-        assert data["project_id"] == str(project.id)
+        assert str(data["issue_type_id"]) == str(issue_type.id)
+        assert str(data["project_id"]) == str(project.id)

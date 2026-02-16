@@ -178,7 +178,7 @@ class TestIssueTypeDetail:
         response = session_client.get(url)
 
         assert response.status_code == status.HTTP_200_OK
-        assert response.data["id"] == str(issue_type.id)
+        assert str(response.data["id"]) == str(issue_type.id)
         assert response.data["name"] == "Electrical"
 
     @pytest.mark.django_db

@@ -10,6 +10,7 @@ from plane.hw.serializers import (
     IssuePropertyValueSerializer,
     IssuePropertyValueDetailSerializer,
 )
+from plane.tests.factories import IssueFactory, ProjectFactory
 
 
 @pytest.mark.unit
@@ -136,8 +137,14 @@ class TestPropertyDefinitionSerializer:
 class TestIssuePropertyValueSerializer:
     """Test IssuePropertyValueSerializer type validation."""
 
+    @pytest.fixture
+    def issue(self, workspace):
+        """Create a test issue for serializer validation."""
+        project = ProjectFactory(workspace=workspace)
+        return IssueFactory(project=project)
+
     @pytest.mark.django_db
-    def test_text_value_valid(self, workspace):
+    def test_text_value_valid(self, workspace, issue):
         """Text value validation accepts strings."""
         prop_def = IssuePropertyDefinition.objects.create(
             workspace=workspace,
@@ -146,14 +153,15 @@ class TestIssuePropertyValueSerializer:
         )
 
         data = {
-            "property_definition": prop_def.id,
+            "issue_id": issue.id,
+            "property_definition_id": prop_def.id,
             "value": {"value": "sample text"},
         }
         serializer = IssuePropertyValueSerializer(data=data)
         assert serializer.is_valid(), serializer.errors
 
     @pytest.mark.django_db
-    def test_text_value_invalid_type(self, workspace):
+    def test_text_value_invalid_type(self, workspace, issue):
         """Text value rejects non-string values."""
         prop_def = IssuePropertyDefinition.objects.create(
             workspace=workspace,
@@ -162,14 +170,15 @@ class TestIssuePropertyValueSerializer:
         )
 
         data = {
-            "property_definition": prop_def.id,
+            "issue_id": issue.id,
+            "property_definition_id": prop_def.id,
             "value": {"value": 123},
         }
         serializer = IssuePropertyValueSerializer(data=data)
         assert not serializer.is_valid()
 
     @pytest.mark.django_db
-    def test_number_value_valid(self, workspace):
+    def test_number_value_valid(self, workspace, issue):
         """Number value validation accepts integers and floats."""
         prop_def = IssuePropertyDefinition.objects.create(
             workspace=workspace,
@@ -178,14 +187,15 @@ class TestIssuePropertyValueSerializer:
         )
 
         data = {
-            "property_definition": prop_def.id,
+            "issue_id": issue.id,
+            "property_definition_id": prop_def.id,
             "value": {"value": 42},
         }
         serializer = IssuePropertyValueSerializer(data=data)
         assert serializer.is_valid(), serializer.errors
 
     @pytest.mark.django_db
-    def test_number_value_invalid_type(self, workspace):
+    def test_number_value_invalid_type(self, workspace, issue):
         """Number value rejects non-numeric values."""
         prop_def = IssuePropertyDefinition.objects.create(
             workspace=workspace,
@@ -194,14 +204,15 @@ class TestIssuePropertyValueSerializer:
         )
 
         data = {
-            "property_definition": prop_def.id,
+            "issue_id": issue.id,
+            "property_definition_id": prop_def.id,
             "value": {"value": "not a number"},
         }
         serializer = IssuePropertyValueSerializer(data=data)
         assert not serializer.is_valid()
 
     @pytest.mark.django_db
-    def test_select_value_valid(self, workspace):
+    def test_select_value_valid(self, workspace, issue):
         """Select value validation accepts valid option."""
         prop_def = IssuePropertyDefinition.objects.create(
             workspace=workspace,
@@ -211,14 +222,15 @@ class TestIssuePropertyValueSerializer:
         )
 
         data = {
-            "property_definition": prop_def.id,
+            "issue_id": issue.id,
+            "property_definition_id": prop_def.id,
             "value": {"value": "Open"},
         }
         serializer = IssuePropertyValueSerializer(data=data)
         assert serializer.is_valid(), serializer.errors
 
     @pytest.mark.django_db
-    def test_select_value_invalid_option(self, workspace):
+    def test_select_value_invalid_option(self, workspace, issue):
         """Select value rejects invalid option."""
         prop_def = IssuePropertyDefinition.objects.create(
             workspace=workspace,
@@ -228,14 +240,15 @@ class TestIssuePropertyValueSerializer:
         )
 
         data = {
-            "property_definition": prop_def.id,
+            "issue_id": issue.id,
+            "property_definition_id": prop_def.id,
             "value": {"value": "Invalid"},
         }
         serializer = IssuePropertyValueSerializer(data=data)
         assert not serializer.is_valid()
 
     @pytest.mark.django_db
-    def test_multi_select_value_valid(self, workspace):
+    def test_multi_select_value_valid(self, workspace, issue):
         """Multi-select value validation accepts list of valid options."""
         prop_def = IssuePropertyDefinition.objects.create(
             workspace=workspace,
@@ -245,14 +258,15 @@ class TestIssuePropertyValueSerializer:
         )
 
         data = {
-            "property_definition": prop_def.id,
+            "issue_id": issue.id,
+            "property_definition_id": prop_def.id,
             "value": {"value": ["Alpha", "Beta"]},
         }
         serializer = IssuePropertyValueSerializer(data=data)
         assert serializer.is_valid(), serializer.errors
 
     @pytest.mark.django_db
-    def test_multi_select_value_invalid_type(self, workspace):
+    def test_multi_select_value_invalid_type(self, workspace, issue):
         """Multi-select value rejects non-list values."""
         prop_def = IssuePropertyDefinition.objects.create(
             workspace=workspace,
@@ -262,14 +276,15 @@ class TestIssuePropertyValueSerializer:
         )
 
         data = {
-            "property_definition": prop_def.id,
+            "issue_id": issue.id,
+            "property_definition_id": prop_def.id,
             "value": {"value": "Alpha"},
         }
         serializer = IssuePropertyValueSerializer(data=data)
         assert not serializer.is_valid()
 
     @pytest.mark.django_db
-    def test_boolean_value_valid(self, workspace):
+    def test_boolean_value_valid(self, workspace, issue):
         """Boolean value validation accepts true/false."""
         prop_def = IssuePropertyDefinition.objects.create(
             workspace=workspace,
@@ -278,14 +293,15 @@ class TestIssuePropertyValueSerializer:
         )
 
         data = {
-            "property_definition": prop_def.id,
+            "issue_id": issue.id,
+            "property_definition_id": prop_def.id,
             "value": {"value": True},
         }
         serializer = IssuePropertyValueSerializer(data=data)
         assert serializer.is_valid(), serializer.errors
 
     @pytest.mark.django_db
-    def test_boolean_value_invalid_type(self, workspace):
+    def test_boolean_value_invalid_type(self, workspace, issue):
         """Boolean value rejects non-boolean values."""
         prop_def = IssuePropertyDefinition.objects.create(
             workspace=workspace,
@@ -294,7 +310,8 @@ class TestIssuePropertyValueSerializer:
         )
 
         data = {
-            "property_definition": prop_def.id,
+            "issue_id": issue.id,
+            "property_definition_id": prop_def.id,
             "value": {"value": "true"},
         }
         serializer = IssuePropertyValueSerializer(data=data)

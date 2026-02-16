@@ -69,6 +69,7 @@ class TestCycleDetectionAPI:
                 "relation_type": "blocked_by",
                 "issues": [str(issue_b.id)],
             },
+            format="json",
         )
         assert response.status_code == status.HTTP_201_CREATED
 
@@ -79,6 +80,7 @@ class TestCycleDetectionAPI:
                 "relation_type": "blocked_by",
                 "issues": [str(issue_a.id)],
             },
+            format="json",
         )
 
         assert response.status_code == status.HTTP_400_BAD_REQUEST
@@ -100,6 +102,7 @@ class TestCycleDetectionAPI:
                 "relation_type": "blocked_by",
                 "issues": [str(issue_b.id)],
             },
+            format="json",
         )
         assert response.status_code == status.HTTP_201_CREATED
 
@@ -110,6 +113,7 @@ class TestCycleDetectionAPI:
                 "relation_type": "blocked_by",
                 "issues": [str(issue_c.id)],
             },
+            format="json",
         )
         assert response.status_code == status.HTTP_201_CREATED
 
@@ -120,6 +124,7 @@ class TestCycleDetectionAPI:
                 "relation_type": "blocked_by",
                 "issues": [str(issue_a.id)],
             },
+            format="json",
         )
 
         assert response.status_code == status.HTTP_400_BAD_REQUEST
@@ -140,6 +145,7 @@ class TestCycleDetectionAPI:
                 "relation_type": "blocked_by",
                 "issues": [str(issue_b.id)],
             },
+            format="json",
         )
         assert response.status_code == status.HTTP_201_CREATED
 
@@ -150,6 +156,7 @@ class TestCycleDetectionAPI:
                 "relation_type": "blocked_by",
                 "issues": [str(issue_a.id)],
             },
+            format="json",
         )
 
         assert response.status_code == status.HTTP_400_BAD_REQUEST
@@ -173,6 +180,7 @@ class TestCycleDetectionAPI:
                 "relation_type": "relates_to",
                 "issues": [str(issue_b.id)],
             },
+            format="json",
         )
         assert response.status_code == status.HTTP_201_CREATED
 
@@ -183,6 +191,7 @@ class TestCycleDetectionAPI:
                 "relation_type": "relates_to",
                 "issues": [str(issue_a.id)],
             },
+            format="json",
         )
         assert response.status_code == status.HTTP_201_CREATED
 
@@ -201,6 +210,7 @@ class TestCycleDetectionAPI:
                 "relation_type": "duplicate",
                 "issues": [str(issue_b.id)],
             },
+            format="json",
         )
         assert response.status_code == status.HTTP_201_CREATED
 
@@ -211,6 +221,7 @@ class TestCycleDetectionAPI:
                 "relation_type": "duplicate",
                 "issues": [str(issue_a.id)],
             },
+            format="json",
         )
         assert response.status_code == status.HTTP_201_CREATED
 
@@ -227,6 +238,7 @@ class TestCycleDetectionAPI:
                 "relation_type": "blocked_by",
                 "issues": [str(issue_a.id)],
             },
+            format="json",
         )
 
         assert response.status_code == status.HTTP_400_BAD_REQUEST
@@ -248,6 +260,7 @@ class TestCycleDetectionAPI:
                 "relation_type": "blocking",
                 "issues": [str(issue_b.id)],
             },
+            format="json",
         )
         assert response.status_code == status.HTTP_201_CREATED
 
@@ -259,6 +272,7 @@ class TestCycleDetectionAPI:
                 "relation_type": "blocking",
                 "issues": [str(issue_a.id)],
             },
+            format="json",
         )
 
         assert response.status_code == status.HTTP_400_BAD_REQUEST
@@ -279,6 +293,7 @@ class TestCycleDetectionAPI:
                 "relation_type": "start_before",
                 "issues": [str(issue_b.id)],
             },
+            format="json",
         )
         assert response.status_code == status.HTTP_201_CREATED
 
@@ -289,6 +304,7 @@ class TestCycleDetectionAPI:
                 "relation_type": "start_before",
                 "issues": [str(issue_a.id)],
             },
+            format="json",
         )
 
         assert response.status_code == status.HTTP_400_BAD_REQUEST
@@ -309,6 +325,7 @@ class TestCycleDetectionAPI:
                 "relation_type": "finish_before",
                 "issues": [str(issue_b.id)],
             },
+            format="json",
         )
         assert response.status_code == status.HTTP_201_CREATED
 
@@ -319,6 +336,7 @@ class TestCycleDetectionAPI:
                 "relation_type": "finish_before",
                 "issues": [str(issue_a.id)],
             },
+            format="json",
         )
 
         assert response.status_code == status.HTTP_400_BAD_REQUEST
@@ -339,6 +357,7 @@ class TestCycleDetectionAPI:
                 "relation_type": "implemented_by",
                 "issues": [str(issue_b.id)],
             },
+            format="json",
         )
         assert response.status_code == status.HTTP_201_CREATED
 
@@ -349,6 +368,7 @@ class TestCycleDetectionAPI:
                 "relation_type": "implemented_by",
                 "issues": [str(issue_a.id)],
             },
+            format="json",
         )
 
         assert response.status_code == status.HTTP_400_BAD_REQUEST
@@ -371,6 +391,7 @@ class TestCycleDetectionAPI:
                 "relation_type": "blocked_by",
                 "issues": [str(issue_b.id)],
             },
+            format="json",
         )
         assert response.status_code == status.HTTP_201_CREATED
 
@@ -381,6 +402,7 @@ class TestCycleDetectionAPI:
                 "relation_type": "blocked_by",
                 "issues": [str(issue_c.id)],
             },
+            format="json",
         )
         assert response.status_code == status.HTTP_201_CREATED
 
@@ -391,5 +413,6 @@ class TestCycleDetectionAPI:
                 "relation_type": "blocked_by",
                 "issues": [str(issue_c.id)],
             },
+            format="json",
         )
         assert response.status_code == status.HTTP_201_CREATED

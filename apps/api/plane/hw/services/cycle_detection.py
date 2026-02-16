@@ -36,46 +36,47 @@ MAX_DEPTH = 100
 
 
 def detect_dependency_cycle(
-    source_issue_id: str,
-    target_issue_id: str,
+    blocker_issue_id: str,
+    dependent_issue_id: str,
     relation_type: str,
 ) -> list[str] | None:
     """
-    Detect if creating a relation would form a cycle in the dependency graph.
+    Detect if creating a dependency relation would form a cycle.
 
-    Given a proposed source and target issue for a relation, this function checks
-    whether creating the relation would form a cycle. Only dependency relation
-    types participate in cycle detection; symmetric types are excluded.
+    The proposed relation means: dependent_issue depends on blocker_issue.
+    A cycle exists if blocker_issue already (transitively) depends on
+    dependent_issue through existing dependency edges.
 
     Args:
-        source_issue_id: The issue ID that would be the source of the new relation.
-        target_issue_id: The issue ID that would be the target of the new relation.
-        relation_type: The relation type (after normalization to stored form).
+        blocker_issue_id: The issue being depended on (the blocker/predecessor).
+            In the view, this is the ``source_issue_id`` (the ``related_issue``
+            for non-swap types, or ``issue_id`` for swap types).
+        dependent_issue_id: The issue that would depend on the blocker.
+            In the view, this is the ``target_issue_id``.
+        relation_type: The stored relation type (after normalization).
 
     Returns:
         None if no cycle would be formed, or a list of issue ID strings
-        forming the cycle path (including source_issue_id at both ends).
-        For example, [A, B, C, A] represents the cycle A→B→C→A.
+        forming the cycle path. For example, [A, B, C, A] represents A→B→C→A.
     """
 
     # Self-referencing is a degenerate cycle (A→A).
-    if source_issue_id == target_issue_id:
-        # Cycle path for self-reference is just [A, A].
-        return [source_issue_id, source_issue_id]
+    if blocker_issue_id == dependent_issue_id:
+        return [blocker_issue_id, blocker_issue_id]
 
     # Only check dependency relation types; symmetric types don't form cycles.
     if relation_type not in DEPENDENCY_RELATION_TYPES:
         return None
 
-    # DFS to check if source is reachable from target.
-    # Returns the path if found, None otherwise.
-    path = _dfs_find_cycle(target_issue_id, source_issue_id, set(), [])
+    # DFS from the blocker, following its dependency chain (what the blocker
+    # depends on). If we reach the dependent, the proposed edge would close
+    # a cycle: dependent → blocker → ... → dependent.
+    path = _dfs_find_cycle(blocker_issue_id, dependent_issue_id, set(), [])
 
     if path:
-        # Prepend source_issue_id to complete the cycle.
-        # path is the chain from target to source, so prepending source gives:
-        # source → target → ... → source
-        return [source_issue_id] + path
+        # path is [blocker, ..., dependent]. Prepend dependent to show the
+        # full cycle: dependent → blocker → ... → dependent.
+        return [dependent_issue_id] + path
 
     return None
 
@@ -121,16 +122,15 @@ def _dfs_find_cycle(
     visited.add(current_issue_id)
     current_path = path + [current_issue_id]
 
-    # Find all issues that depend on the current issue.
-    # For each relation type, IssueRelation(issue=A, related_issue=B, relation_type='blocked_by')
-    # means A is blocked by B. So to find issues that depend on B, we query
-    # related_issue=B and get the issue side (the dependents).
-    dependent_relations = IssueRelation.objects.filter(
-        related_issue_id=current_issue_id,
+    # Follow the current issue's own dependencies.
+    # IssueRelation(issue=A, related_issue=B, relation_type='blocked_by') means
+    # A depends on B. Query issue_id=current to find what current depends on.
+    dependency_targets = IssueRelation.objects.filter(
+        issue_id=current_issue_id,
         relation_type__in=DEPENDENCY_RELATION_TYPES,
-    ).values_list("issue_id", flat=True)
+    ).values_list("related_issue_id", flat=True)
 
-    for dependent_issue_id in dependent_relations:
+    for dependent_issue_id in dependency_targets:
         result = _dfs_find_cycle(str(dependent_issue_id), target_issue_id, visited, current_path, depth + 1)
         if result is not None:
             return result

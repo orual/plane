@@ -109,10 +109,10 @@ class TestIssueRelationListCreate:
         )
 
         assert response.status_code == status.HTTP_201_CREATED
-        # Verify the relation was created
+        # "A blocking B" is stored as "B blocked_by A" (swap type)
         assert IssueRelation.objects.filter(
-            issue_id=issue_a.id,
-            related_issue_id=issue_b.id,
+            issue_id=issue_b.id,
+            related_issue_id=issue_a.id,
             relation_type="blocked_by",
         ).exists()
 
@@ -204,14 +204,14 @@ class TestIssueRelationListCreate:
         response_a_list = session_client.get(url_a)
         assert response_a_list.status_code == status.HTTP_200_OK
         start_before_issues = response_a_list.data.get("start_before", [])
-        assert any(issue["id"] == str(issue_b.id) for issue in start_before_issues)
+        assert any(str(issue["id"]) == str(issue_b.id) for issue in start_before_issues)
 
         # Verify issue B shows start_after (reverse)
         url_b = self.get_list_url(workspace.slug, project.id, issue_b.id)
         response_b_list = session_client.get(url_b)
         assert response_b_list.status_code == status.HTTP_200_OK
         start_after_issues = response_b_list.data.get("start_after", [])
-        assert any(issue["id"] == str(issue_a.id) for issue in start_after_issues)
+        assert any(str(issue["id"]) == str(issue_a.id) for issue in start_after_issues)
 
     @pytest.mark.django_db
     def test_bidirectional_finish_before_mapping(self, session_client, workspace, project, issue_a, issue_b):
@@ -229,14 +229,14 @@ class TestIssueRelationListCreate:
         response_a_list = session_client.get(url_a)
         assert response_a_list.status_code == status.HTTP_200_OK
         finish_before_issues = response_a_list.data.get("finish_before", [])
-        assert any(issue["id"] == str(issue_b.id) for issue in finish_before_issues)
+        assert any(str(issue["id"]) == str(issue_b.id) for issue in finish_before_issues)
 
         # Verify issue B shows finish_after (reverse)
         url_b = self.get_list_url(workspace.slug, project.id, issue_b.id)
         response_b_list = session_client.get(url_b)
         assert response_b_list.status_code == status.HTTP_200_OK
         finish_after_issues = response_b_list.data.get("finish_after", [])
-        assert any(issue["id"] == str(issue_a.id) for issue in finish_after_issues)
+        assert any(str(issue["id"]) == str(issue_a.id) for issue in finish_after_issues)
 
     @pytest.mark.django_db
     def test_bidirectional_implemented_by_mapping(self, session_client, workspace, project, issue_a, issue_b):
@@ -254,14 +254,14 @@ class TestIssueRelationListCreate:
         response_a_list = session_client.get(url_a)
         assert response_a_list.status_code == status.HTTP_200_OK
         implemented_by_issues = response_a_list.data.get("implemented_by", [])
-        assert any(issue["id"] == str(issue_b.id) for issue in implemented_by_issues)
+        assert any(str(issue["id"]) == str(issue_b.id) for issue in implemented_by_issues)
 
         # Verify issue B shows implements (reverse)
         url_b = self.get_list_url(workspace.slug, project.id, issue_b.id)
         response_b_list = session_client.get(url_b)
         assert response_b_list.status_code == status.HTTP_200_OK
         implements_issues = response_b_list.data.get("implements", [])
-        assert any(issue["id"] == str(issue_a.id) for issue in implements_issues)
+        assert any(str(issue["id"]) == str(issue_a.id) for issue in implements_issues)
 
     @pytest.mark.django_db
     def test_remove_relation_deletes_both_sides(self, session_client, workspace, project, issue_a, issue_b):
@@ -303,7 +303,7 @@ class TestIssueRelationListCreate:
         )
         assert response_b_list.status_code == status.HTTP_200_OK
         start_after_issues = response_b_list.data.get("start_after", [])
-        assert not any(issue["id"] == str(issue_a.id) for issue in start_after_issues)
+        assert not any(str(issue["id"]) == str(issue_a.id) for issue in start_after_issues)
 
     @pytest.mark.django_db
     def test_remove_implemented_by_relation(self, session_client, workspace, project, issue_a, issue_b):
@@ -319,12 +319,12 @@ class TestIssueRelationListCreate:
         # Verify both sides exist
         response_a_list = session_client.get(url_a)
         implemented_by_issues = response_a_list.data.get("implemented_by", [])
-        assert any(issue["id"] == str(issue_b.id) for issue in implemented_by_issues)
+        assert any(str(issue["id"]) == str(issue_b.id) for issue in implemented_by_issues)
 
         url_b = self.get_list_url(workspace.slug, project.id, issue_b.id)
         response_b_list = session_client.get(url_b)
         implements_issues = response_b_list.data.get("implements", [])
-        assert any(issue["id"] == str(issue_a.id) for issue in implements_issues)
+        assert any(str(issue["id"]) == str(issue_a.id) for issue in implements_issues)
 
         # Remove the relation
         remove_url = self.get_remove_url(workspace.slug, project.id, issue_a.id)
@@ -338,18 +338,22 @@ class TestIssueRelationListCreate:
         # Verify both sides are gone
         response_a_list = session_client.get(url_a)
         implemented_by_issues = response_a_list.data.get("implemented_by", [])
-        assert not any(issue["id"] == str(issue_b.id) for issue in implemented_by_issues)
+        assert not any(str(issue["id"]) == str(issue_b.id) for issue in implemented_by_issues)
 
         response_b_list = session_client.get(url_b)
         implements_issues = response_b_list.data.get("implements", [])
-        assert not any(issue["id"] == str(issue_a.id) for issue in implements_issues)
+        assert not any(str(issue["id"]) == str(issue_a.id) for issue in implements_issues)
 
     @pytest.mark.django_db
-    def test_all_relation_types_roundtrip(self, session_client, workspace, project, issue_a, issue_b, issue_c):
-        """Test AC1.5: All 10 relation types round-trip correctly."""
+    def test_all_relation_types_roundtrip(self, session_client, workspace, project, issue_a, create_user):
+        """Test AC1.5: All 10 relation types round-trip correctly.
+
+        Each dependency-type relation gets a unique target issue to avoid
+        accidentally forming cycles across relation types.
+        """
         url_a = self.get_list_url(workspace.slug, project.id, issue_a.id)
 
-        # Create all relation types from issue_a
+        # Each relation type gets its own target to avoid cross-type cycles.
         relation_types = [
             "blocking",
             "blocked_by",
@@ -363,30 +367,31 @@ class TestIssueRelationListCreate:
             "duplicate",
         ]
 
-        for i, rel_type in enumerate(relation_types):
-            target_issue = issue_b if i % 2 == 0 else issue_c
+        for rel_type in relation_types:
+            target = Issue.objects.create(
+                name=f"Target for {rel_type}",
+                project=project,
+                workspace=project.workspace,
+                state_id=project.default_state_id,
+                created_by=create_user,
+            )
             response = session_client.post(
                 url_a,
-                {"relation_type": rel_type, "issues": [str(target_issue.id)]},
+                {"relation_type": rel_type, "issues": [str(target.id)]},
                 format="json",
             )
-            assert response.status_code == status.HTTP_201_CREATED
+            assert response.status_code == status.HTTP_201_CREATED, (
+                f"{rel_type} creation failed: {response.data}"
+            )
 
         # Verify all relations appear in the list
         response = session_client.get(url_a)
         assert response.status_code == status.HTTP_200_OK
 
-        # For each relation type, verify it appears in the response
-        assert len(response.data.get("blocking", [])) > 0
-        assert len(response.data.get("blocked_by", [])) > 0
-        assert len(response.data.get("start_before", [])) > 0
-        assert len(response.data.get("start_after", [])) > 0
-        assert len(response.data.get("finish_before", [])) > 0
-        assert len(response.data.get("finish_after", [])) > 0
-        assert len(response.data.get("implemented_by", [])) > 0
-        assert len(response.data.get("implements", [])) > 0
-        assert len(response.data.get("relates_to", [])) > 0
-        assert len(response.data.get("duplicate", [])) > 0
+        for rel_type in relation_types:
+            assert len(response.data.get(rel_type, [])) > 0, (
+                f"Expected at least one {rel_type} relation in response"
+            )
 
     @pytest.mark.django_db
     def test_blocking_relation_existing_behavior(self, session_client, workspace, project, issue_a, issue_b):
@@ -404,10 +409,10 @@ class TestIssueRelationListCreate:
         # Verify A shows blocking
         response_list = session_client.get(url_a)
         blocking_issues = response_list.data.get("blocking", [])
-        assert any(issue["id"] == str(issue_b.id) for issue in blocking_issues)
+        assert any(str(issue["id"]) == str(issue_b.id) for issue in blocking_issues)
 
         # Verify B shows blocked_by (reverse)
         url_b = self.get_list_url(workspace.slug, project.id, issue_b.id)
         response_list_b = session_client.get(url_b)
         blocked_by_issues = response_list_b.data.get("blocked_by", [])
-        assert any(issue["id"] == str(issue_a.id) for issue in blocked_by_issues)
+        assert any(str(issue["id"]) == str(issue_a.id) for issue in blocked_by_issues)

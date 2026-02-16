@@ -253,7 +253,8 @@ class TestPropertyValueListCreate:
 
         url = self.get_url(workspace.slug, project.id, issue.id)
         data = {
-            "property_definition": str(prop_def.id),
+            "property_definition_id": str(prop_def.id),
+            "issue_id": str(issue.id),
             "value": {"value": "some text"},
         }
         response = session_client.post(url, data, format="json")

@@ -3,6 +3,7 @@
 # See the LICENSE file for details.
 
 import pytest
+from unittest.mock import MagicMock, patch
 from rest_framework.test import APIClient
 from pytest_django.fixtures import django_db_setup
 
@@ -116,6 +117,14 @@ def create_api_token_for_user(db, create_user):
         user=create_user,
         user_type=0,
     )
+
+
+@pytest.fixture(autouse=True)
+def mock_celery_tasks():
+    """Prevent Celery tasks from hitting RabbitMQ during tests."""
+    with patch("celery.app.task.Task.delay") as mock_delay:
+        mock_delay.return_value = MagicMock(id="mock-task-id")
+        yield mock_delay
 
 
 @pytest.fixture
