@@ -31,6 +31,8 @@ export const PhantomAnchor = observer(function PhantomAnchor({ issueId, side, to
     <Tooltip tooltipContent={tooltipContent}>
       <div
         className="absolute flex items-center justify-center w-4 h-4 rounded-full bg-custom-primary-100/20 border border-custom-primary-100/50 cursor-help z-10"
+        data-test="cpm-phantom-anchor"
+        data-test-issue-id={issueId}
         style={{
           [side]: 4,
           top: top + 14,
