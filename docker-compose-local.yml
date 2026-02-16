@@ -179,6 +179,24 @@ services:
       - plane-db
       - plane-redis
 
+  plane-mcp:
+    build:
+      context: .
+      dockerfile: mcp/Dockerfile
+    restart: unless-stopped
+    networks:
+      - dev_env
+    ports:
+      - "8001:8001"
+    env_file:
+      - .env
+    environment:
+      PLANE_BASE_URL: http://api:8000
+      PLANE_API_KEY: ${MCP_API_KEY:-}
+      PLANE_WORKSPACE_SLUG: ${MCP_WORKSPACE_SLUG:-}
+    depends_on:
+      - api
+
   migrator:
     build:
       context: ./apps/api
