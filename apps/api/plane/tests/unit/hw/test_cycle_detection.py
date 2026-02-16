@@ -7,6 +7,10 @@ Unit tests for the cycle detection service.
 
 Tests the DFS-based cycle detection algorithm for dependency relations.
 Tests are divided by acceptance criteria to ensure full coverage.
+
+Convention: detect_dependency_cycle(blocker, dependent, relation_type).
+The proposed relation means "dependent depends on blocker".
+A cycle exists when blocker already transitively depends on dependent.
 """
 
 import pytest
@@ -48,11 +52,10 @@ class TestCycleDetection:
         When A is blocked by B, and we try to create B is blocked by A,
         a cycle should be detected.
         """
-        # Create two issues
         issue_a = IssueFactory(project=project_1)
         issue_b = IssueFactory(project=project_1)
 
-        # Create A is blocked by B
+        # A is blocked by B (A depends on B)
         IssueRelation.objects.create(
             issue=issue_a,
             related_issue=issue_b,
@@ -61,10 +64,10 @@ class TestCycleDetection:
             workspace=project_1.workspace,
         )
 
-        # Try to create B is blocked by A - should detect cycle
+        # Try: B is blocked by A → blocker=A, dependent=B
         cycle_path = detect_dependency_cycle(
-            source_issue_id=str(issue_b.id),
-            target_issue_id=str(issue_a.id),
+            blocker_issue_id=str(issue_a.id),
+            dependent_issue_id=str(issue_b.id),
             relation_type="blocked_by",
         )
 
@@ -76,14 +79,12 @@ class TestCycleDetection:
         Test AC2.2: Detect transitive cycle A→B→C (blocked_by), then C→A.
 
         Chain: A is blocked by B, B is blocked by C.
-        Attempt: C is blocked by A - should detect cycle A→B→C→A.
+        Attempt: C is blocked by A — blocker=A, dependent=C.
         """
-        # Create three issues
         issue_a = IssueFactory(project=project_1)
         issue_b = IssueFactory(project=project_1)
         issue_c = IssueFactory(project=project_1)
 
-        # Create A is blocked by B
         IssueRelation.objects.create(
             issue=issue_a,
             related_issue=issue_b,
@@ -92,7 +93,6 @@ class TestCycleDetection:
             workspace=project_1.workspace,
         )
 
-        # Create B is blocked by C
         IssueRelation.objects.create(
             issue=issue_b,
             related_issue=issue_c,
@@ -101,18 +101,18 @@ class TestCycleDetection:
             workspace=project_1.workspace,
         )
 
-        # Try to create C is blocked by A - should detect cycle
+        # Try: C is blocked by A → blocker=A, dependent=C
         cycle_path = detect_dependency_cycle(
-            source_issue_id=str(issue_c.id),
-            target_issue_id=str(issue_a.id),
+            blocker_issue_id=str(issue_a.id),
+            dependent_issue_id=str(issue_c.id),
             relation_type="blocked_by",
         )
 
         assert cycle_path is not None
         assert cycle_path == [
             str(issue_c.id),
-            str(issue_b.id),
             str(issue_a.id),
+            str(issue_b.id),
             str(issue_c.id),
         ]
 
@@ -122,11 +122,10 @@ class TestCycleDetection:
 
         A (project 1) → B (project 2) → A (project 1).
         """
-        # Create issues in different projects
         issue_a = IssueFactory(project=project_1)
         issue_b = IssueFactory(project=project_2)
 
-        # Create A is blocked by B (cross-project)
+        # A is blocked by B (cross-project)
         IssueRelation.objects.create(
             issue=issue_a,
             related_issue=issue_b,
@@ -135,10 +134,10 @@ class TestCycleDetection:
             workspace=project_1.workspace,
         )
 
-        # Try to create B is blocked by A (cross-project cycle)
+        # Try: B is blocked by A → blocker=A, dependent=B
         cycle_path = detect_dependency_cycle(
-            source_issue_id=str(issue_b.id),
-            target_issue_id=str(issue_a.id),
+            blocker_issue_id=str(issue_a.id),
+            dependent_issue_id=str(issue_b.id),
             relation_type="blocked_by",
         )
 
@@ -155,7 +154,6 @@ class TestCycleDetection:
         issue_a = IssueFactory(project=project_1)
         issue_b = IssueFactory(project=project_1)
 
-        # Create A relates to B (symmetric, not dependency)
         IssueRelation.objects.create(
             issue=issue_a,
             related_issue=issue_b,
@@ -164,11 +162,11 @@ class TestCycleDetection:
             workspace=project_1.workspace,
         )
 
-        # Check B is blocked by A (with dependency type)
-        # Should NOT detect a cycle because relates_to is not in dependency types
+        # Check: B is blocked by A → blocker=A, dependent=B
+        # relates_to doesn't participate, so no cycle.
         cycle_path = detect_dependency_cycle(
-            source_issue_id=str(issue_b.id),
-            target_issue_id=str(issue_a.id),
+            blocker_issue_id=str(issue_a.id),
+            dependent_issue_id=str(issue_b.id),
             relation_type="blocked_by",
         )
 
@@ -180,10 +178,9 @@ class TestCycleDetection:
         """
         issue_a = IssueFactory(project=project_1)
 
-        # Try to create A is blocked by A
         cycle_path = detect_dependency_cycle(
-            source_issue_id=str(issue_a.id),
-            target_issue_id=str(issue_a.id),
+            blocker_issue_id=str(issue_a.id),
+            dependent_issue_id=str(issue_a.id),
             relation_type="blocked_by",
         )
 
@@ -194,14 +191,12 @@ class TestCycleDetection:
         """
         Test: When no cycle exists, detect_dependency_cycle returns None.
 
-        Create A→B (blocked_by), then check A→C.
-        Should not detect a cycle.
+        Create A→B (blocked_by), then check A→C. Should not detect a cycle.
         """
         issue_a = IssueFactory(project=project_1)
         issue_b = IssueFactory(project=project_1)
         issue_c = IssueFactory(project=project_1)
 
-        # Create A is blocked by B
         IssueRelation.objects.create(
             issue=issue_a,
             related_issue=issue_b,
@@ -210,23 +205,22 @@ class TestCycleDetection:
             workspace=project_1.workspace,
         )
 
-        # Check A is blocked by C (no cycle)
+        # Check: A is blocked by C → blocker=C, dependent=A
+        # C has no dependencies, so no cycle.
         cycle_path = detect_dependency_cycle(
-            source_issue_id=str(issue_a.id),
-            target_issue_id=str(issue_c.id),
+            blocker_issue_id=str(issue_c.id),
+            dependent_issue_id=str(issue_a.id),
             relation_type="blocked_by",
         )
 
         assert cycle_path is None
 
     def test_start_before_cycle(self, project_1):
-        """
-        Test cycle detection for start_before relation type.
-        """
+        """Test cycle detection for start_before relation type."""
         issue_a = IssueFactory(project=project_1)
         issue_b = IssueFactory(project=project_1)
 
-        # Create A start_before B
+        # A start_before B: IssueRelation(issue=A, related_issue=B, start_before)
         IssueRelation.objects.create(
             issue=issue_a,
             related_issue=issue_b,
@@ -235,10 +229,10 @@ class TestCycleDetection:
             workspace=project_1.workspace,
         )
 
-        # Try to create B start_before A
+        # Try: B start_before A → blocker=A, dependent=B
         cycle_path = detect_dependency_cycle(
-            source_issue_id=str(issue_b.id),
-            target_issue_id=str(issue_a.id),
+            blocker_issue_id=str(issue_a.id),
+            dependent_issue_id=str(issue_b.id),
             relation_type="start_before",
         )
 
@@ -246,13 +240,10 @@ class TestCycleDetection:
         assert cycle_path == [str(issue_b.id), str(issue_a.id), str(issue_b.id)]
 
     def test_finish_before_cycle(self, project_1):
-        """
-        Test cycle detection for finish_before relation type.
-        """
+        """Test cycle detection for finish_before relation type."""
         issue_a = IssueFactory(project=project_1)
         issue_b = IssueFactory(project=project_1)
 
-        # Create A finish_before B
         IssueRelation.objects.create(
             issue=issue_a,
             related_issue=issue_b,
@@ -261,10 +252,10 @@ class TestCycleDetection:
             workspace=project_1.workspace,
         )
 
-        # Try to create B finish_before A
+        # Try: B finish_before A → blocker=A, dependent=B
         cycle_path = detect_dependency_cycle(
-            source_issue_id=str(issue_b.id),
-            target_issue_id=str(issue_a.id),
+            blocker_issue_id=str(issue_a.id),
+            dependent_issue_id=str(issue_b.id),
             relation_type="finish_before",
         )
 
@@ -272,13 +263,10 @@ class TestCycleDetection:
         assert cycle_path == [str(issue_b.id), str(issue_a.id), str(issue_b.id)]
 
     def test_implemented_by_cycle(self, project_1):
-        """
-        Test cycle detection for implemented_by relation type.
-        """
+        """Test cycle detection for implemented_by relation type."""
         issue_a = IssueFactory(project=project_1)
         issue_b = IssueFactory(project=project_1)
 
-        # Create A implemented_by B
         IssueRelation.objects.create(
             issue=issue_a,
             related_issue=issue_b,
@@ -287,10 +275,10 @@ class TestCycleDetection:
             workspace=project_1.workspace,
         )
 
-        # Try to create B implemented_by A
+        # Try: B implemented_by A → blocker=A, dependent=B
         cycle_path = detect_dependency_cycle(
-            source_issue_id=str(issue_b.id),
-            target_issue_id=str(issue_a.id),
+            blocker_issue_id=str(issue_a.id),
+            dependent_issue_id=str(issue_b.id),
             relation_type="implemented_by",
         )
 
@@ -298,13 +286,10 @@ class TestCycleDetection:
         assert cycle_path == [str(issue_b.id), str(issue_a.id), str(issue_b.id)]
 
     def test_duplicate_type_no_cycle(self, project_1):
-        """
-        Test AC2.6: Duplicate type (symmetric) doesn't participate in cycle detection.
-        """
+        """Test AC2.6: Duplicate type (symmetric) doesn't participate in cycle detection."""
         issue_a = IssueFactory(project=project_1)
         issue_b = IssueFactory(project=project_1)
 
-        # Create A is duplicate of B
         IssueRelation.objects.create(
             issue=issue_a,
             related_issue=issue_b,
@@ -313,11 +298,9 @@ class TestCycleDetection:
             workspace=project_1.workspace,
         )
 
-        # Try to create B is blocked by A
-        # Should NOT detect a cycle because duplicate is not in dependency types
         cycle_path = detect_dependency_cycle(
-            source_issue_id=str(issue_b.id),
-            target_issue_id=str(issue_a.id),
+            blocker_issue_id=str(issue_a.id),
+            dependent_issue_id=str(issue_b.id),
             relation_type="blocked_by",
         )
 
