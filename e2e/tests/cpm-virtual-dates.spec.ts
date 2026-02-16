@@ -37,14 +37,10 @@ test.describe("CPM Virtual Dates", () => {
 
     // Act: Navigate to gantt and enable CPM
     await page.goto(`/${workspaceSlug}/projects/${projectId}/issues/?type=gantt`);
-    await page.waitForTimeout(2000);
 
     const cpmToggle = page.locator('[data-test="cpm-toggle"]');
     await expect(cpmToggle).toBeVisible({ timeout: 10000 });
     await cpmToggle.click();
-
-    // Wait for computed dates to be rendered
-    await page.waitForTimeout(1000);
 
     // Assert: Computed-date block for issue B is visible
     const computedBlock = page.locator(`[data-test="cpm-computed-block"][data-test-issue-id="${issueB.id}"]`);
@@ -79,14 +75,10 @@ test.describe("CPM Virtual Dates", () => {
 
     // Act: Navigate to gantt and enable CPM
     await page.goto(`/${workspaceSlug}/projects/${projectId}/issues/?type=gantt`);
-    await page.waitForTimeout(2000);
 
     const cpmToggle = page.locator('[data-test="cpm-toggle"]');
     await expect(cpmToggle).toBeVisible({ timeout: 10000 });
     await cpmToggle.click();
-
-    // Wait for computed block to render
-    await page.waitForTimeout(1000);
 
     // Locate the computed block for issue B
     const computedBlock = page.locator(`[data-test="cpm-computed-block"][data-test-issue-id="${issueB.id}"]`);

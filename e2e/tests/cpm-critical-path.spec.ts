@@ -50,9 +50,6 @@ test.describe("CPM Critical Path", () => {
     // Act: Navigate to gantt view
     await page.goto(`/${workspaceSlug}/projects/${projectId}/issues/?type=gantt`);
 
-    // Wait for gantt to render
-    await page.waitForTimeout(2000);
-
     // Click CPM toggle to enable CPM
     const cpmToggle = page.locator('[data-test="cpm-toggle"]');
     await expect(cpmToggle).toBeVisible({ timeout: 10000 });
@@ -110,7 +107,6 @@ test.describe("CPM Critical Path", () => {
 
     // Act: Navigate to gantt and enable CPM
     await page.goto(`/${workspaceSlug}/projects/${projectId}/issues/?type=gantt`);
-    await page.waitForTimeout(2000);
 
     const cpmToggle = page.locator('[data-test="cpm-toggle"]');
     await expect(cpmToggle).toBeVisible({ timeout: 10000 });
@@ -127,6 +123,6 @@ test.describe("CPM Critical Path", () => {
 
     // Assert: D does NOT have a critical block (non-critical task with slack)
     const criticalBlockD = page.locator(`[data-test="cpm-critical-block"][data-test-issue-id="${issueD.id}"]`);
-    await expect(criticalBlockD).not.toBeVisible();
+    await expect(criticalBlockD).toHaveCount(0);
   });
 });
