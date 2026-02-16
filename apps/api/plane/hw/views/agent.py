@@ -220,9 +220,12 @@ class AgentRunViewSet(BaseViewSet):
                 status=status.HTTP_403_FORBIDDEN,
             )
 
+        # Prepare update data
+        update_data = dict(request.data)
+
         # If updating status, validate transition
-        if "status" in request.data:
-            new_status = request.data["status"]
+        if "status" in update_data:
+            new_status = update_data["status"]
             try:
                 run.validate_transition(new_status)
             except ValueError as e:
@@ -237,11 +240,10 @@ class AgentRunViewSet(BaseViewSet):
                 AgentRunStatus.FAILED,
                 AgentRunStatus.STOPPED,
             ):
-                request.data._mutable = True if hasattr(request.data, "_mutable") else None
-                if "completed_at" not in request.data:
-                    request.data["completed_at"] = timezone.now()
+                if "completed_at" not in update_data:
+                    update_data["completed_at"] = timezone.now()
 
-        serializer = AgentRunSerializer(run, data=request.data, partial=True)
+        serializer = AgentRunSerializer(run, data=update_data, partial=True)
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data, status=status.HTTP_200_OK)
