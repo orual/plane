@@ -4,11 +4,73 @@
  * See the LICENSE file for details.
  */
 
+/**
+ * Slack extension bars — overlay component for CPM visualization.
+ *
+ * Renders slack (float) extension bars for non-critical tasks when CPM is enabled.
+ * Each bar extends from Early Finish (EF) to Late Finish (LF) and is positioned
+ * at the block's row y-position with partial opacity.
+ *
+ * Architecture:
+ * - Reads from timelineStore.cpmEnabled flag to conditionally render
+ * - Accesses cpmResults Map to get CPM data per block
+ * - Uses getSlackBarPosition() to compute pixel positions
+ * - Renders as div elements with absolute positioning, no pointer events (behind blocks)
+ */
+
+import { observer } from "mobx-react";
 import type { FC } from "react";
+import { BLOCK_HEIGHT } from "@/components/gantt-chart/constants";
+import { useTimeLineChartStore } from "@/hooks/use-timeline-chart";
+import { getSlackBarPosition } from "@/plane-web/helpers/slack-bar-position";
 
 type Props = {
   itemsContainerWidth: number;
   blockCount: number;
 };
 
-export const GanttAdditionalLayers: FC<Props> = () => null;
+export const GanttAdditionalLayers: FC<Props> = observer(function GanttAdditionalLayers({
+  itemsContainerWidth,
+}: Props) {
+  const timelineStore = useTimeLineChartStore();
+
+  // Only render if CPM is enabled
+  if (!timelineStore.cpmEnabled) return null;
+
+  const chartData = timelineStore.currentViewData;
+  if (!chartData) return null;
+
+  const blockIds = timelineStore.blockIds;
+  if (!blockIds) return null;
+
+  const cpmResults = timelineStore.cpmResults;
+
+  return (
+    <div
+      className="absolute top-0 left-0 pointer-events-none"
+      style={{ width: itemsContainerWidth, height: blockIds.length * BLOCK_HEIGHT }}
+    >
+      {blockIds.map((blockId, index) => {
+        const cpmResult = cpmResults.get(blockId);
+        if (!cpmResult || cpmResult.isCritical) return null;
+
+        const position = getSlackBarPosition(cpmResult, chartData, 0);
+        if (!position) return null;
+
+        return (
+          <div
+            key={`slack-${blockId}`}
+            className="absolute rounded-sm"
+            style={{
+              left: position.left,
+              width: position.width,
+              top: index * BLOCK_HEIGHT + 4,
+              height: BLOCK_HEIGHT - 8,
+              backgroundColor: "rgba(60, 133, 217, 0.3)",
+            }}
+          />
+        );
+      })}
+    </div>
+  );
+});
