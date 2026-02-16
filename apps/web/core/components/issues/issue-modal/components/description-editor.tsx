@@ -141,7 +141,7 @@ export const IssueDescriptionEditor = observer(function IssueDescriptionEditor(p
           setToast({
             type: TOAST_TYPE.ERROR,
             title: "Error!",
-            message: error || "You have reached the maximum number of requests of 50 requests per month per user.",
+            message: error || "Rate limit exceeded. Please try again later.",
           });
         else
           setToast({
