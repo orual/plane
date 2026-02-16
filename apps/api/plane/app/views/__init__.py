@@ -183,6 +183,7 @@ from .external.base import (
     GPTIntegrationEndpoint,
     UnsplashEndpoint,
     WorkspaceGPTIntegrationEndpoint,
+    GrammarCorrectionEndpoint,
 )
 from .estimate.base import (
     ProjectEstimatePointEndpoint,

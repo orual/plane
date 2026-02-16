@@ -233,6 +233,43 @@ class WorkspaceGPTIntegrationEndpoint(BaseAPIView):
         return Response(response_data, status=status.HTTP_200_OK)
 
 
+class GrammarCorrectionEndpoint(BaseAPIView):
+    @allow_permission(allowed_roles=[ROLE.ADMIN, ROLE.MEMBER], level="WORKSPACE")
+    def post(self, request, slug):
+        api_key, model, provider, base_url = get_llm_config()
+
+        if not api_key or not model or not provider:
+            return Response(
+                {"error": "LLM provider API key and model are required"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        text_input = request.data.get("text_input", "").strip()
+        if not text_input:
+            return Response(
+                {"error": "Text input is required"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        task = "Correct the grammar and improve the clarity of the following text. "
+        task += "Return only the corrected text, no explanations."
+
+        text, error, reasoning_content = get_llm_response(
+            task, text_input, api_key, model, provider, base_url
+        )
+        if not text and error:
+            return Response(
+                {"error": "An internal error has occurred."},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+
+        response_data = {
+            "response": text,
+        }
+
+        return Response(response_data, status=status.HTTP_200_OK)
+
+
 class UnsplashEndpoint(BaseAPIView):
     def get(self, request):
         (UNSPLASH_ACCESS_KEY,) = get_configuration_value(
