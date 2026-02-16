@@ -23,6 +23,7 @@ from plane.app.permissions import allow_permission, ROLE
 from plane.db.models import IssueComment, ProjectMember, CommentReaction, Project, Issue
 from plane.bgtasks.issue_activities_task import issue_activity
 from plane.utils.host import base_host
+from plane.utils.exception_logger import log_exception
 from plane.bgtasks.webhook_task import model_activity
 from plane.bgtasks.agent_webhook_task import agent_webhook_send_task
 from plane.hw.models import AgentProfile, AgentRun, AgentRunStatus
@@ -144,13 +145,16 @@ class IssueCommentViewSet(BaseViewSet):
                 origin=base_host(request=request, is_app=True),
             )
             # Detect agent mentions and trigger webhooks
-            _detect_agent_mentions(
-                comment_text=serializer.data.get("comment_stripped", ""),
-                workspace_slug=slug,
-                project_id=project_id,
-                issue_id=issue_id,
-                current_site=base_host(request=request, is_app=True),
-            )
+            try:
+                _detect_agent_mentions(
+                    comment_text=serializer.data.get("comment_stripped", ""),
+                    workspace_slug=slug,
+                    project_id=project_id,
+                    issue_id=issue_id,
+                    current_site=base_host(request=request, is_app=True),
+                )
+            except Exception as e:
+                log_exception(e)
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 

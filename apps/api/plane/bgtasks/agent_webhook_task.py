@@ -88,13 +88,13 @@ def agent_webhook_send_task(
         response = requests.post(agent.webhook_url, headers=headers, json=payload, timeout=30)
         response.raise_for_status()
 
-    except requests.RequestException as e:
+    except requests.RequestException:
         # Retry logic
         if self.request.retries >= self.max_retries:
             # Deactivate agent on persistent failure
             AgentProfile.objects.filter(pk=agent.id).update(is_active=False)
             return
-        raise requests.RequestException()
+        raise
 
     except Exception as e:
         log_exception(e)

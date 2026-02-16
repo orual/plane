@@ -16,7 +16,6 @@ from plane.bgtasks.agent_webhook_task import agent_webhook_send_task
 from plane.hw.models import AgentProfile, AgentRun, AgentRunStatus
 from plane.tests.factories import (
     AgentProfileFactory,
-    AgentRunFactory,
     ProjectFactory,
     IssueFactory,
     WorkspaceFactory,
@@ -103,7 +102,6 @@ class TestAgentWebhookTask:
             payload = call_kwargs["json"]
             assert payload["run_id"] == run_id
 
-    @pytest.mark.django_db
     def test_agent_webhook_task_decorator_has_retry_config(self):
         """Verify hw-ai-infra.AC10.4: task is decorated with retry config (600s backoff, 5 max retries)."""
         # Check task decorator configuration
@@ -126,23 +124,16 @@ class TestAgentWebhookTask:
 
             # Mock the task context to simulate max retries reached
             with patch.object(agent_webhook_send_task, "request") as mock_request:
-                mock_request.retries = 5  # Simulate max retries reached
-                mock_request_mock = MagicMock()
-                mock_request_mock.retries = 5
-                agent_webhook_send_task.request = mock_request_mock
-                agent_webhook_send_task.max_retries = 5
+                mock_request.retries = 5
 
                 # Call the task directly to test deactivation logic
-                try:
-                    agent_webhook_send_task.run(
-                        agent_profile_id=str(agent.id),
-                        run_id="test-run-id",
-                        event_type="issue_comment.mention",
-                        event_data={"test": "data"},
-                        current_site="https://example.com",
-                    )
-                except requests.RequestException:
-                    pass
+                agent_webhook_send_task.run(
+                    agent_profile_id=str(agent.id),
+                    run_id="test-run-id",
+                    event_type="issue_comment.mention",
+                    event_data={"test": "data"},
+                    current_site="https://example.com",
+                )
 
                 # Verify agent is deactivated
                 refreshed_agent = AgentProfile.objects.get(id=agent.id)
@@ -250,7 +241,7 @@ class TestAgentMentionDetection:
     def test_detect_agent_mentions_dispatches_webhook_for_matching_agent(self):
         """Verify hw-ai-infra.AC10.1: comment with @agent-name triggers webhook for active agent."""
         workspace = WorkspaceFactory()
-        agent = AgentProfileFactory(
+        _agent = AgentProfileFactory(
             workspace=workspace,
             display_name="myagent",
             is_active=True,
@@ -348,12 +339,12 @@ class TestAgentMentionDetection:
     def test_detect_agent_mentions_multiple_agents(self):
         """Verify mention detection handles multiple agent mentions."""
         workspace = WorkspaceFactory()
-        agent1 = AgentProfileFactory(
+        _agent1 = AgentProfileFactory(
             workspace=workspace,
             display_name="agent1",
             is_active=True,
         )
-        agent2 = AgentProfileFactory(
+        _agent2 = AgentProfileFactory(
             workspace=workspace,
             display_name="agent2",
             is_active=True,
@@ -396,7 +387,7 @@ class TestAgentMentionDetection:
     def test_detect_agent_mentions_mixed_agent_and_non_agent(self):
         """Verify mention detection matches only agents and ignores non-matching mentions."""
         workspace = WorkspaceFactory()
-        agent = AgentProfileFactory(
+        _agent = AgentProfileFactory(
             workspace=workspace,
             display_name="myagent",
             is_active=True,
@@ -421,13 +412,13 @@ class TestAgentMentionDetection:
         """Verify mention detection is scoped to the workspace."""
         workspace1 = WorkspaceFactory()
         workspace2 = WorkspaceFactory()
-        agent1 = AgentProfileFactory(
+        _agent1 = AgentProfileFactory(
             workspace=workspace1,
             display_name="myagent",
             is_active=True,
         )
         # Agent with same name in different workspace
-        agent2 = AgentProfileFactory(
+        _agent2 = AgentProfileFactory(
             workspace=workspace2,
             display_name="myagent",
             is_active=True,
@@ -451,7 +442,7 @@ class TestAgentMentionDetection:
     def test_detect_agent_mentions_with_hyphens(self):
         """Verify mention detection handles agent names with hyphens."""
         workspace = WorkspaceFactory()
-        agent = AgentProfileFactory(
+        _agent = AgentProfileFactory(
             workspace=workspace,
             display_name="my-agent-bot",
             is_active=True,
