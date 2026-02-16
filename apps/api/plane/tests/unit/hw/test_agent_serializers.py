@@ -4,7 +4,6 @@
 
 import pytest
 
-from plane.hw.models import AgentActivityType
 from plane.hw.serializers import (
     AgentProfileSerializer,
     AgentProfileCreateSerializer,
@@ -12,10 +11,6 @@ from plane.hw.serializers import (
     AgentRunActivitySerializer,
 )
 from plane.tests.factories import (
-    UserFactory,
-    WorkspaceFactory,
-    ProjectFactory,
-    IssueFactory,
     AgentProfileFactory,
     AgentRunFactory,
     AgentRunActivityFactory,
@@ -104,8 +99,6 @@ class TestAgentProfileCreateSerializer:
     @pytest.mark.django_db
     def test_create_serializer_accepts_creation_fields(self):
         """Verify AgentProfileCreateSerializer accepts only creation fields."""
-        user = UserFactory()
-        workspace = WorkspaceFactory()
         data = {
             "display_name": "New Agent",
             "description": "A test agent",

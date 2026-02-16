@@ -2,8 +2,6 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 # See the LICENSE file for details.
 
-from rest_framework import serializers
-
 from plane.app.serializers import BaseSerializer
 from plane.hw.models import AgentProfile, AgentRun, AgentRunActivity
 

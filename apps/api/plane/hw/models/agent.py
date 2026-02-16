@@ -2,8 +2,6 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 # See the LICENSE file for details.
 
-import uuid
-
 from django.conf import settings
 from django.db import models
 from django.utils import timezone
@@ -120,6 +118,17 @@ class AgentRun(BaseModel):
                 f"Allowed transitions: {', '.join(s.value for s in allowed) or 'none'}"
             )
 
+    def save(self, *args, **kwargs):
+        """Enforce status transition validation on save."""
+        if self.pk:
+            try:
+                old = AgentRun.objects.only("status").get(pk=self.pk)
+                if old.status != self.status:
+                    self.validate_transition(self.status)
+            except AgentRun.DoesNotExist:
+                pass
+        super().save(*args, **kwargs)
+
 
 class AgentRunActivity(BaseModel):
     run = models.ForeignKey(
@@ -143,6 +152,8 @@ class AgentRunActivity(BaseModel):
         return f"{self.activity_type} in run {self.run_id}"
 
     def save(self, *args, **kwargs):
+        # AC9.1: Thoughts and actions are always ephemeral by design.
+        # This override is intentional — callers cannot opt out.
         if self.activity_type in (AgentActivityType.THOUGHT, AgentActivityType.ACTION):
             self.is_ephemeral = True
         super().save(*args, **kwargs)

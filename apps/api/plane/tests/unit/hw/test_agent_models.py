@@ -3,7 +3,6 @@
 # See the LICENSE file for details.
 
 import pytest
-from django.utils import timezone
 
 from plane.hw.models import (
     AgentProfile,
@@ -11,7 +10,6 @@ from plane.hw.models import (
     AgentRunActivity,
     AgentRunStatus,
     AgentActivityType,
-    VALID_STATUS_TRANSITIONS,
 )
 from plane.tests.factories import (
     UserFactory,
@@ -20,7 +18,6 @@ from plane.tests.factories import (
     IssueFactory,
     AgentProfileFactory,
     AgentRunFactory,
-    AgentRunActivityFactory,
 )
 
 
@@ -88,17 +85,18 @@ class TestAgentProfile:
     @pytest.mark.django_db
     def test_agent_profile_workspace_scoping(self):
         """Verify agents are properly scoped to workspaces."""
-        user = UserFactory()
+        user1 = UserFactory()
+        user2 = UserFactory()
         workspace1 = WorkspaceFactory()
         workspace2 = WorkspaceFactory()
 
         agent1 = AgentProfile.objects.create(
-            user=user,
+            user=user1,
             workspace=workspace1,
             display_name="Agent 1",
         )
         agent2 = AgentProfile.objects.create(
-            user=user,
+            user=user2,
             workspace=workspace2,
             display_name="Agent 2",
         )
