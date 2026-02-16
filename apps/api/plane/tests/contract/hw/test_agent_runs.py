@@ -57,6 +57,13 @@ def agent_profile(db, workspace, create_user):
         is_bot=True,
         bot_type="agent",
     )
+    # Create WorkspaceMember for the bot user (required for permission checks)
+    WorkspaceMember.objects.create(
+        workspace=workspace,
+        member=bot_user,
+        role=20,  # Admin role
+        is_active=True,
+    )
     agent = AgentProfile.objects.create(
         user=bot_user,
         workspace=workspace,
@@ -116,16 +123,12 @@ class TestAgentRunLifecycle:
 
         # Transition to in_progress
         detail_url = self.get_run_detail_url(workspace.slug, run_id)
-        update_response = agent_client.patch(
-            detail_url, {"status": AgentRunStatus.IN_PROGRESS}, format="json"
-        )
+        update_response = agent_client.patch(detail_url, {"status": AgentRunStatus.IN_PROGRESS}, format="json")
         assert update_response.status_code == status.HTTP_200_OK
         assert update_response.data["status"] == AgentRunStatus.IN_PROGRESS
 
         # Transition to completed
-        complete_response = agent_client.patch(
-            detail_url, {"status": AgentRunStatus.COMPLETED}, format="json"
-        )
+        complete_response = agent_client.patch(detail_url, {"status": AgentRunStatus.COMPLETED}, format="json")
         assert complete_response.status_code == status.HTTP_200_OK
         assert complete_response.data["status"] == AgentRunStatus.COMPLETED
         assert complete_response.data["completed_at"] is not None
@@ -145,9 +148,7 @@ class TestAgentRunLifecycle:
 
         # Transition to failed
         detail_url = self.get_run_detail_url(workspace.slug, run_id)
-        fail_response = agent_client.patch(
-            detail_url, {"status": AgentRunStatus.FAILED}, format="json"
-        )
+        fail_response = agent_client.patch(detail_url, {"status": AgentRunStatus.FAILED}, format="json")
         assert fail_response.status_code == status.HTTP_200_OK
         assert fail_response.data["status"] == AgentRunStatus.FAILED
 
@@ -157,9 +158,7 @@ class TestAgentRunLifecycle:
         run_id2 = response2.data["id"]
 
         detail_url2 = self.get_run_detail_url(workspace.slug, run_id2)
-        stop_response = agent_client.patch(
-            detail_url2, {"status": AgentRunStatus.STOPPED}, format="json"
-        )
+        stop_response = agent_client.patch(detail_url2, {"status": AgentRunStatus.STOPPED}, format="json")
         assert stop_response.status_code == status.HTTP_200_OK
         assert stop_response.data["status"] == AgentRunStatus.STOPPED
 
@@ -181,9 +180,7 @@ class TestAgentRunLifecycle:
         agent_client.patch(detail_url, {"status": AgentRunStatus.COMPLETED}, format="json")
 
         # Try invalid transition: completed → in_progress
-        invalid_response = agent_client.patch(
-            detail_url, {"status": AgentRunStatus.IN_PROGRESS}, format="json"
-        )
+        invalid_response = agent_client.patch(detail_url, {"status": AgentRunStatus.IN_PROGRESS}, format="json")
         assert invalid_response.status_code == status.HTTP_400_BAD_REQUEST
         assert "error" in invalid_response.data or "Cannot transition" in str(invalid_response.data)
 
@@ -338,9 +335,7 @@ class TestAgentRunActivities:
         assert comment.external_id == expected_external_id
 
     @pytest.mark.django_db
-    def test_activity_auto_transitions_run_from_created_to_in_progress(
-        self, agent_client, workspace, agent_profile
-    ):
+    def test_activity_auto_transitions_run_from_created_to_in_progress(self, agent_client, workspace, agent_profile):
         """Activities posted to created runs auto-transition them to in_progress."""
         # Create run
         runs_url = self.get_runs_url(workspace.slug)

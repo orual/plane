@@ -139,7 +139,7 @@ class AgentProfileViewSet(BaseViewSet):
     def destroy(self, request, slug, pk):
         agent = self.get_queryset().get(pk=pk)
         agent.is_active = False
-        agent.save()
+        agent.save(update_fields=["is_active"])
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 
@@ -260,14 +260,18 @@ class AgentRunViewSet(BaseViewSet):
                     status=status.HTTP_400_BAD_REQUEST,
                 )
 
-            # If transitioning to terminal state, set completed_at
+            # If transitioning to terminal state, set completed_at directly on model
             if new_status in (
                 AgentRunStatus.COMPLETED,
                 AgentRunStatus.FAILED,
                 AgentRunStatus.STOPPED,
             ):
-                if "completed_at" not in update_data:
-                    update_data["completed_at"] = timezone.now()
+                run.completed_at = timezone.now()
+                run.status = new_status
+                run.save(update_fields=["completed_at", "status"])
+                # Return serialized response
+                serializer = AgentRunSerializer(run)
+                return Response(serializer.data, status=status.HTTP_200_OK)
 
         serializer = AgentRunSerializer(run, data=update_data, partial=True)
         if serializer.is_valid():
