@@ -26,8 +26,7 @@ import { useTimeLineChartStore } from "@/hooks/use-timeline-chart";
 import { IssueIdentifier } from "@/plane-web/components/issues/issue-details/issue-identifier";
 import { IssueStats } from "@/plane-web/components/issues/issue-layouts/issue-stats";
 import { ComputedDateIndicator } from "@/plane-web/components/gantt-chart/blocks/computed-date-indicator";
-import { CriticalBlockStyle } from "@/plane-web/components/gantt-chart/blocks/critical-block-style";
-import { CpmTooltipContent } from "@/plane-web/components/gantt-chart";
+import { applyCriticalBlockStyle } from "@/plane-web/components/gantt-chart/blocks/critical-block-style";
 // local imports
 import { WorkItemPreviewCard } from "../../preview-card";
 import { getBlockViewDetails } from "../utils";
@@ -48,7 +47,7 @@ export const IssueGanttBlock = observer(function IssueGanttBlock(props: Props) {
   const {
     issue: { getIssueById },
   } = useIssueDetail();
-  const { blocksMap } = useTimeLineChartStore();
+  const timelineStore = useTimeLineChartStore();
   // hooks
   const { isMobile } = usePlatformOS();
   const { handleRedirection } = useIssuePeekOverviewRedirection(isEpic);
@@ -60,8 +59,10 @@ export const IssueGanttBlock = observer(function IssueGanttBlock(props: Props) {
 
   const { blockStyle } = getBlockViewDetails(issueDetails, stateDetails?.color ?? "");
 
-  const block = blocksMap[issueId];
+  const block = timelineStore.blocksMap[issueId];
   const isComputedDate = block?.dateSource === "computed";
+
+  const { style: effectiveBlockStyle, isCritical } = applyCriticalBlockStyle(timelineStore, issueId, blockStyle);
 
   const handleIssuePeekOverview = () => handleRedirection(workspaceSlug, issueDetails, isMobile);
 
@@ -72,7 +73,10 @@ export const IssueGanttBlock = observer(function IssueGanttBlock(props: Props) {
       <Popover.Button
         className="w-full"
         render={
-          <CriticalBlockStyle blockId={issueId} baseStyle={blockStyle}>
+          <div
+            style={effectiveBlockStyle}
+            {...(isCritical ? { "data-test": "cpm-critical-block", "data-test-issue-id": issueId } : {})}
+          >
             <div
               id={`issue-${issueId}`}
               {...(isComputedDate ? { "data-test": "cpm-computed-block", "data-test-issue-id": issueId } : {})}
@@ -85,12 +89,12 @@ export const IssueGanttBlock = observer(function IssueGanttBlock(props: Props) {
               onClick={handleIssuePeekOverview}
             >
               <div className="absolute left-0 top-0 h-full w-full bg-surface-1/50 " />
+              <ComputedDateIndicator isComputedDate={isComputedDate} />
               <div
                 className="sticky w-auto overflow-hidden truncate px-2.5 py-1 text-13 text-primary flex-1 relative"
                 style={{ left: `${SIDEBAR_WIDTH}px` }}
               >
                 {issueDetails?.name}
-                <ComputedDateIndicator isComputedDate={isComputedDate} />
               </div>
               {isEpic && (
                 <IssueStats
@@ -100,22 +104,28 @@ export const IssueGanttBlock = observer(function IssueGanttBlock(props: Props) {
                 />
               )}
             </div>
-          </CriticalBlockStyle>
+          </div>
         }
       />
       <Popover.Panel side="bottom" align="start">
-        <>
-          {issueDetails && issueDetails?.project_id && (
-            <WorkItemPreviewCard
-              projectId={issueDetails.project_id}
-              stateDetails={{
-                id: issueDetails.state_id ?? undefined,
-              }}
-              workItem={issueDetails}
-            />
-          )}
-          <CpmTooltipContent blockId={issueId} />
-        </>
+        {issueDetails && issueDetails?.project_id && (
+          <WorkItemPreviewCard
+            projectId={issueDetails.project_id}
+            stateDetails={{
+              id: issueDetails.state_id ?? undefined,
+            }}
+            workItem={
+              isComputedDate && block
+                ? { ...issueDetails, start_date: block.start_date ?? null, target_date: block.target_date ?? null }
+                : issueDetails
+            }
+          />
+        )}
+        {isComputedDate && (
+          <div className="px-1 pt-1">
+            <span className="text-[10px] text-tertiary">computed</span>
+          </div>
+        )}
       </Popover.Panel>
     </Popover>
   );

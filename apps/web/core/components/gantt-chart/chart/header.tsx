@@ -42,6 +42,8 @@ export const GanttChartHeader = observer(function GanttChartHeader(props: Props)
       className="relative flex w-full flex-shrink-0 flex-wrap items-center gap-2 whitespace-nowrap py-2 bg-surface-1"
       style={{ height: `${GANTT_BREADCRUMBS_HEIGHT}px` }}
     >
+      <CpmToggle />
+
       <div className="ml-auto">
         <div className="ml-auto text-11 font-medium text-tertiary">
           {blockIds ? `${blockIds.length} ${loaderTitle}` : t("common.loading")}
@@ -74,8 +76,6 @@ export const GanttChartHeader = observer(function GanttChartHeader(props: Props)
           {t("common.today")}
         </button>
       )}
-
-      <CpmToggle />
 
       <button
         type="button"

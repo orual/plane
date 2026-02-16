@@ -37,6 +37,7 @@ import { useProject } from "@/hooks/store/use-project";
 import { useProjectState } from "@/hooks/store/use-project-state";
 // plane web components
 import { WorkItemAdditionalSidebarProperties } from "@/plane-web/components/issues/issue-details/additional-properties";
+import { CpmSidebarSection } from "@/plane-web/components/gantt-chart";
 import { IssueParentSelectRoot } from "@/plane-web/components/issues/issue-details/parent-select-root";
 import { DateAlert } from "@/plane-web/components/issues/issue-details/sidebar/date-alert";
 import { TransferHopInfo } from "@/plane-web/components/issues/issue-details/sidebar/transfer-hop-info";
@@ -268,6 +269,8 @@ export const PeekOverviewProperties = observer(function PeekOverviewProperties(p
           isEditable={!disabled}
           isPeekView
         />
+
+        <CpmSidebarSection issueId={issueId} />
       </div>
     </div>
   );
