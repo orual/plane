@@ -1,0 +1,138 @@
+{
+  "nodes": [
+    {
+      "id": 1,
+      "change_id": "67f9c7ef-6122-4f60-8e3b-4cca64a419da",
+      "node_type": "goal",
+      "title": "Investigate and fix failing database tests across worktrees",
+      "description": null,
+      "status": "pending",
+      "created_at": "2026-02-16T11:06:39.846436571-05:00",
+      "updated_at": "2026-02-16T11:06:39.846436571-05:00",
+      "metadata_json": "{\"branch\":\"hw\",\"confidence\":80,\"prompt\":\"User asked: database tests aren't running properly or are failing, need to run them against the compose database, determine real failures, and document how to properly validate\"}"
+    },
+    {
+      "id": 2,
+      "change_id": "00eb7e7c-0530-4659-bf65-88278c416f87",
+      "node_type": "observation",
+      "title": "Root cause: .env not auto-loaded by os.environ - tests need manual env sourcing or run_tests.py fix",
+      "description": null,
+      "status": "pending",
+      "created_at": "2026-02-16T11:17:07.955672564-05:00",
+      "updated_at": "2026-02-16T11:17:07.955672564-05:00",
+      "metadata_json": "{\"branch\":\"hw-ai-infra\",\"confidence\":95}"
+    },
+    {
+      "id": 3,
+      "change_id": "e0f843f0-9201-43b1-a994-b94f637a3c42",
+      "node_type": "observation",
+      "title": "97 real failures in hw-ai-infra: 63 from RabbitMQ unavailable, 18 from missing URL routes, 6 cycle detection bugs, 5 test data issues, 3 URL util bugs, 2 LLM config issues",
+      "description": null,
+      "status": "pending",
+      "created_at": "2026-02-16T11:17:07.974031930-05:00",
+      "updated_at": "2026-02-16T11:17:07.974031930-05:00",
+      "metadata_json": "{\"branch\":\"hw-ai-infra\",\"confidence\":95}"
+    },
+    {
+      "id": 4,
+      "change_id": "6752d623-35dd-4382-84c7-c4806cc9915d",
+      "node_type": "observation",
+      "title": "conftest_external.py has mock_celery/mock_redis fixtures but they're not auto-discovered by pytest",
+      "description": null,
+      "status": "pending",
+      "created_at": "2026-02-16T11:17:07.992551344-05:00",
+      "updated_at": "2026-02-16T11:17:07.992551344-05:00",
+      "metadata_json": "{\"branch\":\"hw-ai-infra\",\"confidence\":95}"
+    },
+    {
+      "id": 5,
+      "change_id": "f4f0b349-1904-4898-8cf8-2471bfcb6e77",
+      "node_type": "outcome",
+      "title": "Complete test validation report written to docs/test-validation-report.md",
+      "description": null,
+      "status": "pending",
+      "created_at": "2026-02-16T11:18:43.374471366-05:00",
+      "updated_at": "2026-02-16T11:18:43.374471366-05:00",
+      "metadata_json": "{\"branch\":\"hw-ai-infra\",\"confidence\":95}"
+    },
+    {
+      "id": 6,
+      "change_id": "27e60eb4-e4f8-479d-ae39-ce11d5449f41",
+      "node_type": "decision",
+      "title": "UX for auto-computed vs server-propagated dates",
+      "description": null,
+      "status": "pending",
+      "created_at": "2026-02-16T17:35:13.150791104-05:00",
+      "updated_at": "2026-02-16T17:35:13.150791104-05:00",
+      "metadata_json": "{\"branch\":\"hw\",\"confidence\":50,\"prompt\":\"User discovered that HW server-side date propagation restores dates on dependent issues after deletion. The 'auto' badge (dateSource=computed) only covers client-side CPM virtual dates, not server-propagated ones. Showing 'computed' after user deletes dates is arguably misleading — CPM fills them back in immediately. No backend flag exists to distinguish server-propagated from manually-set dates. Options: (1) suppress computed dates after user clears, (2) debounce computed injection until server round-trip, (3) improve messaging (e.g. 'dates calculated from dependencies'), (4) leave as-is. Parked for discussion with team.\"}"
+    },
+    {
+      "id": 7,
+      "change_id": "265a14da-70f1-476c-8930-0b0fe19b20a0",
+      "node_type": "observation",
+      "title": "Server-side date propagation has no client-detectable flag",
+      "description": null,
+      "status": "pending",
+      "created_at": "2026-02-16T17:35:20.481394397-05:00",
+      "updated_at": "2026-02-16T17:35:20.481394397-05:00",
+      "metadata_json": "{\"branch\":\"hw\",\"confidence\":90,\"prompt\":\"Grepped for date_propagated, is_propagated, auto_date, date_source — nothing. Server propagation sets real start_date/target_date on dependent issues, indistinguishable from manual dates on the client. Any client-side heuristic (compare with CPM ES/EF, check for blocking relations) would be fragile.\"}"
+    }
+  ],
+  "edges": [
+    {
+      "id": 1,
+      "from_node_id": 1,
+      "to_node_id": 2,
+      "from_change_id": "67f9c7ef-6122-4f60-8e3b-4cca64a419da",
+      "to_change_id": "00eb7e7c-0530-4659-bf65-88278c416f87",
+      "edge_type": "leads_to",
+      "weight": 1.0,
+      "rationale": "env loading is root cause of initial all-error state",
+      "created_at": "2026-02-16T11:17:13.819197724-05:00"
+    },
+    {
+      "id": 2,
+      "from_node_id": 1,
+      "to_node_id": 3,
+      "from_change_id": "67f9c7ef-6122-4f60-8e3b-4cca64a419da",
+      "to_change_id": "e0f843f0-9201-43b1-a994-b94f637a3c42",
+      "edge_type": "leads_to",
+      "weight": 1.0,
+      "rationale": "categorized failures after env fix",
+      "created_at": "2026-02-16T11:17:13.836652918-05:00"
+    },
+    {
+      "id": 3,
+      "from_node_id": 1,
+      "to_node_id": 4,
+      "from_change_id": "67f9c7ef-6122-4f60-8e3b-4cca64a419da",
+      "to_change_id": "6752d623-35dd-4382-84c7-c4806cc9915d",
+      "edge_type": "leads_to",
+      "weight": 1.0,
+      "rationale": "discovered unused mock infrastructure",
+      "created_at": "2026-02-16T11:17:13.852685372-05:00"
+    },
+    {
+      "id": 4,
+      "from_node_id": 1,
+      "to_node_id": 5,
+      "from_change_id": "67f9c7ef-6122-4f60-8e3b-4cca64a419da",
+      "to_change_id": "f4f0b349-1904-4898-8cf8-2471bfcb6e77",
+      "edge_type": "leads_to",
+      "weight": 1.0,
+      "rationale": "goal achieved",
+      "created_at": "2026-02-16T11:18:43.391521403-05:00"
+    },
+    {
+      "id": 5,
+      "from_node_id": 6,
+      "to_node_id": 7,
+      "from_change_id": "27e60eb4-e4f8-479d-ae39-ce11d5449f41",
+      "to_change_id": "265a14da-70f1-476c-8930-0b0fe19b20a0",
+      "edge_type": "leads_to",
+      "weight": 1.0,
+      "rationale": "Technical constraint informing decision",
+      "created_at": "2026-02-16T17:35:20.498893907-05:00"
+    }
+  ]
+}
