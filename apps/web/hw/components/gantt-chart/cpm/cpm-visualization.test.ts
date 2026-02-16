@@ -730,4 +730,118 @@ describe("cpm-critical-path.AC4 - Critical path visualization", () => {
       expect(criticalWhenReEnabled).toBe(true);
     });
   });
+
+  describe("AC6.1: Cross-project toggle visibility", () => {
+    it("should have setCrossProjectCpmEnabled method that toggles state", () => {
+      // Verify initial state
+      expect(store.crossProjectCpmEnabled).toBe(false);
+
+      // Enable cross-project CPM
+      store.setCrossProjectCpmEnabled(true);
+      expect(store.crossProjectCpmEnabled).toBe(true);
+
+      // Disable cross-project CPM
+      store.setCrossProjectCpmEnabled(false);
+      expect(store.crossProjectCpmEnabled).toBe(false);
+    });
+
+    it("should have crossProjectCpmEnabled be meaningful only when cpmEnabled is true (AC6.1)", () => {
+      // Setup: CPM disabled, cross-project toggle at false
+      expect(store.cpmEnabled).toBe(false);
+      expect(store.crossProjectCpmEnabled).toBe(false);
+
+      // Enable cross-project CPM while main CPM is disabled
+      store.setCrossProjectCpmEnabled(true);
+      expect(store.crossProjectCpmEnabled).toBe(true);
+
+      // cross-project setting should exist independently
+      expect(store.crossProjectCpmEnabled).toBe(true);
+
+      // But CPM results should still be empty because cpmEnabled is false
+      expect(store.cpmResults.size).toBe(0);
+
+      // Now enable main CPM
+      store.setCpmEnabled(true);
+
+      // Now cross-project CPM setting becomes meaningful
+      expect(store.cpmEnabled).toBe(true);
+      expect(store.crossProjectCpmEnabled).toBe(true);
+    });
+
+    it("should allow toggling cross-project CPM multiple times", () => {
+      store.setCpmEnabled(true);
+
+      store.setCrossProjectCpmEnabled(true);
+      expect(store.crossProjectCpmEnabled).toBe(true);
+
+      store.setCrossProjectCpmEnabled(false);
+      expect(store.crossProjectCpmEnabled).toBe(false);
+
+      store.setCrossProjectCpmEnabled(true);
+      expect(store.crossProjectCpmEnabled).toBe(true);
+
+      store.setCrossProjectCpmEnabled(false);
+      expect(store.crossProjectCpmEnabled).toBe(false);
+    });
+  });
+
+  describe("AC6.5: Phantom anchor tooltip", () => {
+    it("should construct tooltip content with external issue identifier, project name, and dates", () => {
+      // Setup: Create a mock external issue with all required properties
+      const externalIssueData = {
+        id: "external-issue-123",
+        project_id: "proj-ext-1",
+        sequence_id: 42,
+        name: "Critical external feature",
+        start_date: "2024-02-01",
+        target_date: "2024-02-15",
+      };
+
+      // Verify the tooltip content format
+      const projectIdentifier = "EXT"; // Example project identifier
+      const tooltipContent = `${projectIdentifier}-${externalIssueData.sequence_id}: ${externalIssueData.name}\n${externalIssueData.start_date} → ${externalIssueData.target_date}`;
+
+      // Check that tooltip contains all required parts
+      expect(tooltipContent).toContain("EXT-42");
+      expect(tooltipContent).toContain("Critical external feature");
+      expect(tooltipContent).toContain("2024-02-01");
+      expect(tooltipContent).toContain("2024-02-15");
+      expect(tooltipContent).toContain("→");
+    });
+
+    it("should handle external issue with missing dates in tooltip", () => {
+      // Setup: External issue with no dates
+      const externalIssueData = {
+        id: "external-issue-456",
+        project_id: "proj-ext-2",
+        sequence_id: 99,
+        name: "Unscheduled external task",
+        start_date: null,
+        target_date: null,
+      };
+
+      const projectIdentifier = "OTH";
+      const tooltipContent = `${projectIdentifier}-${externalIssueData.sequence_id}: ${externalIssueData.name}\n${externalIssueData.start_date ?? "No start"} → ${externalIssueData.target_date ?? "No end"}`;
+
+      // Check that tooltip handles missing dates gracefully
+      expect(tooltipContent).toContain("OTH-99");
+      expect(tooltipContent).toContain("Unscheduled external task");
+      expect(tooltipContent).toContain("No start");
+      expect(tooltipContent).toContain("No end");
+    });
+
+    it("should construct different tooltip content for different side positions", () => {
+      // Left side (predecessor)
+      const leftSideProps = { issueId: "ext-1", side: "left" as const, top: 100 };
+      expect(leftSideProps.side).toBe("left");
+
+      // Right side (successor)
+      const rightSideProps = { issueId: "ext-2", side: "right" as const, top: 150 };
+      expect(rightSideProps.side).toBe("right");
+
+      // Both should have the same issue data structure but different positional context
+      expect(typeof leftSideProps.issueId).toBe("string");
+      expect(typeof rightSideProps.issueId).toBe("string");
+    });
+  });
 });

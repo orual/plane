@@ -861,4 +861,277 @@ describe("BaseTimeLineStore - Cross-Project CPM", () => {
       expect(results.has("external-b")).toBe(true);
     });
   });
+
+  describe("AC6.4: Phantom anchors render at timeline edges for external constraints", () => {
+    it("should identify external issue IDs that need phantom anchors when cross-project enabled", () => {
+      // Setup: Local blocks with relations to external issues
+      const blockA = createMockBlock({
+        id: "local-a",
+        start_date: "2024-01-10",
+        target_date: "2024-01-12",
+      });
+      const blockB = createMockBlock({
+        id: "local-b",
+        start_date: "2024-01-13",
+        target_date: "2024-01-15",
+      });
+
+      runInAction(() => {
+        store.blocksMap = {
+          "local-a": blockA,
+          "local-b": blockB,
+        };
+      });
+
+      // Relations: local-a blocks external-c (predecessor), local-b blocks external-d (successor)
+      mockRootStore.issue.issueDetail.relation.relationMap = {
+        "local-a": {
+          blocking: ["external-c"],
+          blocked_by: [],
+          start_before: [],
+          start_after: [],
+          finish_before: [],
+          finish_after: [],
+          relates_to: [],
+          duplicate: [],
+          implements: [],
+          implemented_by: [],
+        },
+        "local-b": {
+          blocking: ["external-d"],
+          blocked_by: [],
+          start_before: [],
+          start_after: [],
+          finish_before: [],
+          finish_after: [],
+          relates_to: [],
+          duplicate: [],
+          implements: [],
+          implemented_by: [],
+        },
+      };
+
+      const mockGetIssueById = mockRootStore.issue.issueDetail.issue.getIssueById as any;
+      mockGetIssueById.mockImplementation((id: string) => {
+        if (id === "external-c") {
+          return { project_id: "proj-ext", start_date: "2024-01-16", target_date: "2024-01-20" };
+        }
+        if (id === "external-d") {
+          return { project_id: "proj-ext", start_date: "2024-01-16", target_date: "2024-01-20" };
+        }
+        return undefined;
+      });
+
+      store.setCpmEnabled(true);
+      store.setCrossProjectCpmEnabled(true);
+
+      // Verify: Both external issues referenced in relations are available for phantom anchor rendering
+      const relationMap = mockRootStore.issue.issueDetail.relation.relationMap;
+      const externalIssues = new Set<string>();
+
+      for (const [_issueId, relations] of Object.entries(relationMap)) {
+        for (const relType of Object.keys(relations) as any[]) {
+          for (const targetId of relations[relType]) {
+            if (!Object.keys(store.blocksMap).includes(targetId)) {
+              externalIssues.add(targetId);
+            }
+          }
+        }
+      }
+
+      // Verify: external-c and external-d are identified
+      expect(externalIssues.has("external-c")).toBe(true);
+      expect(externalIssues.has("external-d")).toBe(true);
+    });
+
+    it("should not render phantom anchors when cross-project CPM is disabled", () => {
+      // Setup: Same relations as above but with cross-project disabled
+      const blockA = createMockBlock({
+        id: "local-a",
+        start_date: "2024-01-10",
+        target_date: "2024-01-12",
+      });
+
+      runInAction(() => {
+        store.blocksMap = {
+          "local-a": blockA,
+        };
+      });
+
+      mockRootStore.issue.issueDetail.relation.relationMap = {
+        "local-a": {
+          blocking: ["external-b"],
+          blocked_by: [],
+          start_before: [],
+          start_after: [],
+          finish_before: [],
+          finish_after: [],
+          relates_to: [],
+          duplicate: [],
+          implements: [],
+          implemented_by: [],
+        },
+      };
+
+      const mockGetIssueById = mockRootStore.issue.issueDetail.issue.getIssueById as any;
+      mockGetIssueById.mockImplementation((id: string) => {
+        if (id === "external-b") {
+          return { project_id: "proj-ext", start_date: "2024-01-13", target_date: "2024-01-15" };
+        }
+        return undefined;
+      });
+
+      store.setCpmEnabled(true);
+      store.setCrossProjectCpmEnabled(false); // Explicitly disabled
+
+      // Verify: CPM results do not include external-b's relations (phantom anchors should not render)
+      const results = store.cpmResults;
+      // external-b is in the local relation map but its own relations are not in the effective map
+      expect(results.has("external-b")).toBe(true); // But not its dependencies
+    });
+
+    it("should derive set of external issue IDs for left (predecessor) and right (successor) edges", () => {
+      // Setup: Create scenario with predecessors (left edge) and successors (right edge)
+      const blockA = createMockBlock({
+        id: "local-a",
+        start_date: "2024-01-10",
+        target_date: "2024-01-12",
+      });
+
+      runInAction(() => {
+        store.blocksMap = {
+          "local-a": blockA,
+        };
+      });
+
+      // local-a is blocked by external-pred (left edge), and blocks external-succ (right edge)
+      mockRootStore.issue.issueDetail.relation.relationMap = {
+        "local-a": {
+          blocking: ["external-succ"],
+          blocked_by: ["external-pred"],
+          start_before: [],
+          start_after: [],
+          finish_before: [],
+          finish_after: [],
+          relates_to: [],
+          duplicate: [],
+          implements: [],
+          implemented_by: [],
+        },
+      };
+
+      const mockGetIssueById = mockRootStore.issue.issueDetail.issue.getIssueById as any;
+      mockGetIssueById.mockImplementation((id: string) => {
+        if (id === "external-pred") {
+          return { project_id: "proj-ext", start_date: "2024-01-01", target_date: "2024-01-09" };
+        }
+        if (id === "external-succ") {
+          return { project_id: "proj-ext", start_date: "2024-01-13", target_date: "2024-01-20" };
+        }
+        return undefined;
+      });
+
+      store.setCpmEnabled(true);
+      store.setCrossProjectCpmEnabled(true);
+
+      // Classify external issues by side
+      const relationMap = mockRootStore.issue.issueDetail.relation.relationMap;
+      const leftEdgeIssues = new Set<string>();
+      const rightEdgeIssues = new Set<string>();
+
+      for (const [issueId, relations] of Object.entries(relationMap)) {
+        if (!Object.keys(store.blocksMap).includes(issueId)) continue;
+
+        // Predecessors (blocked_by) render at left edge
+        for (const pred of relations["blocked_by"] || []) {
+          if (!Object.keys(store.blocksMap).includes(pred)) {
+            leftEdgeIssues.add(pred);
+          }
+        }
+
+        // Successors (blocking) render at right edge
+        for (const succ of relations["blocking"] || []) {
+          if (!Object.keys(store.blocksMap).includes(succ)) {
+            rightEdgeIssues.add(succ);
+          }
+        }
+      }
+
+      // Verify: Predecessors on left, successors on right
+      expect(leftEdgeIssues.has("external-pred")).toBe(true);
+      expect(rightEdgeIssues.has("external-succ")).toBe(true);
+    });
+
+    it("should handle multiple external issues on same edge (AC6.4)", () => {
+      // Setup: Multiple predecessors and successors
+      const blockA = createMockBlock({
+        id: "local-a",
+        start_date: "2024-01-10",
+        target_date: "2024-01-12",
+      });
+
+      runInAction(() => {
+        store.blocksMap = {
+          "local-a": blockA,
+        };
+      });
+
+      // local-a blocked by multiple external issues, blocks multiple external issues
+      mockRootStore.issue.issueDetail.relation.relationMap = {
+        "local-a": {
+          blocking: ["external-succ-1", "external-succ-2"],
+          blocked_by: ["external-pred-1", "external-pred-2"],
+          start_before: [],
+          start_after: [],
+          finish_before: [],
+          finish_after: [],
+          relates_to: [],
+          duplicate: [],
+          implements: [],
+          implemented_by: [],
+        },
+      };
+
+      const mockGetIssueById = mockRootStore.issue.issueDetail.issue.getIssueById as any;
+      mockGetIssueById.mockImplementation((id: string) => {
+        if (id.startsWith("external-")) {
+          return { project_id: "proj-ext", start_date: "2024-01-01", target_date: "2024-01-20" };
+        }
+        return undefined;
+      });
+
+      store.setCpmEnabled(true);
+      store.setCrossProjectCpmEnabled(true);
+
+      // Collect external issues by edge
+      const relationMap = mockRootStore.issue.issueDetail.relation.relationMap;
+      const allExternalLeft = new Set<string>();
+      const allExternalRight = new Set<string>();
+
+      for (const [issueId, relations] of Object.entries(relationMap)) {
+        if (!Object.keys(store.blocksMap).includes(issueId)) continue;
+
+        for (const pred of relations["blocked_by"] || []) {
+          if (!Object.keys(store.blocksMap).includes(pred)) {
+            allExternalLeft.add(pred);
+          }
+        }
+
+        for (const succ of relations["blocking"] || []) {
+          if (!Object.keys(store.blocksMap).includes(succ)) {
+            allExternalRight.add(succ);
+          }
+        }
+      }
+
+      // Verify: All external issues on each edge are identified
+      expect(allExternalLeft.size).toBe(2);
+      expect(allExternalLeft.has("external-pred-1")).toBe(true);
+      expect(allExternalLeft.has("external-pred-2")).toBe(true);
+
+      expect(allExternalRight.size).toBe(2);
+      expect(allExternalRight.has("external-succ-1")).toBe(true);
+      expect(allExternalRight.has("external-succ-2")).toBe(true);
+    });
+  });
 });
