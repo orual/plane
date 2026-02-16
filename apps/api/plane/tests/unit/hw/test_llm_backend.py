@@ -221,9 +221,7 @@ class TestGetLlmResponse:
         """When litellm.completion raises RateLimitError, returns user-friendly error string."""
         from litellm import RateLimitError
 
-        mock_completion.side_effect = RateLimitError(
-            message="Rate limited", llm_provider="openai", model="gpt-4.1"
-        )
+        mock_completion.side_effect = RateLimitError(message="Rate limited", llm_provider="openai", model="gpt-4.1")
 
         text, error, reasoning = get_llm_response(
             task="Test task",
