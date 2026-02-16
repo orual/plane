@@ -292,6 +292,15 @@ export class BaseTimeLineStore implements IBaseTimelineStore {
           project_id: blockData?.project_id,
         },
       };
+      // Inject computed dates for dateless blocks when CPM is enabled
+      if (this.cpmEnabled && !block.start_date && !block.target_date) {
+        const computedDates = this.getComputedDates(blockId);
+        if (computedDates) {
+          block.start_date = computedDates.start_date;
+          block.target_date = computedDates.target_date;
+          block.dateSource = "computed";
+        }
+      }
       if (this.currentViewData && (this.currentViewData?.data?.startDate || this.currentViewData?.data?.dayWidth)) {
         block.position = getItemPositionWidth(this.currentViewData, block);
       }
