@@ -390,15 +390,17 @@ export class BaseTimeLineStore implements IBaseTimelineStore {
     if (!currBlock?.position || !this.currentViewData) return [];
 
     const updatePayload: IBlockUpdateDependencyData = { id, meta: currBlock.meta };
+    const isComputedBlock = currBlock.dateSource === "computed";
 
+    // Computed blocks always get both dates set (converts to manual)
     // If shouldUpdateHalfBlock or the start date is available then update start date
-    if (shouldUpdateHalfBlock || currBlock.start_date) {
+    if (shouldUpdateHalfBlock || currBlock.start_date || isComputedBlock) {
       updatePayload.start_date = renderFormattedPayloadDate(
         getDateFromPositionOnGantt(currBlock.position.marginLeft, this.currentViewData)
       );
     }
     // If shouldUpdateHalfBlock or the target date is available then update target date
-    if (shouldUpdateHalfBlock || currBlock.target_date) {
+    if (shouldUpdateHalfBlock || currBlock.target_date || isComputedBlock) {
       updatePayload.target_date = renderFormattedPayloadDate(
         getDateFromPositionOnGantt(currBlock.position.marginLeft + currBlock.position.width, this.currentViewData, -1)
       );

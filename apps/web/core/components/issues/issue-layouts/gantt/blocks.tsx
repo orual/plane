@@ -10,7 +10,7 @@ import { useParams } from "next/navigation";
 import { Popover } from "@plane/propel/popover";
 import { Tooltip } from "@plane/propel/tooltip";
 import { ControlLink } from "@plane/ui";
-import { findTotalDaysInRange, generateWorkItemLink } from "@plane/utils";
+import { cn, findTotalDaysInRange, generateWorkItemLink } from "@plane/utils";
 // components
 import { SIDEBAR_WIDTH } from "@/components/gantt-chart/constants";
 // hooks
@@ -21,9 +21,11 @@ import { useProjectState } from "@/hooks/store/use-project-state";
 import { useIssueStoreType } from "@/hooks/use-issue-layout-store";
 import useIssuePeekOverviewRedirection from "@/hooks/use-issue-peek-overview-redirection";
 import { usePlatformOS } from "@/hooks/use-platform-os";
+import { useTimeLineChartStore } from "@/hooks/use-timeline-chart";
 // plane web imports
 import { IssueIdentifier } from "@/plane-web/components/issues/issue-details/issue-identifier";
 import { IssueStats } from "@/plane-web/components/issues/issue-layouts/issue-stats";
+import { ComputedDateIndicator } from "@/plane-web/components/gantt-chart/blocks/computed-date-indicator";
 // local imports
 import { WorkItemPreviewCard } from "../../preview-card";
 import { getBlockViewDetails } from "../utils";
@@ -44,6 +46,7 @@ export const IssueGanttBlock = observer(function IssueGanttBlock(props: Props) {
   const {
     issue: { getIssueById },
   } = useIssueDetail();
+  const { blocksMap } = useTimeLineChartStore();
   // hooks
   const { isMobile } = usePlatformOS();
   const { handleRedirection } = useIssuePeekOverviewRedirection(isEpic);
@@ -54,6 +57,9 @@ export const IssueGanttBlock = observer(function IssueGanttBlock(props: Props) {
     issueDetails && getProjectStates(issueDetails?.project_id)?.find((state) => state?.id == issueDetails?.state_id);
 
   const { blockStyle } = getBlockViewDetails(issueDetails, stateDetails?.color ?? "");
+
+  const block = blocksMap[issueId];
+  const isComputedDate = block?.dateSource === "computed";
 
   const handleIssuePeekOverview = () => handleRedirection(workspaceSlug, issueDetails, isMobile);
 
@@ -66,16 +72,22 @@ export const IssueGanttBlock = observer(function IssueGanttBlock(props: Props) {
         render={
           <div
             id={`issue-${issueId}`}
-            className="relative flex h-full w-full cursor-pointer items-center rounded-sm space-between"
+            className={cn(
+              "relative flex h-full w-full cursor-pointer items-center rounded-sm space-between",
+              {
+                "opacity-80 border-dashed border border-custom-border-300": isComputedDate,
+              }
+            )}
             style={blockStyle}
             onClick={handleIssuePeekOverview}
           >
             <div className="absolute left-0 top-0 h-full w-full bg-surface-1/50 " />
             <div
-              className="sticky w-auto overflow-hidden truncate px-2.5 py-1 text-13 text-primary flex-1"
+              className="sticky w-auto overflow-hidden truncate px-2.5 py-1 text-13 text-primary flex-1 relative"
               style={{ left: `${SIDEBAR_WIDTH}px` }}
             >
               {issueDetails?.name}
+              <ComputedDateIndicator isComputedDate={isComputedDate} />
             </div>
             {isEpic && (
               <IssueStats
