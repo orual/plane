@@ -1,5 +1,6 @@
 """Render KiCad files using configurable commands and auto-detect renderers."""
 
+import fnmatch
 import glob
 import logging
 import shlex
@@ -151,6 +152,7 @@ class Renderer:
                 continue
 
             # Create temporary output directory
+            # Temp dir intentionally not cleaned up here; files must persist until uploaded by client.py
             output_dir = tempfile.mkdtemp()
 
             # Interpolate command template
@@ -194,8 +196,6 @@ class Renderer:
         Returns:
             Matching RendererConfig, or None if no match found.
         """
-        import fnmatch
-
         for renderer in self._renderers:
             if fnmatch.fnmatch(file_path, renderer.match):
                 return renderer

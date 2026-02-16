@@ -26,24 +26,6 @@ class TestRenderer:
             renderers=None,
         )
 
-    @pytest.fixture
-    def custom_renderer_config(self):
-        """Create a Config with explicit custom renderers."""
-        return Config(
-            base_url="http://localhost:8000",
-            workspace="test-workspace",
-            commit_patterns=(),
-            path_mappings=(),
-            renderers=(
-                RendererConfig(
-                    match="**/*.kicad_sch",
-                    command="echo {file} {output_dir} {config}",
-                    config="",
-                    formats=("svg",),
-                ),
-            ),
-        )
-
     def test_command_interpolation(self, basic_config, tmp_path):
         """Verify kicad-preview.AC4.1: Command interpolation replaces placeholders.
 
@@ -70,7 +52,7 @@ class TestRenderer:
 
         renderer = Renderer(config)
 
-        with mock.patch("subprocess.run") as mock_run:
+        with mock.patch("plane_preview.renderer.subprocess.run") as mock_run:
             mock_run.return_value = mock.Mock(returncode=0, stderr=b"")
 
             renderer.render([str(test_file)])
@@ -123,7 +105,7 @@ class TestRenderer:
 
         renderer = Renderer(config)
 
-        with mock.patch("subprocess.run") as mock_run:
+        with mock.patch("plane_preview.renderer.subprocess.run") as mock_run:
             # Create a temporary directory and output files
             with tempfile.TemporaryDirectory() as temp_out:
                 out_svg = Path(temp_out) / "output.svg"
@@ -141,7 +123,7 @@ class TestRenderer:
 
                 mock_run.return_value = mock.Mock(returncode=0, stderr=b"")
 
-                with mock.patch("glob.glob", side_effect=mock_glob_func):
+                with mock.patch("plane_preview.renderer.glob.glob", side_effect=mock_glob_func):
                     result = renderer.render([str(test_file)])
 
             # Verify files were collected
@@ -164,7 +146,7 @@ class TestRenderer:
         test_file = tmp_path / "test.kicad_sch"
         test_file.write_text("dummy")
 
-        with mock.patch("shutil.which") as mock_which:
+        with mock.patch("plane_preview.renderer.shutil.which") as mock_which:
             # kicad-cli exists, kibot does not
             def which_side_effect(cmd):
                 if cmd == "kicad-cli":
@@ -190,10 +172,10 @@ class TestRenderer:
             assert "sch export svg" in sch_renderer.command
 
         # Verify rendering works with mocked subprocess
-        with mock.patch("subprocess.run") as mock_run:
+        with mock.patch("plane_preview.renderer.subprocess.run") as mock_run:
             mock_run.return_value = mock.Mock(returncode=0, stderr=b"")
 
-            with mock.patch("glob.glob", return_value=[]):
+            with mock.patch("plane_preview.renderer.glob.glob", return_value=[]):
                 renderer.render([str(test_file)])
 
             # Verify kicad-cli command was executed
@@ -210,7 +192,7 @@ class TestRenderer:
         test_file = tmp_path / "test.kicad_pcb"
         test_file.write_text("dummy")
 
-        with mock.patch("shutil.which") as mock_which:
+        with mock.patch("plane_preview.renderer.shutil.which") as mock_which:
             # kicad-cli missing, kibot exists
             def which_side_effect(cmd):
                 if cmd == "kibot":
@@ -264,7 +246,7 @@ class TestRenderer:
 
         renderer = Renderer(config)
 
-        with mock.patch("subprocess.run") as mock_run:
+        with mock.patch("plane_preview.renderer.subprocess.run") as mock_run:
             mock_run.return_value = mock.Mock(returncode=1, stderr=b"render error: something failed")
 
             with caplog.at_level("ERROR"):
@@ -314,8 +296,8 @@ class TestRenderer:
                 # Second file succeeds
                 return mock.Mock(returncode=0, stderr=b"")
 
-        with mock.patch("subprocess.run", side_effect=mock_run_side_effect):
-            with mock.patch("glob.glob", return_value=[]):
+        with mock.patch("plane_preview.renderer.subprocess.run", side_effect=mock_run_side_effect):
+            with mock.patch("plane_preview.renderer.glob.glob", return_value=[]):
                 with caplog.at_level("ERROR"):
                     renderer.render([str(test_file1), str(test_file2)])
 
@@ -331,7 +313,7 @@ class TestRenderer:
         test_file = tmp_path / "test.kicad_sch"
         test_file.write_text("dummy")
 
-        with mock.patch("shutil.which", return_value=None):
+        with mock.patch("plane_preview.renderer.shutil.which", return_value=None):
             renderer = Renderer(basic_config)
 
             # Verify no renderers were found
@@ -370,7 +352,7 @@ class TestRenderer:
 
         renderer = Renderer(config)
 
-        with mock.patch("subprocess.run") as mock_run:
+        with mock.patch("plane_preview.renderer.subprocess.run") as mock_run:
             result = renderer.render([str(test_file)])
 
             # Verify subprocess was not called
@@ -404,10 +386,10 @@ class TestRenderer:
 
         renderer = Renderer(config)
 
-        with mock.patch("subprocess.run") as mock_run:
+        with mock.patch("plane_preview.renderer.subprocess.run") as mock_run:
             mock_run.return_value = mock.Mock(returncode=0, stderr=b"")
 
-            with mock.patch("glob.glob", return_value=[]):
+            with mock.patch("plane_preview.renderer.glob.glob", return_value=[]):
                 renderer.render([str(test_file)])
 
             # Get command args
@@ -443,7 +425,7 @@ class TestRenderer:
 
         renderer = Renderer(config)
 
-        with mock.patch("subprocess.run") as mock_run:
+        with mock.patch("plane_preview.renderer.subprocess.run") as mock_run:
             mock_run.side_effect = subprocess.TimeoutExpired("sleep 1000", 120)
 
             with caplog.at_level("ERROR"):
@@ -477,7 +459,7 @@ class TestRenderer:
 
         renderer = Renderer(config)
 
-        with mock.patch("subprocess.run") as mock_run:
+        with mock.patch("plane_preview.renderer.subprocess.run") as mock_run:
             mock_run.return_value = mock.Mock(returncode=0, stderr=b"")
 
             with tempfile.TemporaryDirectory() as temp_out:
@@ -501,7 +483,7 @@ class TestRenderer:
                         return [str(out_jpg)]
                     return []
 
-                with mock.patch("glob.glob", side_effect=mock_glob_func):
+                with mock.patch("plane_preview.renderer.glob.glob", side_effect=mock_glob_func):
                     result = renderer.render([str(test_file)])
 
             # Verify correct MIME types
