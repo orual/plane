@@ -17,14 +17,17 @@ class TestLlmEndpointReasoning:
         self, mock_completion, mock_get_llm_config, session_client, workspace, create_user
     ):
         """POST to endpoint returns JSON with reasoning_content field when LLM provides it."""
-        from plane.db.models import Project
+        from plane.db.models import Project, ProjectMember
 
-        # Create a test project
+        # Create a test project with membership
         project = Project.objects.create(
             name="Test Project",
             identifier="TP",
             workspace=workspace,
             created_by=create_user,
+        )
+        ProjectMember.objects.create(
+            project=project, member=create_user, role=20, is_active=True
         )
 
         # Mock get_llm_config to return valid values
@@ -60,14 +63,17 @@ class TestLlmEndpointReasoning:
         self, mock_completion, mock_get_llm_config, session_client, workspace, create_user
     ):
         """POST to endpoint omits reasoning_content field when not provided by LLM."""
-        from plane.db.models import Project
+        from plane.db.models import Project, ProjectMember
 
-        # Create a test project
+        # Create a test project with membership
         project = Project.objects.create(
             name="Test Project",
             identifier="TP",
             workspace=workspace,
             created_by=create_user,
+        )
+        ProjectMember.objects.create(
+            project=project, member=create_user, role=20, is_active=True
         )
 
         # Mock get_llm_config to return valid values
