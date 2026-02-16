@@ -4,6 +4,7 @@
 
 # Python imports
 import json
+import re
 
 # Django imports
 from django.utils import timezone
@@ -23,6 +24,45 @@ from plane.db.models import IssueComment, ProjectMember, CommentReaction, Projec
 from plane.bgtasks.issue_activities_task import issue_activity
 from plane.utils.host import base_host
 from plane.bgtasks.webhook_task import model_activity
+from plane.bgtasks.agent_webhook_task import agent_webhook_send_task
+from plane.hw.models import AgentProfile, AgentRun, AgentRunStatus
+
+
+def _detect_agent_mentions(comment_text, workspace_slug, project_id, issue_id, current_site):
+    """Parse @agent-name mentions from comment text and trigger webhooks."""
+    mentions = re.findall(r"@([\w-]+)", comment_text)
+    if not mentions:
+        return
+
+    agents = AgentProfile.objects.filter(
+        workspace__slug=workspace_slug,
+        display_name__in=mentions,
+        is_active=True,
+    ).select_related("workspace")
+
+    for agent in agents:
+        run = AgentRun.objects.create(
+            agent=agent,
+            workspace=agent.workspace,
+            project_id=project_id,
+            issue_id=issue_id,
+            status=AgentRunStatus.CREATED,
+            trigger_metadata={"trigger": "mention", "comment_text": comment_text},
+        )
+
+        agent_webhook_send_task.delay(
+            agent_profile_id=str(agent.id),
+            run_id=str(run.id),
+            event_type="issue_comment.mention",
+            event_data={
+                "workspace_slug": workspace_slug,
+                "project_id": str(project_id),
+                "issue_id": str(issue_id),
+                "comment_text": comment_text,
+                "mentioned_agent": agent.display_name,
+            },
+            current_site=current_site,
+        )
 
 
 class IssueCommentViewSet(BaseViewSet):
@@ -102,6 +142,14 @@ class IssueCommentViewSet(BaseViewSet):
                 actor_id=request.user.id,
                 slug=slug,
                 origin=base_host(request=request, is_app=True),
+            )
+            # Detect agent mentions and trigger webhooks
+            _detect_agent_mentions(
+                comment_text=serializer.data.get("comment_stripped", ""),
+                workspace_slug=slug,
+                project_id=project_id,
+                issue_id=issue_id,
+                current_site=base_host(request=request, is_app=True),
             )
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
