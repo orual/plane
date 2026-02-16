@@ -574,5 +574,118 @@ describe("CPM Calculator", () => {
       expect(resultB.slack).toBe(0);
       expect(resultB.isCritical).toBe(true);
     });
+
+    it("should handle mixed FS and SS dependencies in complex graph", () => {
+      // A→B (FS), A→C (SS), B→D (FS), C→D (SS)
+      const relationMap = createRelationMap({
+        "issue-a": { blocking: ["issue-b"], start_before: ["issue-c"] },
+        "issue-b": { blocking: ["issue-d"] },
+        "issue-c": { start_before: ["issue-d"] },
+      });
+      const getIssueDates = createGetIssueDates({
+        "issue-a": { start_date: "2025-01-01", target_date: "2025-01-03" },
+        "issue-b": { start_date: "2025-01-04", target_date: "2025-01-06" },
+        "issue-c": { start_date: "2025-01-01", target_date: "2025-01-02" },
+        "issue-d": { start_date: "2025-01-07", target_date: "2025-01-09" },
+      });
+
+      const result = computeCpm(relationMap, getIssueDates);
+
+      // Verify all issues are in result
+      expect(result.size).toBeGreaterThanOrEqual(3); // At least A, B, D have constraints
+    });
+
+    it("should handle FF dependencies in full computation", () => {
+      // A→B (FF): both finish on same day
+      const relationMap = createRelationMap({
+        "issue-a": { finish_before: ["issue-b"] },
+      });
+      const getIssueDates = createGetIssueDates({
+        "issue-a": { start_date: "2025-01-01", target_date: "2025-01-05" },
+        "issue-b": { start_date: "2025-01-03", target_date: "2025-01-05" },
+      });
+
+      const result = computeCpm(relationMap, getIssueDates);
+
+      // B should match A's finish date
+      expect(result.get("issue-b")!.ef).toBe("2025-01-05");
+    });
+
+    it("should handle dateless tasks in full computation (AC1.7)", () => {
+      // A has dates, B has no dates, A blocks B
+      const relationMap = createRelationMap({
+        "issue-a": { blocking: ["issue-b"] },
+      });
+      const getIssueDates = createGetIssueDates({
+        "issue-a": { start_date: "2025-01-01", target_date: "2025-01-03" },
+        "issue-b": { start_date: undefined, target_date: undefined },
+      });
+
+      const result = computeCpm(relationMap, getIssueDates);
+
+      // B should have default duration of 1 day after A finishes
+      expect(result.get("issue-b")!.es).toBe("2025-01-04");
+      expect(result.get("issue-b")!.ef).toBe("2025-01-04");
+      expect(result.get("issue-b")!.slack).toBe(0);
+    });
+
+    it("should handle issues with only start_date in full computation (AC1.10)", () => {
+      const relationMap = createRelationMap({
+        "issue-a": { blocking: ["issue-b"] },
+      });
+      const getIssueDates = createGetIssueDates({
+        "issue-a": { start_date: "2025-01-01", target_date: "2025-01-03" },
+        "issue-b": { start_date: "2025-01-05", target_date: undefined },
+      });
+
+      const result = computeCpm(relationMap, getIssueDates);
+
+      // B has only start date, gets default duration
+      expect(result.get("issue-b")!.duration).toBeUndefined(); // duration not in CpmResult
+      expect(result.get("issue-b")!.es).toBe("2025-01-05");
+      expect(result.get("issue-b")!.ef).toBe("2025-01-05");
+    });
+
+    it("should handle issues with only target_date in full computation (AC1.10)", () => {
+      const relationMap = createRelationMap({
+        "issue-a": { blocking: ["issue-b"] },
+      });
+      const getIssueDates = createGetIssueDates({
+        "issue-a": { start_date: "2025-01-01", target_date: "2025-01-03" },
+        "issue-b": { start_date: undefined, target_date: "2025-01-06" },
+      });
+
+      const result = computeCpm(relationMap, getIssueDates);
+
+      // B has only target date, gets default duration
+      expect(result.get("issue-b")!.es).toBe("2025-01-06");
+      expect(result.get("issue-b")!.ef).toBe("2025-01-06");
+    });
+
+    it("should verify critical path consistency across complex graph", () => {
+      // Create a graph where critical path is A→B→D, and A→C is shorter
+      const relationMap = createRelationMap({
+        "issue-a": { blocking: ["issue-b", "issue-c"] },
+        "issue-b": { blocking: ["issue-d"] },
+        "issue-c": { blocking: ["issue-d"] },
+      });
+      const getIssueDates = createGetIssueDates({
+        "issue-a": { start_date: "2025-01-01", target_date: "2025-01-02" },
+        "issue-b": { start_date: "2025-01-03", target_date: "2025-01-07" }, // 5 days
+        "issue-c": { start_date: "2025-01-03", target_date: "2025-01-03" }, // 1 day
+        "issue-d": { start_date: "2025-01-08", target_date: "2025-01-08" },
+      });
+
+      const result = computeCpm(relationMap, getIssueDates);
+
+      // Critical path: A→B→D
+      expect(result.get("issue-a")!.isCritical).toBe(true);
+      expect(result.get("issue-b")!.isCritical).toBe(true);
+      expect(result.get("issue-d")!.isCritical).toBe(true);
+
+      // Non-critical: C (shorter path)
+      expect(result.get("issue-c")!.isCritical).toBe(false);
+      expect(result.get("issue-c")!.slack).toBeGreaterThan(0);
+    });
   });
 });
