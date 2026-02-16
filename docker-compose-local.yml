@@ -188,8 +188,6 @@ services:
       - dev_env
     ports:
       - "8001:8001"
-    env_file:
-      - .env
     environment:
       PLANE_BASE_URL: http://api:8000
       PLANE_API_KEY: ${MCP_API_KEY:-}
