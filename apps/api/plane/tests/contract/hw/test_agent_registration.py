@@ -177,9 +177,7 @@ class TestAgentRegistration:
 
         # Deactivate the agent
         deactivate_url = self.get_agent_detail_url(workspace.slug, agent_id)
-        deactivate_response = session_client.patch(
-            deactivate_url, {"is_active": False}, format="json"
-        )
+        deactivate_response = session_client.patch(deactivate_url, {"is_active": False}, format="json")
         assert deactivate_response.status_code == status.HTTP_200_OK
 
         # Try to use token to create a run — should be rejected
@@ -192,3 +190,82 @@ class TestAgentRegistration:
 
         # Should be rejected with 403
         assert runs_response.status_code == status.HTTP_403_FORBIDDEN
+
+
+@pytest.mark.contract
+class TestAgentUnauthenticatedAccess:
+    """Contract tests for unauthenticated access to agent endpoints (AC12.1)."""
+
+    def get_agents_url(self, workspace_slug):
+        """Get the agents list/create endpoint URL."""
+        return f"/api/workspaces/{workspace_slug}/agents/"
+
+    def get_agent_runs_url(self, workspace_slug):
+        """Get the agent runs list/create endpoint URL."""
+        return f"/api/workspaces/{workspace_slug}/agent-runs/"
+
+    def get_agent_run_activities_url(self, workspace_slug, run_id):
+        """Get the agent run activities list/create endpoint URL."""
+        return f"/api/workspaces/{workspace_slug}/agent-runs/{run_id}/activities/"
+
+    @pytest.mark.django_db
+    def test_ac12_1_unauthenticated_agents_list_rejected(self, api_client, workspace):
+        """AC12.1: Unauthenticated GET to agents list returns 401 or 403."""
+        url = self.get_agents_url(workspace.slug)
+        response = api_client.get(url)
+
+        assert response.status_code in [status.HTTP_401_UNAUTHORIZED, status.HTTP_403_FORBIDDEN]
+
+    @pytest.mark.django_db
+    def test_ac12_1_unauthenticated_agents_create_rejected(self, api_client, workspace):
+        """AC12.1: Unauthenticated POST to agents create returns 401 or 403."""
+        url = self.get_agents_url(workspace.slug)
+        data = {
+            "display_name": "Unauthorized Agent",
+        }
+        response = api_client.post(url, data, format="json")
+
+        assert response.status_code in [status.HTTP_401_UNAUTHORIZED, status.HTTP_403_FORBIDDEN]
+
+    @pytest.mark.django_db
+    def test_ac12_1_unauthenticated_agent_runs_list_rejected(self, api_client, workspace):
+        """AC12.1: Unauthenticated GET to agent runs list returns 401 or 403."""
+        url = self.get_agent_runs_url(workspace.slug)
+        response = api_client.get(url)
+
+        assert response.status_code in [status.HTTP_401_UNAUTHORIZED, status.HTTP_403_FORBIDDEN]
+
+    @pytest.mark.django_db
+    def test_ac12_1_unauthenticated_agent_runs_create_rejected(self, api_client, workspace):
+        """AC12.1: Unauthenticated POST to agent runs create returns 401 or 403."""
+        url = self.get_agent_runs_url(workspace.slug)
+        data = {
+            "agent_id": "00000000-0000-0000-0000-000000000000",
+        }
+        response = api_client.post(url, data, format="json")
+
+        assert response.status_code in [status.HTTP_401_UNAUTHORIZED, status.HTTP_403_FORBIDDEN]
+
+    @pytest.mark.django_db
+    def test_ac12_1_unauthenticated_agent_run_activities_list_rejected(self, api_client, workspace):
+        """AC12.1: Unauthenticated GET to agent run activities list returns 401 or 403."""
+        # Use a fake UUID for the run_id since auth should be checked before lookup
+        fake_run_id = "00000000-0000-0000-0000-000000000000"
+        url = self.get_agent_run_activities_url(workspace.slug, fake_run_id)
+        response = api_client.get(url)
+
+        assert response.status_code in [status.HTTP_401_UNAUTHORIZED, status.HTTP_403_FORBIDDEN]
+
+    @pytest.mark.django_db
+    def test_ac12_1_unauthenticated_agent_run_activities_create_rejected(self, api_client, workspace):
+        """AC12.1: Unauthenticated POST to agent run activities create returns 401 or 403."""
+        # Use a fake UUID for the run_id since auth should be checked before lookup
+        fake_run_id = "00000000-0000-0000-0000-000000000000"
+        url = self.get_agent_run_activities_url(workspace.slug, fake_run_id)
+        data = {
+            "activity_type": "thought",
+            "content": "Thinking about this...",
+        }
+        response = api_client.post(url, data, format="json")
+
+        assert response.status_code in [status.HTTP_401_UNAUTHORIZED, status.HTTP_403_FORBIDDEN]
