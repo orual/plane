@@ -90,7 +90,10 @@ class Renderer:
             ),
             RendererConfig(
                 match="**/*.kicad_pcb",
-                command="kicad-cli pcb export svg -o {output_dir}/{file_stem}-pcb.svg --layers F.Cu,B.Cu,F.SilkS,B.SilkS,Edge.Cuts --page-size-mode 2 {file}",
+                command=(
+                    "kicad-cli pcb export svg -o {output_dir}/{file_stem}-pcb.svg "
+                    "--layers F.Cu,B.Cu,F.SilkS,B.SilkS,Edge.Cuts --page-size-mode 2 {file}"
+                ),
                 config="",
                 formats=("svg",),
             ),
@@ -209,9 +212,7 @@ class Renderer:
         """
         return file_path.endswith(".kicad_sch") or file_path.endswith(".kicad_pcb")
 
-    def _collect_output_files(
-        self, output_dir: str, source_path: str, formats: tuple[str, ...]
-    ) -> list[RenderFile]:
+    def _collect_output_files(self, output_dir: str, source_path: str, formats: tuple[str, ...]) -> list[RenderFile]:
         """Collect output files from render directory by configured format.
 
         Args:
