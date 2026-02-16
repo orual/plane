@@ -137,7 +137,7 @@ class ConfigLoader:
                     raise ValueError("Each renderer must have a 'match'")
                 if not command:
                     raise ValueError("Each renderer must have a 'command'")
-                if not config:
+                if config is None:
                     raise ValueError("Each renderer must have a 'config'")
                 if not isinstance(formats, list):
                     raise ValueError("'formats' must be a list")

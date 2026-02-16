@@ -113,3 +113,26 @@ plane:
         config = ConfigLoader.load(config_file)
 
         assert config.renderers is None
+
+    def test_renderer_with_empty_config_string(self, tmp_path):
+        """Test that empty string config is accepted for renderers that don't need a config file."""
+        config_file = tmp_path / "config.yml"
+        config_file.write_text(
+            """
+plane:
+  base_url: https://plane.example.com
+  workspace: my-workspace
+
+renderers:
+  - match: "**/*.kicad_sch"
+    command: "kicad-cli sch export svg -o {output_dir} {file}"
+    config: ""
+    formats: ["svg"]
+"""
+        )
+
+        config = ConfigLoader.load(config_file)
+
+        assert config.renderers is not None
+        assert len(config.renderers) == 1
+        assert config.renderers[0].config == ""

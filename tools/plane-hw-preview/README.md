@@ -228,7 +228,7 @@ Commit: "Minor tweaks"  (no PWR prefix)
 Result: Posts preview to PWR-1 (the default_issue for "power-stage/**")
 ```
 
-If both strategies match, the tool posts separate comments to each issue.
+If both strategies match the same project, the commit message prefix takes priority over the path mapping default. If they match different projects, the tool posts separate comments to each issue.
 
 ## Nix development
 

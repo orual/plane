@@ -86,14 +86,15 @@ def post(adapter, config):
         render_results = renderer.render(list(adapter_result.changed_files))
 
         # Match render outputs to targets by source_path
-        render_map = {rf.source_path: rf for rf in render_results}
+        render_map: dict[str, list] = {}
+        for rf in render_results:
+            render_map.setdefault(rf.source_path, []).append(rf)
         matched_targets = []
 
         for target in targets:
             matched_files = []
             for placeholder_file in target.render_files:
-                if placeholder_file.source_path in render_map:
-                    matched_files.append(render_map[placeholder_file.source_path])
+                matched_files.extend(render_map.get(placeholder_file.source_path, []))
 
             if matched_files:
                 matched_target = PreviewTarget(

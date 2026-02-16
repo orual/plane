@@ -19,9 +19,9 @@ path_mappings:
 renderers:
   - match: "**/*.kicad_sch"
     command: "kicad-cli sch export svg -o {output_dir} {file}"
-    config: "none"
+    config: ""
     formats: ["svg"]
   - match: "**/*.kicad_pcb"
     command: "kicad-cli pcb export svg -o {output_dir}/{file_stem}-pcb.svg --layers F.Cu,B.Cu,F.SilkS,B.SilkS,Edge.Cuts --page-size-mode 2 {file}"
-    config: "none"
+    config: ""
     formats: ["svg"]

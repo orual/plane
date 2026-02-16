@@ -169,15 +169,15 @@ class Renderer:
             try:
                 result = subprocess.run(cmd_args, capture_output=True, timeout=120)
             except subprocess.TimeoutExpired:
-                logger.error(f"render command timed out for {file_path}")
+                logger.error("render command timed out for %s", file_path)
                 continue
             except Exception as e:
-                logger.error(f"failed to execute render command for {file_path}: {e}")
+                logger.error("failed to execute render command for %s: %s", file_path, e)
                 continue
 
             if result.returncode != 0:
                 logger.error(
-                    f"render command failed for {file_path}: {result.stderr.decode('utf-8', errors='replace')}"
+                    "render command failed for %s: %s", file_path, result.stderr.decode('utf-8', errors='replace')
                 )
                 continue
 

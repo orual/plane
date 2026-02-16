@@ -4,12 +4,14 @@ import json
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
+import pytest
 from click.testing import CliRunner
 
 from plane_preview.cli import main
 from plane_preview.types import PlaneAPIError, PreviewTarget, RenderFile
 
 
+@pytest.mark.unit
 class TestInitCommand:
     """Test suite for the 'init' command."""
 
@@ -74,6 +76,7 @@ class TestInitCommand:
             assert "plane:" in content
 
 
+@pytest.mark.unit
 class TestPostCommand:
     """Test suite for the 'post' command."""
 
@@ -338,3 +341,106 @@ path_mappings: []
 
             assert result.exit_code == 1
             assert "API connection failed" in result.output
+
+    @patch("plane_preview.cli.Renderer")
+    @patch("plane_preview.cli.IssueResolver")
+    @patch("plane_preview.cli.GitHubAdapter")
+    @patch("plane_preview.cli.PlaneClient")
+    def test_post_handles_multi_output_rendering(
+        self,
+        mock_client_cls,
+        mock_adapter_cls,
+        mock_resolver_cls,
+        mock_renderer_cls,
+    ):
+        """Verify post command correctly handles multiple renders from same source file.
+
+        Tests that when one source file produces multiple rendered outputs (e.g., multi-sheet
+        schematic → multiple SVGs), all renders are included in the preview.
+        """
+        runner = CliRunner()
+        with runner.isolated_filesystem():
+            # Create config
+            config_content = """
+plane:
+  base_url: https://example.com
+  workspace: test
+commit_patterns:
+  - prefix: "TEST"
+    project: "test-proj"
+path_mappings: []
+"""
+            Path(".plane-preview.yml").write_text(config_content)
+
+            # Create event payload
+            event_payload = {
+                "head_commit": {"id": "abc123", "message": "feat: test [TEST-1]"},
+                "commits": [{"added": ["board.kicad_sch"], "modified": [], "removed": []}],
+            }
+            event_file = Path("event.json")
+            event_file.write_text(json.dumps(event_payload))
+
+            # Mock adapter result
+            mock_adapter_cls.extract.return_value = MagicMock(
+                commit_sha="abc123",
+                commit_message="feat: test [TEST-1]",
+                commit_url="https://github.com/test/repo/commit/abc123",
+                branch="main",
+                changed_files=["board.kicad_sch"],
+            )
+
+            # Mock resolver result with single render file
+            render_file = RenderFile(
+                source_path="board.kicad_sch",
+                render_path=Path("output/board.svg"),
+                mime_type="image/svg+xml",
+            )
+            target = PreviewTarget(
+                project_id="proj-123",
+                issue_id="issue-456",
+                render_files=(render_file,),
+            )
+            mock_resolver = MagicMock()
+            mock_resolver.resolve.return_value = [target]
+            mock_resolver_cls.return_value = mock_resolver
+
+            # Mock renderer result with MULTIPLE outputs from same source
+            render_file1 = RenderFile(
+                source_path="board.kicad_sch",
+                render_path=Path("output/board-sheet1.svg"),
+                mime_type="image/svg+xml",
+            )
+            render_file2 = RenderFile(
+                source_path="board.kicad_sch",
+                render_path=Path("output/board-sheet2.svg"),
+                mime_type="image/svg+xml",
+            )
+            mock_renderer = MagicMock()
+            mock_renderer.render.return_value = [render_file1, render_file2]
+            mock_renderer_cls.return_value = mock_renderer
+
+            # Mock client
+            mock_client = MagicMock()
+            mock_client_cls.return_value.__enter__.return_value = mock_client
+
+            env = {
+                "PLANE_API_KEY": "test-key",
+                "GITHUB_SHA": "abc123",
+                "GITHUB_REF_NAME": "main",
+                "GITHUB_REPOSITORY": "test/repo",
+                "GITHUB_EVENT_PATH": str(event_file),
+            }
+
+            result = runner.invoke(main, ["post", "--adapter", "github"], env=env, catch_exceptions=False)
+
+            assert result.exit_code == 0
+            assert "Posted previews to 1 issue(s)" in result.output
+
+            # Verify that post_preview was called with both render files
+            mock_client.post_preview.assert_called_once()
+            call_args = mock_client.post_preview.call_args
+            targets_arg = call_args[0][0]
+            assert len(targets_arg) == 1
+            assert len(targets_arg[0].render_files) == 2
+            assert targets_arg[0].render_files[0].render_path.name == "board-sheet1.svg"
+            assert targets_arg[0].render_files[1].render_path.name == "board-sheet2.svg"

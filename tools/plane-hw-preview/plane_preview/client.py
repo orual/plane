@@ -1,5 +1,6 @@
 """Plane API client for uploading assets and creating comments."""
 
+import html
 import logging
 from pathlib import Path
 
@@ -92,7 +93,12 @@ class PlaneClient:
         # Check file size
         file_size = file_path.stat().st_size
         if file_size > MAX_FILE_SIZE:
-            logger.warning(f"File {file_path.name} ({file_size} bytes) exceeds {MAX_FILE_SIZE} bytes limit, skipping")
+            logger.warning(
+                "File %s (%d bytes) exceeds %d bytes limit, skipping",
+                file_path.name,
+                file_size,
+                MAX_FILE_SIZE,
+            )
             return None
 
         # Step 1: Get presigned URL
@@ -242,10 +248,10 @@ class PlaneClient:
                     if response.status_code >= 500:
                         raise _HTTPError(f"HTTP {response.status_code}")
                     if response.status_code == 409:
-                        logger.info(f"Comment already exists for {external_id}")
+                        logger.info("Comment already exists for %s", external_id)
                         return None
                     if response.status_code == 404:
-                        logger.warning(f"Issue {issue_id} not found")
+                        logger.warning("Issue %s not found", issue_id)
                         return None
                     if response.status_code != 201:
                         raise PlaneAPIError(f"Failed to create comment: {response.status_code}")
@@ -287,19 +293,20 @@ class PlaneClient:
 
             # Skip if no uploads succeeded
             if not uploads:
-                logger.warning(f"Skipping preview for {target.issue_id}: all renders failed or were oversized")
+                logger.warning("Skipping preview for %s: all renders failed or were oversized", target.issue_id)
                 continue
 
             # Build HTML comment
             html_parts = [
-                f'<h3>Hardware preview — commit <a href="{commit_url}">{short_sha}</a></h3>',
-                f"<p>Branch: <code>{branch}</code></p>",
+                f'<h3>Hardware preview — commit <a href="{html.escape(commit_url)}">{html.escape(short_sha)}</a></h3>',
+                f"<p>Branch: <code>{html.escape(branch)}</code></p>",
             ]
 
             for render_file, upload_result in uploads:
-                html_parts.append(f"<h4>{render_file.source_path}</h4>")
+                html_parts.append(f"<h4>{html.escape(render_file.source_path)}</h4>")
+                img_alt = f"{html.escape(render_file.render_path.name)} render"
                 html_parts.append(
-                    f'<p><img src="{upload_result.asset_url}" alt="{render_file.render_path.name} render" /></p>'
+                    f'<p><img src="{html.escape(upload_result.asset_url)}" alt="{img_alt}" /></p>'
                 )
 
             comment_html = "\n".join(html_parts)
@@ -314,9 +321,9 @@ class PlaneClient:
             )
 
             if comment_id is not None:
-                logger.info(f"Created comment {comment_id} on {target.issue_id}")
+                logger.info("Created comment %s on %s", comment_id, target.issue_id)
             else:
-                logger.info(f"Skipped comment for {target.issue_id} (duplicate or invalid)")
+                logger.info("Skipped comment for %s (duplicate or invalid)", target.issue_id)
 
 
 class _HTTPError(Exception):

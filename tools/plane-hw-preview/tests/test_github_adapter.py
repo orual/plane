@@ -10,6 +10,7 @@ from plane_preview.adapters.github import GitHubAdapter
 from plane_preview.types import PlaneAPIError
 
 
+@pytest.mark.unit
 class TestGitHubAdapter:
     """Test suite for GitHubAdapter."""
 
