@@ -64,7 +64,7 @@ class TestCycleDetectionAPI:
 
         # Create A is blocked by B via API
         response = session_client_auth.post(
-            f"/api/workspaces/{project.workspace.slug}/projects/{project.id}/issues/{issue_a.id}/relations/",
+            f"/api/workspaces/{project.workspace.slug}/projects/{project.id}/issues/{issue_a.id}/issue-relation/",
             {
                 "relation_type": "blocked_by",
                 "issues": [str(issue_b.id)],
@@ -75,7 +75,7 @@ class TestCycleDetectionAPI:
 
         # Try to create B is blocked by A via API - should be rejected
         response = session_client_auth.post(
-            f"/api/workspaces/{project.workspace.slug}/projects/{project.id}/issues/{issue_b.id}/relations/",
+            f"/api/workspaces/{project.workspace.slug}/projects/{project.id}/issues/{issue_b.id}/issue-relation/",
             {
                 "relation_type": "blocked_by",
                 "issues": [str(issue_a.id)],
@@ -97,7 +97,7 @@ class TestCycleDetectionAPI:
 
         # Create A is blocked by B
         response = session_client_auth.post(
-            f"/api/workspaces/{project.workspace.slug}/projects/{project.id}/issues/{issue_a.id}/relations/",
+            f"/api/workspaces/{project.workspace.slug}/projects/{project.id}/issues/{issue_a.id}/issue-relation/",
             {
                 "relation_type": "blocked_by",
                 "issues": [str(issue_b.id)],
@@ -108,7 +108,7 @@ class TestCycleDetectionAPI:
 
         # Create B is blocked by C
         response = session_client_auth.post(
-            f"/api/workspaces/{project.workspace.slug}/projects/{project.id}/issues/{issue_b.id}/relations/",
+            f"/api/workspaces/{project.workspace.slug}/projects/{project.id}/issues/{issue_b.id}/issue-relation/",
             {
                 "relation_type": "blocked_by",
                 "issues": [str(issue_c.id)],
@@ -119,7 +119,7 @@ class TestCycleDetectionAPI:
 
         # Try to create C is blocked by A - should be rejected
         response = session_client_auth.post(
-            f"/api/workspaces/{project.workspace.slug}/projects/{project.id}/issues/{issue_c.id}/relations/",
+            f"/api/workspaces/{project.workspace.slug}/projects/{project.id}/issues/{issue_c.id}/issue-relation/",
             {
                 "relation_type": "blocked_by",
                 "issues": [str(issue_a.id)],
@@ -140,7 +140,7 @@ class TestCycleDetectionAPI:
 
         # Create A is blocked by B
         response = session_client_auth.post(
-            f"/api/workspaces/{project.workspace.slug}/projects/{project.id}/issues/{issue_a.id}/relations/",
+            f"/api/workspaces/{project.workspace.slug}/projects/{project.id}/issues/{issue_a.id}/issue-relation/",
             {
                 "relation_type": "blocked_by",
                 "issues": [str(issue_b.id)],
@@ -151,7 +151,7 @@ class TestCycleDetectionAPI:
 
         # Try to create B is blocked by A
         response = session_client_auth.post(
-            f"/api/workspaces/{project.workspace.slug}/projects/{project.id}/issues/{issue_b.id}/relations/",
+            f"/api/workspaces/{project.workspace.slug}/projects/{project.id}/issues/{issue_b.id}/issue-relation/",
             {
                 "relation_type": "blocked_by",
                 "issues": [str(issue_a.id)],
@@ -175,7 +175,7 @@ class TestCycleDetectionAPI:
 
         # Create A relates to B
         response = session_client_auth.post(
-            f"/api/workspaces/{project.workspace.slug}/projects/{project.id}/issues/{issue_a.id}/relations/",
+            f"/api/workspaces/{project.workspace.slug}/projects/{project.id}/issues/{issue_a.id}/issue-relation/",
             {
                 "relation_type": "relates_to",
                 "issues": [str(issue_b.id)],
@@ -186,7 +186,7 @@ class TestCycleDetectionAPI:
 
         # Create B relates to A - should also succeed (no cycle check for relates_to)
         response = session_client_auth.post(
-            f"/api/workspaces/{project.workspace.slug}/projects/{project.id}/issues/{issue_b.id}/relations/",
+            f"/api/workspaces/{project.workspace.slug}/projects/{project.id}/issues/{issue_b.id}/issue-relation/",
             {
                 "relation_type": "relates_to",
                 "issues": [str(issue_a.id)],
@@ -205,7 +205,7 @@ class TestCycleDetectionAPI:
 
         # Create A is duplicate of B
         response = session_client_auth.post(
-            f"/api/workspaces/{project.workspace.slug}/projects/{project.id}/issues/{issue_a.id}/relations/",
+            f"/api/workspaces/{project.workspace.slug}/projects/{project.id}/issues/{issue_a.id}/issue-relation/",
             {
                 "relation_type": "duplicate",
                 "issues": [str(issue_b.id)],
@@ -216,7 +216,7 @@ class TestCycleDetectionAPI:
 
         # Create B is duplicate of A - should also succeed (no cycle check for duplicate)
         response = session_client_auth.post(
-            f"/api/workspaces/{project.workspace.slug}/projects/{project.id}/issues/{issue_b.id}/relations/",
+            f"/api/workspaces/{project.workspace.slug}/projects/{project.id}/issues/{issue_b.id}/issue-relation/",
             {
                 "relation_type": "duplicate",
                 "issues": [str(issue_a.id)],
@@ -233,7 +233,7 @@ class TestCycleDetectionAPI:
 
         # Try to create A is blocked by A
         response = session_client_auth.post(
-            f"/api/workspaces/{project.workspace.slug}/projects/{project.id}/issues/{issue_a.id}/relations/",
+            f"/api/workspaces/{project.workspace.slug}/projects/{project.id}/issues/{issue_a.id}/issue-relation/",
             {
                 "relation_type": "blocked_by",
                 "issues": [str(issue_a.id)],
@@ -255,7 +255,7 @@ class TestCycleDetectionAPI:
 
         # Create A blocking B (stored as B blocked_by A)
         response = session_client_auth.post(
-            f"/api/workspaces/{project.workspace.slug}/projects/{project.id}/issues/{issue_a.id}/relations/",
+            f"/api/workspaces/{project.workspace.slug}/projects/{project.id}/issues/{issue_a.id}/issue-relation/",
             {
                 "relation_type": "blocking",
                 "issues": [str(issue_b.id)],
@@ -267,7 +267,7 @@ class TestCycleDetectionAPI:
         # Try to create B blocking A (stored as A blocked_by B)
         # This would create: B blocked_by A, A blocked_by B - a cycle!
         response = session_client_auth.post(
-            f"/api/workspaces/{project.workspace.slug}/projects/{project.id}/issues/{issue_b.id}/relations/",
+            f"/api/workspaces/{project.workspace.slug}/projects/{project.id}/issues/{issue_b.id}/issue-relation/",
             {
                 "relation_type": "blocking",
                 "issues": [str(issue_a.id)],
@@ -288,7 +288,7 @@ class TestCycleDetectionAPI:
 
         # Create A start_before B
         response = session_client_auth.post(
-            f"/api/workspaces/{project.workspace.slug}/projects/{project.id}/issues/{issue_a.id}/relations/",
+            f"/api/workspaces/{project.workspace.slug}/projects/{project.id}/issues/{issue_a.id}/issue-relation/",
             {
                 "relation_type": "start_before",
                 "issues": [str(issue_b.id)],
@@ -299,7 +299,7 @@ class TestCycleDetectionAPI:
 
         # Try to create B start_before A - should be rejected
         response = session_client_auth.post(
-            f"/api/workspaces/{project.workspace.slug}/projects/{project.id}/issues/{issue_b.id}/relations/",
+            f"/api/workspaces/{project.workspace.slug}/projects/{project.id}/issues/{issue_b.id}/issue-relation/",
             {
                 "relation_type": "start_before",
                 "issues": [str(issue_a.id)],
@@ -320,7 +320,7 @@ class TestCycleDetectionAPI:
 
         # Create A finish_before B
         response = session_client_auth.post(
-            f"/api/workspaces/{project.workspace.slug}/projects/{project.id}/issues/{issue_a.id}/relations/",
+            f"/api/workspaces/{project.workspace.slug}/projects/{project.id}/issues/{issue_a.id}/issue-relation/",
             {
                 "relation_type": "finish_before",
                 "issues": [str(issue_b.id)],
@@ -331,7 +331,7 @@ class TestCycleDetectionAPI:
 
         # Try to create B finish_before A - should be rejected
         response = session_client_auth.post(
-            f"/api/workspaces/{project.workspace.slug}/projects/{project.id}/issues/{issue_b.id}/relations/",
+            f"/api/workspaces/{project.workspace.slug}/projects/{project.id}/issues/{issue_b.id}/issue-relation/",
             {
                 "relation_type": "finish_before",
                 "issues": [str(issue_a.id)],
@@ -352,7 +352,7 @@ class TestCycleDetectionAPI:
 
         # Create A implemented_by B
         response = session_client_auth.post(
-            f"/api/workspaces/{project.workspace.slug}/projects/{project.id}/issues/{issue_a.id}/relations/",
+            f"/api/workspaces/{project.workspace.slug}/projects/{project.id}/issues/{issue_a.id}/issue-relation/",
             {
                 "relation_type": "implemented_by",
                 "issues": [str(issue_b.id)],
@@ -363,7 +363,7 @@ class TestCycleDetectionAPI:
 
         # Try to create B implemented_by A - should be rejected
         response = session_client_auth.post(
-            f"/api/workspaces/{project.workspace.slug}/projects/{project.id}/issues/{issue_b.id}/relations/",
+            f"/api/workspaces/{project.workspace.slug}/projects/{project.id}/issues/{issue_b.id}/issue-relation/",
             {
                 "relation_type": "implemented_by",
                 "issues": [str(issue_a.id)],
@@ -386,7 +386,7 @@ class TestCycleDetectionAPI:
 
         # Create A is blocked by B
         response = session_client_auth.post(
-            f"/api/workspaces/{project.workspace.slug}/projects/{project.id}/issues/{issue_a.id}/relations/",
+            f"/api/workspaces/{project.workspace.slug}/projects/{project.id}/issues/{issue_a.id}/issue-relation/",
             {
                 "relation_type": "blocked_by",
                 "issues": [str(issue_b.id)],
@@ -397,7 +397,7 @@ class TestCycleDetectionAPI:
 
         # Create B is blocked by C
         response = session_client_auth.post(
-            f"/api/workspaces/{project.workspace.slug}/projects/{project.id}/issues/{issue_b.id}/relations/",
+            f"/api/workspaces/{project.workspace.slug}/projects/{project.id}/issues/{issue_b.id}/issue-relation/",
             {
                 "relation_type": "blocked_by",
                 "issues": [str(issue_c.id)],
@@ -408,7 +408,7 @@ class TestCycleDetectionAPI:
 
         # Create A is blocked by C (independent edge, valid)
         response = session_client_auth.post(
-            f"/api/workspaces/{project.workspace.slug}/projects/{project.id}/issues/{issue_a.id}/relations/",
+            f"/api/workspaces/{project.workspace.slug}/projects/{project.id}/issues/{issue_a.id}/issue-relation/",
             {
                 "relation_type": "blocked_by",
                 "issues": [str(issue_c.id)],
