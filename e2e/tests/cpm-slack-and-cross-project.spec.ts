@@ -55,13 +55,10 @@ test.describe("CPM Slack and Cross-Project", () => {
 
     // Act: Navigate to gantt and enable CPM
     await page.goto(`/${workspaceSlug}/projects/${projectId}/issues/?type=gantt`);
-    await page.waitForTimeout(2000);
 
     const cpmToggle = page.locator('[data-test="cpm-toggle"]');
     await expect(cpmToggle).toBeVisible({ timeout: 10000 });
     await cpmToggle.click();
-
-    await page.waitForTimeout(1000);
 
     // Assert: Slack bar exists for non-critical task D
     const slackBarD = page.locator(`[data-test="cpm-slack-bar"][data-test-issue-id="${issueD.id}"]`);
@@ -72,9 +69,9 @@ test.describe("CPM Slack and Cross-Project", () => {
     const slackBarB = page.locator(`[data-test="cpm-slack-bar"][data-test-issue-id="${issueB.id}"]`);
     const slackBarC = page.locator(`[data-test="cpm-slack-bar"][data-test-issue-id="${issueC.id}"]`);
 
-    await expect(slackBarA).not.toBeVisible();
-    await expect(slackBarB).not.toBeVisible();
-    await expect(slackBarC).not.toBeVisible();
+    await expect(slackBarA).toHaveCount(0);
+    await expect(slackBarB).toHaveCount(0);
+    await expect(slackBarC).toHaveCount(0);
   });
 
   test.fixme("AC7.6: Cross-project mode shows phantom anchors", async ({
@@ -119,27 +116,22 @@ test.describe("CPM Slack and Cross-Project", () => {
         relation_type: "blocked_by",
         related_list: [`${project2.id}:${issueX.id}`],
       });
-    } catch (e) {
+    } catch (_e) {
       // If cross-project relation is not supported, skip the rest of the test
       test.skip();
     }
 
     // Act: Navigate to project 1's gantt, enable CPM, then enable cross-project mode
     await page.goto(`/${workspaceSlug}/projects/${projectId}/issues/?type=gantt`);
-    await page.waitForTimeout(2000);
 
     const cpmToggle = page.locator('[data-test="cpm-toggle"]');
     await expect(cpmToggle).toBeVisible({ timeout: 10000 });
     await cpmToggle.click();
 
-    await page.waitForTimeout(1000);
-
     // Enable cross-project mode
     const crossProjectToggle = page.locator('[data-test="cpm-cross-project-toggle"]');
     await expect(crossProjectToggle).toBeVisible({ timeout: 5000 });
     await crossProjectToggle.click();
-
-    await page.waitForTimeout(1000);
 
     // Assert: Phantom anchor appears at timeline edge for issue X
     const phantomAnchor = page.locator('[data-test="cpm-phantom-anchor"]');
