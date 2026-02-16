@@ -73,6 +73,11 @@ export const useGanttResizable = (
 
       if (!ganttContainerDimensions.current) return;
 
+      // Prevent resize of computed-date blocks (only allow move)
+      if ((dragDirection === "left" || dragDirection === "right") && block?.dateSource === "computed") {
+        return;
+      }
+
       const { left: containerLeft } = ganttContainerDimensions.current;
 
       const mouseX = e.clientX - containerLeft - SIDEBAR_WIDTH + ganttContainerElement.scrollLeft;
