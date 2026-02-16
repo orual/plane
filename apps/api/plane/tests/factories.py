@@ -193,3 +193,56 @@ class PropertyValueFactory(factory.django.DjangoModelFactory):
     workspace = factory.LazyAttribute(lambda o: o.issue.workspace)
     created_at = factory.LazyFunction(timezone.now)
     updated_at = factory.LazyFunction(timezone.now)
+
+
+class AgentProfileFactory(factory.django.DjangoModelFactory):
+    """Factory for creating AgentProfile instances"""
+
+    class Meta:
+        model = "hw.AgentProfile"
+
+    id = factory.LazyFunction(uuid4)
+    user = factory.SubFactory(UserFactory)
+    workspace = factory.SubFactory(WorkspaceFactory)
+    webhook_url = "https://example.com/webhook"
+    webhook_secret = factory.Sequence(lambda n: f"secret-{n}")
+    event_triggers = factory.LazyFunction(lambda: {"issues": ["created", "updated"]})
+    is_active = True
+    display_name = factory.Sequence(lambda n: f"Agent {n}")
+    description = "Test agent"
+    created_at = factory.LazyFunction(timezone.now)
+    updated_at = factory.LazyFunction(timezone.now)
+
+
+class AgentRunFactory(factory.django.DjangoModelFactory):
+    """Factory for creating AgentRun instances"""
+
+    class Meta:
+        model = "hw.AgentRun"
+
+    id = factory.LazyFunction(uuid4)
+    agent = factory.SubFactory(AgentProfileFactory)
+    workspace = factory.LazyAttribute(lambda o: o.agent.workspace)
+    project = factory.SubFactory(ProjectFactory, workspace=factory.SelfAttribute("..workspace"))
+    issue = factory.SubFactory(IssueFactory, project=factory.SelfAttribute("..project"))
+    status = "created"
+    stale_timeout = 300
+    trigger_metadata = factory.LazyFunction(dict)
+    created_at = factory.LazyFunction(timezone.now)
+    updated_at = factory.LazyFunction(timezone.now)
+
+
+class AgentRunActivityFactory(factory.django.DjangoModelFactory):
+    """Factory for creating AgentRunActivity instances"""
+
+    class Meta:
+        model = "hw.AgentRunActivity"
+
+    id = factory.LazyFunction(uuid4)
+    run = factory.SubFactory(AgentRunFactory)
+    activity_type = "response"
+    content = "Test activity"
+    metadata = factory.LazyFunction(dict)
+    is_ephemeral = False
+    created_at = factory.LazyFunction(timezone.now)
+    updated_at = factory.LazyFunction(timezone.now)
