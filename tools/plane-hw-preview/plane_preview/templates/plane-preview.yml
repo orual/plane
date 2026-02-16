@@ -28,13 +28,22 @@ path_mappings:
   #   default_issue: "CTRL-1"
 
 # Configure render commands per file type.
-# If omitted and KiBot is on PATH, KiCad files are rendered with KiBot defaults.
+# If omitted, the tool auto-detects kicad-cli or KiBot on PATH.
+# Multiple entries can match the same file — all matching renderers run.
 # renderers:
+#   # Schematics: one SVG per sheet
 #   - match: "**/*.kicad_sch"
-#     command: "kibot -c {config} -d {output_dir} -b {file}"
-#     config: "hardware/kibot.yaml"
-#     formats: ["png", "svg"]
+#     command: "kicad-cli sch export svg -o {output_dir} {file}"
+#     formats: ["svg"]
+#   # PCB front composite (copper + silkscreen + board outline)
 #   - match: "**/*.kicad_pcb"
-#     command: "kibot -c {config} -d {output_dir} -b {file}"
-#     config: "hardware/kibot.yaml"
-#     formats: ["png", "svg"]
+#     command: "kicad-cli pcb export svg --mode-single --layers F.Cu,F.SilkS,Edge.Cuts --page-size-mode 2 -o {output_dir}/{file_stem}-front.svg {file}"
+#     formats: ["svg"]
+#   # PCB back composite
+#   - match: "**/*.kicad_pcb"
+#     command: "kicad-cli pcb export svg --mode-single --layers B.Cu,B.SilkS,Edge.Cuts --page-size-mode 2 -o {output_dir}/{file_stem}-back.svg {file}"
+#     formats: ["svg"]
+#   # PCB individual copper layers (non-existent layers are silently skipped)
+#   - match: "**/*.kicad_pcb"
+#     command: "kicad-cli pcb export svg --mode-multi --layers F.Cu,In1.Cu,In2.Cu,In3.Cu,In4.Cu,In5.Cu,In6.Cu,B.Cu --page-size-mode 2 -o {output_dir} {file}"
+#     formats: ["svg"]

@@ -92,8 +92,29 @@ class Renderer:
             RendererConfig(
                 match="**/*.kicad_pcb",
                 command=(
-                    "kicad-cli pcb export svg -o {output_dir}/{file_stem}-pcb.svg "
-                    "--layers F.Cu,B.Cu,F.SilkS,B.SilkS,Edge.Cuts --page-size-mode 2 {file}"
+                    "kicad-cli pcb export svg --mode-single "
+                    "--layers F.Cu,F.SilkS,Edge.Cuts --page-size-mode 2 "
+                    "-o {output_dir}/{file_stem}-front.svg {file}"
+                ),
+                config="",
+                formats=("svg",),
+            ),
+            RendererConfig(
+                match="**/*.kicad_pcb",
+                command=(
+                    "kicad-cli pcb export svg --mode-single "
+                    "--layers B.Cu,B.SilkS,Edge.Cuts --page-size-mode 2 "
+                    "-o {output_dir}/{file_stem}-back.svg {file}"
+                ),
+                config="",
+                formats=("svg",),
+            ),
+            RendererConfig(
+                match="**/*.kicad_pcb",
+                command=(
+                    "kicad-cli pcb export svg --mode-multi "
+                    "--layers F.Cu,In1.Cu,In2.Cu,In3.Cu,In4.Cu,In5.Cu,In6.Cu,B.Cu "
+                    "--page-size-mode 2 -o {output_dir} {file}"
                 ),
                 config="",
                 formats=("svg",),
@@ -140,10 +161,8 @@ class Renderer:
         for file_path in changed_files:
             abs_path = Path(file_path).resolve()
 
-            # Find matching renderer config
-            renderer_config = self._find_matching_renderer(file_path)
-            if renderer_config is None:
-                # Check if this is a KiCad file we should have rendered
+            matching_renderers = self._find_matching_renderers(file_path)
+            if not matching_renderers:
                 if self._is_kicad_file(file_path) and self._renderer_missing:
                     logger.error(
                         "No KiCad renderer found. Install KiCad (for kicad-cli) or KiBot, "
@@ -151,55 +170,50 @@ class Renderer:
                     )
                 continue
 
-            # Create temporary output directory
-            # Temp dir intentionally not cleaned up here; files must persist until uploaded by client.py
-            output_dir = tempfile.mkdtemp()
+            for renderer_config in matching_renderers:
+                output_dir = tempfile.mkdtemp()
 
-            # Interpolate command template
-            file_stem = abs_path.stem
-            cmd_str = renderer_config.command.format(
-                file=str(abs_path),
-                output_dir=output_dir,
-                config=renderer_config.config,
-                file_stem=file_stem,
-            )
-
-            # Split and execute command
-            cmd_args = shlex.split(cmd_str)
-            try:
-                result = subprocess.run(cmd_args, capture_output=True, timeout=120)
-            except subprocess.TimeoutExpired:
-                logger.error("render command timed out for %s", file_path)
-                continue
-            except Exception as e:
-                logger.error("failed to execute render command for %s: %s", file_path, e)
-                continue
-
-            if result.returncode != 0:
-                logger.error(
-                    "render command failed for %s: %s", file_path, result.stderr.decode("utf-8", errors="replace")
+                file_stem = abs_path.stem
+                cmd_str = renderer_config.command.format(
+                    file=str(abs_path),
+                    output_dir=output_dir,
+                    config=renderer_config.config,
+                    file_stem=file_stem,
                 )
-                continue
 
-            # Collect output files by format
-            collected = self._collect_output_files(output_dir, file_path, renderer_config.formats)
-            render_files.extend(collected)
+                cmd_args = shlex.split(cmd_str)
+                try:
+                    result = subprocess.run(cmd_args, capture_output=True, timeout=120)
+                except subprocess.TimeoutExpired:
+                    logger.error("render command timed out for %s", file_path)
+                    continue
+                except Exception as e:
+                    logger.error("failed to execute render command for %s: %s", file_path, e)
+                    continue
+
+                if result.returncode != 0:
+                    logger.error(
+                        "render command failed for %s: %s",
+                        file_path,
+                        result.stderr.decode("utf-8", errors="replace"),
+                    )
+                    continue
+
+                collected = self._collect_output_files(output_dir, file_path, renderer_config.formats)
+                render_files.extend(collected)
 
         return render_files
 
-    def _find_matching_renderer(self, file_path: str) -> RendererConfig | None:
-        """Find the first renderer config matching the given file.
+    def _find_matching_renderers(self, file_path: str) -> list[RendererConfig]:
+        """Find all renderer configs matching the given file.
 
         Args:
             file_path: File path to match against renderer patterns.
 
         Returns:
-            Matching RendererConfig, or None if no match found.
+            List of matching RendererConfig entries, empty if none match.
         """
-        for renderer in self._renderers:
-            if fnmatch.fnmatch(file_path, renderer.match):
-                return renderer
-        return None
+        return [r for r in self._renderers if fnmatch.fnmatch(file_path, r.match)]
 
     def _is_kicad_file(self, file_path: str) -> bool:
         """Check if file is a KiCad file that requires a renderer.

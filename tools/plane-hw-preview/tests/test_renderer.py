@@ -493,3 +493,79 @@ class TestRenderer:
             assert "image/png" in mime_types
             assert "application/pdf" in mime_types
             assert "image/jpeg" in mime_types
+
+    def test_multiple_renderers_match_same_file(self, basic_config, tmp_path):
+        """Verify that all matching renderers run for a single file.
+
+        When multiple renderer configs match the same file pattern, each one
+        should execute its command and collect output independently.
+        """
+        config = Config(
+            base_url="http://localhost:8000",
+            workspace="test-workspace",
+            commit_patterns=(),
+            path_mappings=(),
+            renderers=(
+                RendererConfig(
+                    match="**/*.kicad_pcb",
+                    command="echo front {file}",
+                    config="",
+                    formats=("svg",),
+                ),
+                RendererConfig(
+                    match="**/*.kicad_pcb",
+                    command="echo back {file}",
+                    config="",
+                    formats=("svg",),
+                ),
+            ),
+        )
+
+        test_file = tmp_path / "board.kicad_pcb"
+        test_file.write_text("dummy")
+
+        renderer = Renderer(config)
+
+        with mock.patch("plane_preview.renderer.subprocess.run") as mock_run:
+            mock_run.return_value = mock.Mock(returncode=0, stderr=b"")
+
+            with mock.patch("plane_preview.renderer.glob.glob", return_value=[]):
+                renderer.render([str(test_file)])
+
+            assert mock_run.call_count == 2
+
+    def test_kicad_cli_pcb_defaults_produce_front_back_and_layers(self, basic_config):
+        """Verify kicad-cli auto-detect creates front composite, back composite, and per-layer renderers for PCB.
+
+        The default PCB renderers should produce three separate render passes:
+        a front composite (F.Cu + F.SilkS + Edge.Cuts), a back composite
+        (B.Cu + B.SilkS + Edge.Cuts), and individual copper layers via --mode-multi.
+        """
+        with mock.patch("plane_preview.renderer.shutil.which") as mock_which:
+            mock_which.side_effect = lambda cmd: "/usr/bin/kicad-cli" if cmd == "kicad-cli" else None
+
+            renderer = Renderer(basic_config)
+
+            pcb_renderers = [r for r in renderer._renderers if "kicad_pcb" in r.match]
+
+            assert len(pcb_renderers) == 3
+
+            commands = [r.command for r in pcb_renderers]
+            front_cmd = [c for c in commands if "front" in c]
+            back_cmd = [c for c in commands if "back" in c]
+            layer_cmd = [c for c in commands if "--mode-multi" in c]
+
+            assert len(front_cmd) == 1, "Expected a front composite renderer"
+            assert len(back_cmd) == 1, "Expected a back composite renderer"
+            assert len(layer_cmd) == 1, "Expected a per-layer renderer"
+
+            assert "--mode-single" in front_cmd[0]
+            assert "F.Cu" in front_cmd[0]
+            assert "F.SilkS" in front_cmd[0]
+
+            assert "--mode-single" in back_cmd[0]
+            assert "B.Cu" in back_cmd[0]
+            assert "B.SilkS" in back_cmd[0]
+
+            assert "In1.Cu" in layer_cmd[0]
+            assert "B.Cu" in layer_cmd[0]

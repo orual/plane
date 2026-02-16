@@ -150,15 +150,29 @@ Customize how files are rendered. If omitted, the tool auto-detects available re
 
 ```yaml
 renderers:
+  # Schematics: one SVG per sheet
   - match: "**/*.kicad_sch"
     command: "kicad-cli sch export svg -o {output_dir} {file}"
     config: ""
     formats: ["svg"]
+  # PCB front composite (copper + silkscreen + board outline)
   - match: "**/*.kicad_pcb"
-    command: "kicad-cli pcb export svg -o {output_dir}/{file_stem}-pcb.svg --layers F.Cu,B.Cu,F.SilkS,B.SilkS,Edge.Cuts --page-size-mode 2 {file}"
+    command: "kicad-cli pcb export svg --mode-single --layers F.Cu,F.SilkS,Edge.Cuts --page-size-mode 2 -o {output_dir}/{file_stem}-front.svg {file}"
+    config: ""
+    formats: ["svg"]
+  # PCB back composite
+  - match: "**/*.kicad_pcb"
+    command: "kicad-cli pcb export svg --mode-single --layers B.Cu,B.SilkS,Edge.Cuts --page-size-mode 2 -o {output_dir}/{file_stem}-back.svg {file}"
+    config: ""
+    formats: ["svg"]
+  # PCB individual copper layers (non-existent layers are silently skipped)
+  - match: "**/*.kicad_pcb"
+    command: "kicad-cli pcb export svg --mode-multi --layers F.Cu,In1.Cu,In2.Cu,In3.Cu,In4.Cu,In5.Cu,In6.Cu,B.Cu --page-size-mode 2 -o {output_dir} {file}"
     config: ""
     formats: ["svg"]
 ```
+
+Multiple renderer entries can match the same file — all matching renderers run, so a single `.kicad_pcb` produces front/back composites plus individual layer SVGs.
 
 - **`match`**: A glob pattern to select files to render with this command.
 - **`command`**: The command to execute. Supports template variables:
