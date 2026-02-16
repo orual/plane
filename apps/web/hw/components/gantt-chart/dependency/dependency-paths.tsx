@@ -64,16 +64,24 @@ export const TimelineDependencyPaths = observer(function TimelineDependencyPaths
         </marker>
       </defs>
       <g>
-        {visibleDependencies.map((dep) => (
-          <Connector
-            key={`${dep.sourceBlockId}-${dep.targetBlockId}-${dep.relationType}`}
-            sourceBlock={blocksMap[dep.sourceBlockId]}
-            targetBlock={blocksMap[dep.targetBlockId]}
-            sourceRowIndex={dep.sourceRowIndex}
-            targetRowIndex={dep.targetRowIndex}
-            relationType={dep.relationType}
-          />
-        ))}
+        {visibleDependencies.map((dep) => {
+          const isCriticalPath =
+            timelineStore.cpmEnabled &&
+            timelineStore.isCritical(dep.sourceBlockId) &&
+            timelineStore.isCritical(dep.targetBlockId);
+
+          return (
+            <Connector
+              key={`${dep.sourceBlockId}-${dep.targetBlockId}-${dep.relationType}`}
+              sourceBlock={blocksMap[dep.sourceBlockId]}
+              targetBlock={blocksMap[dep.targetBlockId]}
+              sourceRowIndex={dep.sourceRowIndex}
+              targetRowIndex={dep.targetRowIndex}
+              relationType={dep.relationType}
+              isCriticalPath={isCriticalPath}
+            />
+          );
+        })}
       </g>
     </svg>
   );

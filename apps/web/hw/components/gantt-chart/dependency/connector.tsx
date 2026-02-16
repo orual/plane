@@ -22,6 +22,7 @@ type ConnectorProps = {
   sourceRowIndex: number;
   targetRowIndex: number;
   relationType: TIssueRelationTypes;
+  isCriticalPath?: boolean;
 };
 
 const TOOLTIP_PAD_X = 8;
@@ -65,6 +66,7 @@ export const Connector = observer(function Connector({
   sourceRowIndex,
   targetRowIndex,
   relationType,
+  isCriticalPath,
 }: ConnectorProps) {
   const [hovered, setHovered] = useState(false);
   const [mousePos, setMousePos] = useState({ x: 0, y: 0, viewRight: Infinity });
@@ -89,6 +91,7 @@ export const Connector = observer(function Connector({
 
   const { sourceEndpoint, targetEndpoint } = getConnectorEndpoints(relationType);
   const connectorStyle = getConnectorStyle(relationType);
+  const effectiveStyle = isCriticalPath ? { stroke: "rgb(239 68 68)", strokeDasharray: "" } : connectorStyle;
   const connectorPath = calculateConnectorPath(sourceBlockRect, targetBlockRect, sourceEndpoint, targetEndpoint);
 
   const sourceName = sourceBlock.name || sourceBlock.id;
@@ -147,8 +150,8 @@ export const Connector = observer(function Connector({
       {/* Visible connector path */}
       <path
         d={connectorPath.d}
-        stroke={hovered ? "var(--text-color-primary)" : connectorStyle.stroke}
-        strokeDasharray={connectorStyle.strokeDasharray}
+        stroke={hovered ? "var(--text-color-primary)" : effectiveStyle.stroke}
+        strokeDasharray={effectiveStyle.strokeDasharray}
         strokeWidth={hovered ? "2" : "1.5"}
         fill="none"
         markerEnd="url(#dep-arrowhead)"
@@ -162,7 +165,7 @@ export const Connector = observer(function Connector({
             height={boxH}
             rx={6}
             fill="var(--background-surface-primary)"
-            stroke={connectorStyle.stroke}
+            stroke={effectiveStyle.stroke}
             strokeWidth="1"
             filter="drop-shadow(0 1px 3px rgba(0,0,0,0.12))"
           />
@@ -175,7 +178,7 @@ export const Connector = observer(function Connector({
             <tspan fill="var(--text-color-primary)" fontWeight="500">
               {sourceName}
             </tspan>
-            <tspan dx={TSPAN_GAP} fill={connectorStyle.stroke} fontWeight="600">
+            <tspan dx={TSPAN_GAP} fill={effectiveStyle.stroke} fontWeight="600">
               {label}
             </tspan>
             <tspan dx={TSPAN_GAP} fill="var(--text-color-primary)" fontWeight="500">
