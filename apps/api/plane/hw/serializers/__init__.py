@@ -13,6 +13,12 @@ from .issue_property import (
     IssuePropertyValueDetailSerializer,
     validate_property_value,
 )
+from .agent import (
+    AgentProfileSerializer,
+    AgentProfileCreateSerializer,
+    AgentRunSerializer,
+    AgentRunActivitySerializer,
+)
 
 __all__ = [
     "IssueTypeSerializer",
@@ -22,4 +28,8 @@ __all__ = [
     "IssuePropertyValueSerializer",
     "IssuePropertyValueDetailSerializer",
     "validate_property_value",
+    "AgentProfileSerializer",
+    "AgentProfileCreateSerializer",
+    "AgentRunSerializer",
+    "AgentRunActivitySerializer",
 ]
