@@ -6,6 +6,7 @@
 
 import { observer } from "mobx-react";
 import { useParams } from "next/navigation";
+import { ToggleSwitch } from "@plane/ui";
 import { useTimeLineChartStore } from "@/hooks/use-timeline-chart";
 
 export const CpmToggle = observer(function CpmToggle() {
@@ -14,20 +15,22 @@ export const CpmToggle = observer(function CpmToggle() {
   const isActive = timelineStore.cpmEnabled;
 
   return (
-    <div className="flex flex-col gap-1">
-      <button
-        type="button"
+    <div className="flex items-center gap-2">
+      <div
         data-test="cpm-toggle"
-        className={`flex items-center gap-1.5 rounded px-2 py-1 text-xs font-medium transition-colors ${
-          isActive ? "bg-red-500/10 text-red-600" : "text-custom-text-300 hover:bg-custom-background-80"
-        }`}
-        onClick={() => timelineStore.setCpmEnabled(!isActive)}
+        className="flex items-center gap-1.5 text-11 text-custom-text-300"
       >
-        <span className={`h-2 w-2 rounded-full ${isActive ? "bg-red-500" : "bg-custom-text-400"}`} />
-        Critical path
-      </button>
+        <ToggleSwitch
+          value={isActive}
+          onChange={(value) => timelineStore.setCpmEnabled(value)}
+          size="sm"
+        />
+        <button type="button" className="cursor-pointer" onClick={() => timelineStore.setCpmEnabled(!isActive)}>
+          Critical path
+        </button>
+      </div>
       {isActive && (
-        <label className="flex items-center gap-1.5 text-xs text-custom-text-300 cursor-pointer pl-2">
+        <label className="flex cursor-pointer items-center gap-1.5 text-11 text-custom-text-300">
           <input
             type="checkbox"
             data-test="cpm-cross-project-toggle"

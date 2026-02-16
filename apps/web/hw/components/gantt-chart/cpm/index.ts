@@ -4,6 +4,7 @@
  * See the LICENSE file for details.
  */
 
+export * from "./cpm-sidebar-section";
 export * from "./cpm-toggle";
 export * from "./cpm-tooltip-content";
 export * from "./phantom-anchor";

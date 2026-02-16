@@ -5,13 +5,14 @@
  */
 
 /**
- * CPM tooltip content — renders CPM data in the block's hover tooltip.
+ * CPM popover content — renders CPM scheduling data inside the block's
+ * hover popover, below the WorkItemPreviewCard.
  *
  * Displays:
- * - For critical tasks: "On critical path — zero slack" message
+ * - For critical tasks: "On critical path — zero slack"
  * - For non-critical tasks: ES, EF, LS, LF dates and total float (slack)
  *
- * Integrated into the IssueGanttBlock's Popover.Panel below WorkItemPreviewCard.
+ * Returns null when CPM is disabled or the block has no CPM result.
  */
 
 import { observer } from "mobx-react";
@@ -24,7 +25,6 @@ type Props = {
 export const CpmTooltipContent = observer(function CpmTooltipContent({ blockId }: Props) {
   const timelineStore = useTimeLineChartStore();
 
-  // Only show when CPM is enabled
   if (!timelineStore.cpmEnabled) return null;
 
   const cpmResult = timelineStore.cpmResults.get(blockId);

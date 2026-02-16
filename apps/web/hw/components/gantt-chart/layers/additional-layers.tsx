@@ -11,13 +11,12 @@
  * Each bar extends from Early Finish (EF) to Late Finish (LF) and is positioned
  * at the block's row y-position with partial opacity.
  *
- * Architecture:
- * - Reads from timelineStore.cpmEnabled flag to conditionally render
- * - Accesses cpmResults Map to get CPM data per block
- * - Uses getSlackBarPosition() to compute pixel positions
- * - Renders as div elements with absolute positioning, no pointer events (behind blocks)
+ * Each slack bar shows a hover tooltip with CPM scheduling data (ES/EF/LS/LF/slack),
+ * following the same cursor-tracking pattern as the dependency connector tooltip.
  */
 
+import { useState, useCallback } from "react";
+import { createPortal } from "react-dom";
 import { observer } from "mobx-react";
 import type { FC } from "react";
 import { EIssueServiceType } from "@plane/types";
@@ -26,11 +25,82 @@ import { PhantomAnchor } from "@/plane-web/components/gantt-chart";
 import { useTimeLineChartStore } from "@/hooks/use-timeline-chart";
 import { getSlackBarPosition } from "@/plane-web/helpers/slack-bar-position";
 import { useIssueDetail } from "@/hooks/store/use-issue-detail";
+import type { CpmResult } from "@/plane-web/helpers/cpm-calculator";
 
 type Props = {
   itemsContainerWidth: number;
   blockCount: number;
 };
+
+const CURSOR_OFFSET_X = 12;
+const CURSOR_OFFSET_Y = -8;
+
+type SlackBarProps = {
+  blockId: string;
+  cpmResult: CpmResult;
+  left: number;
+  width: number;
+  top: number;
+  height: number;
+};
+
+function SlackBar({ blockId, cpmResult, left, width, top, height }: SlackBarProps) {
+  const [hovered, setHovered] = useState(false);
+  const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
+
+  const handleMouseMove = useCallback((e: React.MouseEvent) => {
+    setMousePos({ x: e.clientX, y: e.clientY });
+  }, []);
+
+  return (
+    <>
+      <div
+        key={`slack-${blockId}`}
+        className="absolute rounded-sm"
+        data-test="cpm-slack-bar"
+        data-test-issue-id={blockId}
+        style={{
+          left,
+          width,
+          top,
+          height,
+          backgroundColor: "rgba(60, 133, 217, 0.3)",
+          pointerEvents: "auto",
+          cursor: "default",
+        }}
+        onMouseEnter={() => setHovered(true)}
+        onMouseLeave={() => setHovered(false)}
+        onMouseMove={handleMouseMove}
+      />
+      {hovered &&
+        createPortal(
+          <div
+            className="pointer-events-none fixed z-50 rounded-lg border border-subtle bg-layer-2 px-3 py-2 text-xs shadow-lg"
+            style={{
+              left: mousePos.x + CURSOR_OFFSET_X,
+              top: mousePos.y + CURSOR_OFFSET_Y,
+              transform: "translateY(-100%)",
+            }}
+          >
+            <div className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-0.5">
+              <span className="text-tertiary">ES</span>
+              <span className="text-primary">{cpmResult.es}</span>
+              <span className="text-tertiary">EF</span>
+              <span className="text-primary">{cpmResult.ef}</span>
+              <span className="text-tertiary">LS</span>
+              <span className="text-primary">{cpmResult.ls}</span>
+              <span className="text-tertiary">LF</span>
+              <span className="text-primary">{cpmResult.lf}</span>
+            </div>
+            <div className="mt-1 border-t border-subtle pt-1 text-tertiary">
+              Float: {cpmResult.slack.toFixed(1)} days
+            </div>
+          </div>,
+          document.body
+        )}
+    </>
+  );
+}
 
 export const GanttAdditionalLayers: FC<Props> = observer(function GanttAdditionalLayers({
   itemsContainerWidth,
@@ -38,7 +108,6 @@ export const GanttAdditionalLayers: FC<Props> = observer(function GanttAdditiona
   const timelineStore = useTimeLineChartStore();
   const issueDetailStore = useIssueDetail(EIssueServiceType.ISSUES);
 
-  // Only render if CPM is enabled
   if (!timelineStore.cpmEnabled) return null;
 
   const chartData = timelineStore.currentViewData;
@@ -53,7 +122,6 @@ export const GanttAdditionalLayers: FC<Props> = observer(function GanttAdditiona
 
   const localBlockIds = new Set(blockIds);
 
-  // Identify external issue IDs with their associated block index (only when cross-project mode is enabled)
   const externalIssuesWithPosition: Array<{ issueId: string; side: "left" | "right"; blockIndex: number }> = [];
   if (timelineStore.crossProjectCpmEnabled) {
     for (let i = 0; i < blockIds.length; i++) {
@@ -61,7 +129,6 @@ export const GanttAdditionalLayers: FC<Props> = observer(function GanttAdditiona
       const relations = relationMap[blockId];
       if (!relations) continue;
 
-      // Check all relation types for external issue references
       for (const [relationType, relatedIds] of Object.entries(relations)) {
         if (!relatedIds || !Array.isArray(relatedIds)) continue;
 
@@ -88,23 +155,18 @@ export const GanttAdditionalLayers: FC<Props> = observer(function GanttAdditiona
         if (!position) return null;
 
         return (
-          <div
+          <SlackBar
             key={`slack-${blockId}`}
-            className="absolute rounded-sm"
-            data-test="cpm-slack-bar"
-            data-test-issue-id={blockId}
-            style={{
-              left: position.left,
-              width: position.width,
-              top: index * BLOCK_HEIGHT + 4,
-              height: BLOCK_HEIGHT - 8,
-              backgroundColor: "rgba(60, 133, 217, 0.3)",
-            }}
+            blockId={blockId}
+            cpmResult={cpmResult}
+            left={position.left}
+            width={position.width}
+            top={index * BLOCK_HEIGHT + 4}
+            height={BLOCK_HEIGHT - 8}
           />
         );
       })}
 
-      {/* Render phantom anchors for external issues */}
       {externalIssuesWithPosition.map(({ issueId, side, blockIndex }) => (
         <PhantomAnchor
           key={`phantom-${issueId}-${side}-${blockIndex}`}
