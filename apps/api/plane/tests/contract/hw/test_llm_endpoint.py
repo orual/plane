@@ -38,7 +38,7 @@ class TestLlmEndpointReasoning:
 
         # POST to the endpoint
         response = session_client.post(
-            f"/api/workspaces/{workspace.slug}/projects/{project.id}/gpt-integration/",
+            f"/api/workspaces/{workspace.slug}/projects/{project.id}/ai-assistant/",
             data={
                 "task": "Calculate the answer",
                 "prompt": "to the universe",
@@ -81,7 +81,7 @@ class TestLlmEndpointReasoning:
 
         # POST to the endpoint
         response = session_client.post(
-            f"/api/workspaces/{workspace.slug}/projects/{project.id}/gpt-integration/",
+            f"/api/workspaces/{workspace.slug}/projects/{project.id}/ai-assistant/",
             data={
                 "task": "Simple task",
                 "prompt": "simple prompt",
@@ -113,7 +113,7 @@ class TestLlmEndpointReasoning:
 
         # POST to workspace endpoint
         response = session_client.post(
-            f"/api/workspaces/{workspace.slug}/gpt-integration/",
+            f"/api/workspaces/{workspace.slug}/ai-assistant/",
             data={
                 "task": "Analyze",
                 "prompt": "this text",
@@ -147,7 +147,7 @@ class TestLlmEndpointReasoning:
 
         # POST to workspace endpoint
         response = session_client.post(
-            f"/api/workspaces/{workspace.slug}/gpt-integration/",
+            f"/api/workspaces/{workspace.slug}/ai-assistant/",
             data={
                 "task": "Summarize",
                 "prompt": "this content",

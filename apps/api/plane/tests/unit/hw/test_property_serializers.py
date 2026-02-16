@@ -137,8 +137,31 @@ class TestIssuePropertyValueSerializer:
     """Test IssuePropertyValueSerializer type validation."""
 
     @pytest.mark.django_db
-    def test_text_value_valid(self, workspace):
+    def test_text_value_valid(self, workspace, create_user):
         """Text value validation accepts strings."""
+        from plane.db.models import Project, State, Issue
+
+        # Create project and issue first
+        project = Project.objects.create(
+            name="Test Project",
+            identifier="TP",
+            workspace=workspace,
+            created_by=create_user,
+        )
+        state = State.objects.create(
+            name="Todo",
+            project=project,
+            workspace=workspace,
+            group="backlog",
+        )
+        issue = Issue.objects.create(
+            name="Test Issue",
+            project=project,
+            workspace=workspace,
+            state=state,
+            created_by=create_user,
+        )
+
         prop_def = IssuePropertyDefinition.objects.create(
             workspace=workspace,
             name="Notes",
@@ -146,7 +169,8 @@ class TestIssuePropertyValueSerializer:
         )
 
         data = {
-            "property_definition": prop_def.id,
+            "issue_id": issue.id,
+            "property_definition_id": prop_def.id,
             "value": {"value": "sample text"},
         }
         serializer = IssuePropertyValueSerializer(data=data)
@@ -169,8 +193,31 @@ class TestIssuePropertyValueSerializer:
         assert not serializer.is_valid()
 
     @pytest.mark.django_db
-    def test_number_value_valid(self, workspace):
+    def test_number_value_valid(self, workspace, create_user):
         """Number value validation accepts integers and floats."""
+        from plane.db.models import Project, State, Issue
+
+        # Create project and issue first
+        project = Project.objects.create(
+            name="Test Project",
+            identifier="TP",
+            workspace=workspace,
+            created_by=create_user,
+        )
+        state = State.objects.create(
+            name="Todo",
+            project=project,
+            workspace=workspace,
+            group="backlog",
+        )
+        issue = Issue.objects.create(
+            name="Test Issue",
+            project=project,
+            workspace=workspace,
+            state=state,
+            created_by=create_user,
+        )
+
         prop_def = IssuePropertyDefinition.objects.create(
             workspace=workspace,
             name="Count",
@@ -178,7 +225,8 @@ class TestIssuePropertyValueSerializer:
         )
 
         data = {
-            "property_definition": prop_def.id,
+            "issue_id": issue.id,
+            "property_definition_id": prop_def.id,
             "value": {"value": 42},
         }
         serializer = IssuePropertyValueSerializer(data=data)
@@ -201,8 +249,31 @@ class TestIssuePropertyValueSerializer:
         assert not serializer.is_valid()
 
     @pytest.mark.django_db
-    def test_select_value_valid(self, workspace):
+    def test_select_value_valid(self, workspace, create_user):
         """Select value validation accepts valid option."""
+        from plane.db.models import Project, State, Issue
+
+        # Create project and issue first
+        project = Project.objects.create(
+            name="Test Project",
+            identifier="TP",
+            workspace=workspace,
+            created_by=create_user,
+        )
+        state = State.objects.create(
+            name="Todo",
+            project=project,
+            workspace=workspace,
+            group="backlog",
+        )
+        issue = Issue.objects.create(
+            name="Test Issue",
+            project=project,
+            workspace=workspace,
+            state=state,
+            created_by=create_user,
+        )
+
         prop_def = IssuePropertyDefinition.objects.create(
             workspace=workspace,
             name="Status",
@@ -211,7 +282,8 @@ class TestIssuePropertyValueSerializer:
         )
 
         data = {
-            "property_definition": prop_def.id,
+            "issue_id": issue.id,
+            "property_definition_id": prop_def.id,
             "value": {"value": "Open"},
         }
         serializer = IssuePropertyValueSerializer(data=data)
@@ -235,8 +307,31 @@ class TestIssuePropertyValueSerializer:
         assert not serializer.is_valid()
 
     @pytest.mark.django_db
-    def test_multi_select_value_valid(self, workspace):
+    def test_multi_select_value_valid(self, workspace, create_user):
         """Multi-select value validation accepts list of valid options."""
+        from plane.db.models import Project, State, Issue
+
+        # Create project and issue first
+        project = Project.objects.create(
+            name="Test Project",
+            identifier="TP",
+            workspace=workspace,
+            created_by=create_user,
+        )
+        state = State.objects.create(
+            name="Todo",
+            project=project,
+            workspace=workspace,
+            group="backlog",
+        )
+        issue = Issue.objects.create(
+            name="Test Issue",
+            project=project,
+            workspace=workspace,
+            state=state,
+            created_by=create_user,
+        )
+
         prop_def = IssuePropertyDefinition.objects.create(
             workspace=workspace,
             name="Tags",
@@ -245,7 +340,8 @@ class TestIssuePropertyValueSerializer:
         )
 
         data = {
-            "property_definition": prop_def.id,
+            "issue_id": issue.id,
+            "property_definition_id": prop_def.id,
             "value": {"value": ["Alpha", "Beta"]},
         }
         serializer = IssuePropertyValueSerializer(data=data)
@@ -269,8 +365,31 @@ class TestIssuePropertyValueSerializer:
         assert not serializer.is_valid()
 
     @pytest.mark.django_db
-    def test_boolean_value_valid(self, workspace):
+    def test_boolean_value_valid(self, workspace, create_user):
         """Boolean value validation accepts true/false."""
+        from plane.db.models import Project, State, Issue
+
+        # Create project and issue first
+        project = Project.objects.create(
+            name="Test Project",
+            identifier="TP",
+            workspace=workspace,
+            created_by=create_user,
+        )
+        state = State.objects.create(
+            name="Todo",
+            project=project,
+            workspace=workspace,
+            group="backlog",
+        )
+        issue = Issue.objects.create(
+            name="Test Issue",
+            project=project,
+            workspace=workspace,
+            state=state,
+            created_by=create_user,
+        )
+
         prop_def = IssuePropertyDefinition.objects.create(
             workspace=workspace,
             name="Active",
@@ -278,7 +397,8 @@ class TestIssuePropertyValueSerializer:
         )
 
         data = {
-            "property_definition": prop_def.id,
+            "issue_id": issue.id,
+            "property_definition_id": prop_def.id,
             "value": {"value": True},
         }
         serializer = IssuePropertyValueSerializer(data=data)

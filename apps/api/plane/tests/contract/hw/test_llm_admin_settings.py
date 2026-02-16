@@ -31,7 +31,7 @@ class TestLLMAdminSettingsPersistence:
             key="LLM_API_KEY",
             value="sk-test-key-12345",
             category="AI",
-            is_encrypted=True,
+            is_encrypted=False,
         )
         InstanceConfiguration.objects.create(
             key="LLM_BASE_URL",
@@ -67,7 +67,7 @@ class TestLLMAdminSettingsPersistence:
             key="LLM_API_KEY",
             value="sk-openai-key",
             category="AI",
-            is_encrypted=True,
+            is_encrypted=False,
         )
         base_url_config = InstanceConfiguration.objects.create(
             key="LLM_BASE_URL",
@@ -153,7 +153,7 @@ class TestLLMAdminSettingsPersistence:
             key="LLM_API_KEY",
             value="sk-ant-key",
             category="AI",
-            is_encrypted=True,
+            is_encrypted=False,
         )
         # Base URL intentionally not set - should use empty default
         InstanceConfiguration.objects.create(
