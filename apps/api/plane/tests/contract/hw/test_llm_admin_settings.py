@@ -59,7 +59,7 @@ class TestLLMAdminSettingsPersistence:
         )
         model_config = InstanceConfiguration.objects.create(
             key="LLM_MODEL",
-            value="gpt-4-turbo",
+            value="gpt-4.1",
             category="AI",
             is_encrypted=False,
         )
@@ -79,13 +79,13 @@ class TestLLMAdminSettingsPersistence:
         # Verify initial values
         api_key, model, provider, base_url = get_llm_config()
         assert provider == "openai"
-        assert model == "gpt-4-turbo"
+        assert model == "gpt-4.1"
         assert api_key == "sk-openai-key"
 
         # Update the configurations
         provider_config.value = "gemini"
         provider_config.save()
-        model_config.value = "gemini-2.0-pro"
+        model_config.value = "gemini-2.5-pro"
         model_config.save()
         api_key_config.value = "gemini-api-key-xyz"
         api_key_config.save()
@@ -95,34 +95,34 @@ class TestLLMAdminSettingsPersistence:
         # Verify updated values are returned
         api_key, model, provider, base_url = get_llm_config()
         assert provider == "gemini"
-        assert model == "gemini-2.0-pro"
+        assert model == "gemini-2.5-pro"
         assert api_key == "gemini-api-key-xyz"
         assert base_url == "https://generativelanguage.googleapis.com"
 
     def test_llm_config_with_custom_base_url(self, workspace):
-        """Verify that custom base URLs (e.g., for Ollama) are properly stored and retrieved."""
-        # Create configurations with custom base URL for Ollama
+        """Verify that custom base URLs (e.g., for self-hosted) are properly stored and retrieved."""
+        # Create configurations with custom base URL for self-hosted OpenAI-compatible service
         InstanceConfiguration.objects.create(
             key="LLM_PROVIDER",
-            value="ollama",
+            value="openai",
             category="AI",
             is_encrypted=False,
         )
         InstanceConfiguration.objects.create(
             key="LLM_MODEL",
-            value="mistral",
+            value="gpt-4.1",
             category="AI",
             is_encrypted=False,
         )
         InstanceConfiguration.objects.create(
             key="LLM_API_KEY",
-            value="",
+            value="sk-self-hosted-key",
             category="AI",
             is_encrypted=False,
         )
         InstanceConfiguration.objects.create(
             key="LLM_BASE_URL",
-            value="http://localhost:11434",
+            value="http://localhost:8000",
             category="AI",
             is_encrypted=False,
         )
@@ -130,9 +130,9 @@ class TestLLMAdminSettingsPersistence:
         # Call get_llm_config and verify custom base URL is returned
         api_key, model, provider, base_url = get_llm_config()
 
-        assert provider == "ollama"
-        assert model == "mistral"
-        assert base_url == "http://localhost:11434"
+        assert provider == "openai"
+        assert model == "gpt-4.1"
+        assert base_url == "http://localhost:8000"
 
     def test_llm_config_with_empty_optional_fields(self, workspace):
         """Verify that optional fields (base_url) can be empty strings."""
@@ -145,7 +145,7 @@ class TestLLMAdminSettingsPersistence:
         )
         InstanceConfiguration.objects.create(
             key="LLM_MODEL",
-            value="claude-3-sonnet",
+            value="claude-sonnet-4-5-20250929",
             category="AI",
             is_encrypted=False,
         )
@@ -167,5 +167,5 @@ class TestLLMAdminSettingsPersistence:
         api_key, model, provider, base_url = get_llm_config()
 
         assert provider == "anthropic"
-        assert model == "claude-3-sonnet"
+        assert model == "claude-sonnet-4-5-20250929"
         assert base_url == ""

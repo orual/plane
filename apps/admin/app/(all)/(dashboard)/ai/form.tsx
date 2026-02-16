@@ -53,20 +53,8 @@ export function InstanceAIForm(props: IInstanceAIForm) {
       key: "LLM_MODEL",
       type: "text",
       label: "LLM Model",
-      description: (
-        <>
-          Choose an OpenAI engine.{" "}
-          <a
-            href="https://platform.openai.com/docs/models/overview"
-            target="_blank"
-            className="text-accent-primary hover:underline"
-            rel="noreferrer"
-          >
-            Learn more
-          </a>
-        </>
-      ),
-      placeholder: "gpt-4o-mini",
+      description: "Enter the model name for your selected provider.",
+      placeholder: "e.g., claude-sonnet-4-5-20250929",
       error: Boolean(errors.LLM_MODEL),
       required: false,
     },
@@ -74,20 +62,8 @@ export function InstanceAIForm(props: IInstanceAIForm) {
       key: "LLM_API_KEY",
       type: "password",
       label: "API key",
-      description: (
-        <>
-          You will find your API key{" "}
-          <a
-            href="https://platform.openai.com/api-keys"
-            target="_blank"
-            className="text-accent-primary hover:underline"
-            rel="noreferrer"
-          >
-            here.
-          </a>
-        </>
-      ),
-      placeholder: "sk-asddassdfasdefqsdfasd23das3dasdcasd",
+      description: "Enter the API key for your selected provider.",
+      placeholder: "sk-... or similar format for your provider",
       error: Boolean(errors.LLM_API_KEY),
       required: false,
     },
