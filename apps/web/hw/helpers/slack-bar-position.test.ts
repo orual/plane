@@ -16,21 +16,25 @@ import { getSlackBarPosition } from "./slack-bar-position";
 import * as ganttHelpers from "@/components/gantt-chart/views/helpers";
 
 describe("getSlackBarPosition", () => {
-  const baseChartData: ChartDataType = {
+  const baseChartData = {
     startDate: new Date("2024-01-01"),
     endDate: new Date("2024-01-31"),
     dataPoints: 31,
+    key: "test",
+    i18n_title: "Test Chart",
     data: {
-      startDate: "2024-01-01",
-      endDate: "2024-01-31",
+      startDate: new Date("2024-01-01"),
+      endDate: new Date("2024-01-31"),
       dayWidth: 30,
+      currentDate: new Date("2024-01-01"),
+      approxFilterRange: 31,
     },
-  };
+  } as ChartDataType;
 
   describe("cpm-critical-path.AC5.1: Non-critical tasks with slack", () => {
     it("should return slack bar position when task has positive slack", () => {
       vi.mocked(ganttHelpers.getPositionFromDate).mockImplementation(
-        (_chartData: unknown, date: string, offsetWidth: number) => {
+        (_chartData: unknown, date: string | Date, offsetWidth: number) => {
           // EF="2024-01-05" -> 120px, LF="2024-01-08" -> 180px
           if (date === "2024-01-05") return 120 + offsetWidth;
           if (date === "2024-01-08") return 180 + offsetWidth;
@@ -56,7 +60,7 @@ describe("getSlackBarPosition", () => {
 
     it("should calculate correct width for slack spanning multiple days", () => {
       vi.mocked(ganttHelpers.getPositionFromDate).mockImplementation(
-        (_chartData: unknown, date: string, offsetWidth: number) => {
+        (_chartData: unknown, date: string | Date, offsetWidth: number) => {
           // EF="2024-01-03" -> 60px, LF="2024-01-07" -> 180px
           if (date === "2024-01-03") return 60 + offsetWidth;
           if (date === "2024-01-07") return 180 + offsetWidth;
@@ -142,7 +146,7 @@ describe("getSlackBarPosition", () => {
   describe("Edge cases", () => {
     it("should return null when ef equals lf (width would be zero)", () => {
       vi.mocked(ganttHelpers.getPositionFromDate).mockImplementation(
-        (_chartData: unknown, _date: string, offsetWidth: number) => {
+        (_chartData: unknown, _date: string | Date, offsetWidth: number) => {
           // EF and LF map to same position
           return 100 + offsetWidth;
         }
@@ -164,7 +168,7 @@ describe("getSlackBarPosition", () => {
 
     it("should respect offsetWidth parameter", () => {
       vi.mocked(ganttHelpers.getPositionFromDate).mockImplementation(
-        (_chartData: unknown, date: string, offsetWidth: number) => {
+        (_chartData: unknown, date: string | Date, offsetWidth: number) => {
           // EF="2024-01-05" -> 120px base, LF="2024-01-08" -> 180px base
           if (date === "2024-01-05") return 120 + offsetWidth;
           if (date === "2024-01-08") return 180 + offsetWidth;
