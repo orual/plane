@@ -124,7 +124,12 @@ class AgentRun(BaseModel):
             try:
                 old = AgentRun.objects.only("status").get(pk=self.pk)
                 if old.status != self.status:
-                    self.validate_transition(self.status)
+                    allowed = VALID_STATUS_TRANSITIONS.get(old.status, set())
+                    if self.status not in allowed:
+                        raise ValueError(
+                            f"Cannot transition from '{old.status}' to '{self.status}'. "
+                            f"Allowed transitions: {', '.join(s.value for s in allowed) or 'none'}"
+                        )
             except AgentRun.DoesNotExist:
                 pass
         super().save(*args, **kwargs)
