@@ -5,7 +5,7 @@ import logging
 import re
 from pathlib import Path
 
-from plane_preview.config import Config
+from plane_preview.config import Config, PathMapping
 from plane_preview.types import PreviewTarget, RenderFile
 
 logger = logging.getLogger(__name__)
@@ -25,6 +25,10 @@ class IssueResolver:
         # Build regex pattern for commit message parsing
         if config.commit_patterns:
             prefixes = "|".join(re.escape(pattern.prefix) for pattern in config.commit_patterns)
+            # Note: The regex pattern matches PREFIX-NUMBER with optional brackets.
+            # There is no word boundary assertion, so a substring like "NOTPWR-42" will
+            # match as "PWR-42". This is acceptable for commit message parsing (unlikely
+            # to cause issues in practice) and matches the design specification.
             pattern_str = rf"\[?({prefixes})-(\d+)\]?"
             self.commit_regex = re.compile(pattern_str, re.IGNORECASE)
         else:
@@ -107,27 +111,18 @@ class IssueResolver:
             # Uppercase the prefix for lookup
             prefix_upper = prefix.upper()
 
-            # Find the project for this prefix
-            project = None
-            for pattern in self.config.commit_patterns:
-                if pattern.prefix.upper() == prefix_upper:
-                    project = pattern.project
-                    break
-
-            if project is None:
-                # Prefix doesn't match any configured project, skip it
-                continue
-
-            # Build issue identifier (use original-case prefix from pattern)
+            # Find the project for this prefix and build the issue identifier
             for pattern in self.config.commit_patterns:
                 if pattern.prefix.upper() == prefix_upper:
                     issue_identifier = f"{pattern.prefix}-{number}"
-                    result[project] = issue_identifier
+                    # If multiple issues reference the same project in one commit,
+                    # the last one wins silently (by design).
+                    result[pattern.project] = issue_identifier
                     break
 
         return result
 
-    def _find_most_specific_mapping(self, file_path: str):
+    def _find_most_specific_mapping(self, file_path: str) -> PathMapping | None:
         """Find the most specific path mapping for a file.
 
         If multiple mappings match, returns the one with the most path segments

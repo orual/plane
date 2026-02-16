@@ -61,7 +61,7 @@ class ConfigLoader:
             ValueError: If required fields are missing or invalid
             yaml.YAMLError: If YAML parsing fails
         """
-        with open(path) as f:
+        with open(path, encoding="utf-8") as f:
             data = yaml.safe_load(f)
 
         if data is None:
@@ -142,7 +142,9 @@ class ConfigLoader:
                 if not isinstance(formats, list):
                     raise ValueError("'formats' must be a list")
 
-                renderer_list.append(RendererConfig(match=match, command=command, config=config, formats=tuple(formats)))
+                renderer_list.append(
+                    RendererConfig(match=match, command=command, config=config, formats=tuple(formats))
+                )
 
             renderers = tuple(renderer_list)
 
