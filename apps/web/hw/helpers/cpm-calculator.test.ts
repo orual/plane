@@ -6,11 +6,11 @@
 
 import { describe, it, expect } from "vitest";
 import type { TIssueRelationMap } from "@plane/types";
+import type { CpmIssueDates } from "./cpm-calculator";
 import {
   buildAdjacencyList,
   topologicalSort,
   forwardPass,
-  CpmIssueDates,
   addDays,
   daysBetween,
   maxDate,
