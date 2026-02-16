@@ -24,9 +24,7 @@ FIXTURES_DIR = Path(__file__).parent / "fixtures"
 
 def _kicad_cli_available() -> bool:
     """Check if kicad-cli is available on PATH."""
-    import shutil as shell_utils
-
-    return shell_utils.which("kicad-cli") is not None
+    return shutil.which("kicad-cli") is not None
 
 
 # Marker for tests that require kicad-cli
@@ -188,28 +186,28 @@ class TestEndToEndPipeline:
         event_file = github_env / "event.json"
         event_file.write_text(json.dumps(event_data))
 
-        # Mock Plane API endpoints for power-stage project
-        presigned_pwr = {
+        # Mock Plane API endpoints
+        # Asset upload endpoint - returns presigned URL info
+        # Note: We use a single generic presigned response for simplicity. In a real scenario
+        # with per-project routing, the response would vary by file type. For this test,
+        # we verify that multiple assets are uploaded, regardless of their IDs.
+        presigned_response = {
             "upload_data": {
-                "url": "https://s3.example.com/upload-pwr",
-                "fields": {"key": "test-key-pwr"},
+                "url": "https://s3.example.com/upload",
+                "fields": {"key": "test-key"},
             },
-            "asset_id": "asset-uuid-pwr",
-            "asset_url": "https://s3.example.com/asset-pwr.svg",
+            "asset_id": "asset-uuid-generic",
+            "asset_url": "https://s3.example.com/asset.svg",
         }
         respx.post("https://plane.example.com/api/v1/workspaces/test-workspace/assets/").mock(
-            return_value=Response(200, json=presigned_pwr)
+            return_value=Response(200, json=presigned_response)
         )
 
-        # S3 upload endpoints (multiple)
-        respx.post("https://s3.example.com/upload-pwr").mock(return_value=Response(204))
-        respx.post("https://s3.example.com/upload-ctrl").mock(return_value=Response(204))
+        # S3 upload endpoints - match any presigned URL endpoint
+        respx.post("https://s3.example.com/upload").mock(return_value=Response(204))
 
-        # Asset confirm endpoints
-        respx.patch("https://plane.example.com/api/v1/workspaces/test-workspace/assets/asset-uuid-pwr/").mock(
-            return_value=Response(204)
-        )
-        respx.patch("https://plane.example.com/api/v1/workspaces/test-workspace/assets/asset-uuid-ctrl/").mock(
+        # Asset confirm endpoints - match any asset ID
+        respx.patch("https://plane.example.com/api/v1/workspaces/test-workspace/assets/asset-uuid-generic/").mock(
             return_value=Response(204)
         )
 
@@ -251,13 +249,9 @@ class TestEndToEndPipeline:
         assert pwr_req is not None, "No comment request for power-stage project"
         assert ctrl_req is not None, "No comment request for control-board project"
 
-        # Verify each comment contains correct issue ID
+        # Verify each comment contains <img> tags
         pwr_body = json.loads(pwr_req.request.content)
-        assert "PWR-42" in pwr_body["comment_html"] or "<img" in pwr_body["comment_html"]
+        assert "<img" in pwr_body["comment_html"], "PWR comment should contain <img> tags"
 
         ctrl_body = json.loads(ctrl_req.request.content)
-        assert "CTRL-7" in ctrl_body["comment_html"] or "<img" in ctrl_body["comment_html"]
-
-        # Verify both contain <img> tags (the actual renders)
-        assert "<img" in pwr_body["comment_html"], "PWR comment should contain <img> tags"
         assert "<img" in ctrl_body["comment_html"], "CTRL comment should contain <img> tags"

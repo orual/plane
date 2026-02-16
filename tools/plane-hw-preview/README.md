@@ -119,7 +119,7 @@ commit_patterns:
     project: "control-board"
 ```
 
-- **`prefix`**: A string to match in commit messages (case-sensitive).
+- **`prefix`**: A string to match in commit messages (case-insensitive).
 - **`project`**: The Plane project slug to associate with commits containing this prefix.
 
 The prefix can appear anywhere in the commit message. When multiple prefixes match, each linked project gets its own comment.
