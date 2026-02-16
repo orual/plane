@@ -135,9 +135,9 @@ describe("AgentRunStore", () => {
     });
 
     it("should set loader state during fetch", async () => {
-      vi.spyOn(AgentService.prototype, "listAgentRuns").mockImplementationOnce(async () => {
+      vi.spyOn(AgentService.prototype, "listAgentRuns").mockImplementationOnce(() => {
         expect(store.loader).toBe(true);
-        return [];
+        return Promise.resolve([]);
       });
 
       await store.fetchRunsForIssue("test-workspace", "issue-1");
@@ -218,9 +218,7 @@ describe("AgentRunStore", () => {
       const error = new Error("Activities fetch failed");
       vi.spyOn(AgentService.prototype, "listRunActivities").mockRejectedValueOnce(error);
 
-      await expect(store.fetchActivitiesForRun("test-workspace", "run-1")).rejects.toThrow(
-        "Activities fetch failed"
-      );
+      await expect(store.fetchActivitiesForRun("test-workspace", "run-1")).rejects.toThrow("Activities fetch failed");
       expect(store.loader).toBe(false);
     });
   });
@@ -301,9 +299,7 @@ describe("AgentRunStore", () => {
         updated_at: "2024-01-01T00:00:00Z",
       };
 
-      const postActivitySpy = vi
-        .spyOn(AgentService.prototype, "postActivity")
-        .mockResolvedValueOnce(mockResponse);
+      const postActivitySpy = vi.spyOn(AgentService.prototype, "postActivity").mockResolvedValueOnce(mockResponse);
 
       await store.postElicitationResponse("workspace-slug", "run-123", "My response");
 

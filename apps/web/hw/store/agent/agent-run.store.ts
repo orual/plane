@@ -7,10 +7,10 @@
 import { makeObservable, observable, action, computed, runInAction } from "mobx";
 import { computedFn } from "mobx-utils";
 // service
-import { AgentService } from "@/plane-web/services/agent.service";
+import { AgentService } from "../../services/agent.service";
 // types
 import type { CoreRootStore } from "@/store/root.store";
-import type { TAgentRun, TAgentRunActivity } from "@/plane-web/types/agent";
+import type { TAgentRun, TAgentRunActivity } from "../../types/agent";
 
 export interface IAgentRunStore {
   // observables
@@ -37,7 +37,11 @@ export class AgentRunStore implements IAgentRunStore {
   runMap: Record<string, TAgentRun> = {};
   activitiesByRunId: Record<string, string[]> = {};
   activityMap: Record<string, TAgentRunActivity> = {};
-  loader = false;
+  loaderCount = 0;
+
+  get loader(): boolean {
+    return this.loaderCount > 0;
+  }
 
   // services
   private agentService: AgentService;
@@ -53,7 +57,7 @@ export class AgentRunStore implements IAgentRunStore {
       runMap: observable,
       activitiesByRunId: observable,
       activityMap: observable,
-      loader: observable,
+      loaderCount: observable,
 
       // actions
       fetchRunsForIssue: action,
@@ -61,6 +65,7 @@ export class AgentRunStore implements IAgentRunStore {
       postElicitationResponse: action,
 
       // computed
+      loader: computed,
       getRunsByIssueId: computed,
       getActivitiesByRunId: computed,
       hasActiveRuns: computed,
@@ -74,7 +79,7 @@ export class AgentRunStore implements IAgentRunStore {
   fetchRunsForIssue = async (workspaceSlug: string, issueId: string): Promise<void> => {
     try {
       runInAction(() => {
-        this.loader = true;
+        this.loaderCount += 1;
       });
 
       const runs = await this.agentService.listAgentRuns(workspaceSlug, issueId);
@@ -86,21 +91,18 @@ export class AgentRunStore implements IAgentRunStore {
           this.runMap[run.id] = run;
           this.runsByIssueId[issueId].push(run.id);
         });
-        this.loader = false;
       });
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    } catch (error: any) {
+    } finally {
       runInAction(() => {
-        this.loader = false;
+        this.loaderCount -= 1;
       });
-      throw error;
     }
   };
 
   fetchActivitiesForRun = async (workspaceSlug: string, runId: string): Promise<void> => {
     try {
       runInAction(() => {
-        this.loader = true;
+        this.loaderCount += 1;
       });
 
       const activities = await this.agentService.listRunActivities(workspaceSlug, runId);
@@ -112,14 +114,11 @@ export class AgentRunStore implements IAgentRunStore {
           this.activityMap[activity.id] = activity;
           this.activitiesByRunId[runId].push(activity.id);
         });
-        this.loader = false;
       });
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    } catch (error: any) {
+    } finally {
       runInAction(() => {
-        this.loader = false;
+        this.loaderCount -= 1;
       });
-      throw error;
     }
   };
 

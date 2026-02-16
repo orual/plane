@@ -16,6 +16,7 @@ import { useRootStore } from "@/hooks/store/use-root-store";
 import type { TAgentRun } from "@/plane-web/types/agent";
 // components
 import { ActionRenderer, ErrorRenderer, ResponseRenderer, ThoughtRenderer } from "./activity-renderers";
+import { ElicitationCard } from "./elicitation-card";
 
 export type TAgentRunPanelProps = {
   workspaceSlug: string;
@@ -107,15 +108,24 @@ const AgentRunItem = observer(function AgentRunItem({ run, workspaceSlug }: { ru
               <div className="space-y-3">
                 {activities.map((activity) => (
                   <div key={activity.id} className="space-y-1">
-                    <div className="text-xs text-custom-text-400">
-                      {activity.activity_type.charAt(0).toUpperCase() + activity.activity_type.slice(1)}
-                    </div>
+                    {activity.activity_type !== "elicitation" && (
+                      <div className="text-xs text-custom-text-400">
+                        {activity.activity_type.charAt(0).toUpperCase() + activity.activity_type.slice(1)}
+                      </div>
+                    )}
                     <div className="text-sm">
                       {activity.activity_type === "thought" && <ThoughtRenderer activity={activity} />}
                       {activity.activity_type === "action" && <ActionRenderer activity={activity} />}
                       {activity.activity_type === "error" && <ErrorRenderer activity={activity} />}
                       {activity.activity_type === "response" && <ResponseRenderer activity={activity} />}
-                      {activity.activity_type === "elicitation" && <ResponseRenderer activity={activity} />}
+                      {activity.activity_type === "elicitation" && (
+                        <ElicitationCard
+                          activity={activity}
+                          onSubmit={(response) =>
+                            agentRunStore.postElicitationResponse(workspaceSlug, run.id, response)
+                          }
+                        />
+                      )}
                     </div>
                   </div>
                 ))}
