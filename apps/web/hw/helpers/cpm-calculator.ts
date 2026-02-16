@@ -4,6 +4,19 @@
  * See the LICENSE file for details.
  */
 
+/**
+ * CPM (Critical Path Method) calculation engine.
+ *
+ * Pure functional module implementing the CPM algorithm:
+ * 1. Graph transposition (adjacency list construction)
+ * 2. Topological sort (Kahn's algorithm)
+ * 3. Forward pass (ES/EF computation)
+ * 4. Backward pass (LS/LF computation)
+ * 5. Slack and critical path identification
+ *
+ * Follows the same pattern as dependency-conflict.ts and dependency-validation.ts.
+ */
+
 import type { TIssueRelationMap } from "@plane/types";
 
 // Constants
@@ -44,6 +57,40 @@ export type ReverseAdjacencyList = Map<
 >;
 
 /**
+ * Helper to add an edge to adjacency and reverse adjacency lists with deduplication.
+ * Prevents duplicate edges when both directions of a relation are present.
+ */
+function addEdgeWithDedup(
+  predecessorId: string,
+  successorId: string,
+  relationType: "blocking" | "start_before" | "finish_before",
+  adjacencyList: AdjacencyList,
+  reverseAdjacencyList: ReverseAdjacencyList
+): void {
+  // Add to forward adjacency list (with deduplication check)
+  if (!adjacencyList.has(predecessorId)) {
+    adjacencyList.set(predecessorId, []);
+  }
+  const forwardEdges = adjacencyList.get(predecessorId)!;
+  const edgeExists = forwardEdges.some((e) => e.successorId === successorId && e.relationType === relationType);
+  if (!edgeExists) {
+    forwardEdges.push({ successorId, relationType });
+  }
+
+  // Add to reverse adjacency list (with deduplication check)
+  if (!reverseAdjacencyList.has(successorId)) {
+    reverseAdjacencyList.set(successorId, []);
+  }
+  const reverseEdges = reverseAdjacencyList.get(successorId)!;
+  const reverseEdgeExists = reverseEdges.some(
+    (e) => e.predecessorId === predecessorId && e.relationType === relationType
+  );
+  if (!reverseEdgeExists) {
+    reverseEdges.push({ predecessorId, relationType });
+  }
+}
+
+/**
  * Convert TIssueRelationMap into AdjacencyList (forward) and ReverseAdjacencyList
  *
  * The relation map is issue-centric:
@@ -66,91 +113,37 @@ export function buildAdjacencyList(relationMap: TIssueRelationMap): {
     // Process blocking relations (FS edges)
     const blocking = relations.blocking ?? [];
     for (const successorId of blocking) {
-      // issueId → successorId (type: blocking)
-      if (!adjacencyList.has(issueId)) {
-        adjacencyList.set(issueId, []);
-      }
-      adjacencyList.get(issueId)!.push({ successorId, relationType: "blocking" });
-
-      if (!reverseAdjacencyList.has(successorId)) {
-        reverseAdjacencyList.set(successorId, []);
-      }
-      reverseAdjacencyList.get(successorId)!.push({ predecessorId: issueId, relationType: "blocking" });
+      addEdgeWithDedup(issueId, successorId, "blocking", adjacencyList, reverseAdjacencyList);
     }
 
     // Process blocked_by relations (reverse FS edges)
     const blockedBy = relations.blocked_by ?? [];
     for (const predecessorId of blockedBy) {
-      // predecessorId → issueId (type: blocking)
-      if (!adjacencyList.has(predecessorId)) {
-        adjacencyList.set(predecessorId, []);
-      }
-      adjacencyList.get(predecessorId)!.push({ successorId: issueId, relationType: "blocking" });
-
-      if (!reverseAdjacencyList.has(issueId)) {
-        reverseAdjacencyList.set(issueId, []);
-      }
-      reverseAdjacencyList.get(issueId)!.push({ predecessorId, relationType: "blocking" });
+      addEdgeWithDedup(predecessorId, issueId, "blocking", adjacencyList, reverseAdjacencyList);
     }
 
     // Process start_before relations (SS edges)
     const startBefore = relations.start_before ?? [];
     for (const successorId of startBefore) {
-      // issueId → successorId (type: start_before)
-      if (!adjacencyList.has(issueId)) {
-        adjacencyList.set(issueId, []);
-      }
-      adjacencyList.get(issueId)!.push({ successorId, relationType: "start_before" });
-
-      if (!reverseAdjacencyList.has(successorId)) {
-        reverseAdjacencyList.set(successorId, []);
-      }
-      reverseAdjacencyList.get(successorId)!.push({ predecessorId: issueId, relationType: "start_before" });
+      addEdgeWithDedup(issueId, successorId, "start_before", adjacencyList, reverseAdjacencyList);
     }
 
     // Process start_after relations (reverse SS edges)
     const startAfter = relations.start_after ?? [];
     for (const predecessorId of startAfter) {
-      // predecessorId → issueId (type: start_before)
-      if (!adjacencyList.has(predecessorId)) {
-        adjacencyList.set(predecessorId, []);
-      }
-      adjacencyList.get(predecessorId)!.push({ successorId: issueId, relationType: "start_before" });
-
-      if (!reverseAdjacencyList.has(issueId)) {
-        reverseAdjacencyList.set(issueId, []);
-      }
-      reverseAdjacencyList.get(issueId)!.push({ predecessorId, relationType: "start_before" });
+      addEdgeWithDedup(predecessorId, issueId, "start_before", adjacencyList, reverseAdjacencyList);
     }
 
     // Process finish_before relations (FF edges)
     const finishBefore = relations.finish_before ?? [];
     for (const successorId of finishBefore) {
-      // issueId → successorId (type: finish_before)
-      if (!adjacencyList.has(issueId)) {
-        adjacencyList.set(issueId, []);
-      }
-      adjacencyList.get(issueId)!.push({ successorId, relationType: "finish_before" });
-
-      if (!reverseAdjacencyList.has(successorId)) {
-        reverseAdjacencyList.set(successorId, []);
-      }
-      reverseAdjacencyList.get(successorId)!.push({ predecessorId: issueId, relationType: "finish_before" });
+      addEdgeWithDedup(issueId, successorId, "finish_before", adjacencyList, reverseAdjacencyList);
     }
 
     // Process finish_after relations (reverse FF edges)
     const finishAfter = relations.finish_after ?? [];
     for (const predecessorId of finishAfter) {
-      // predecessorId → issueId (type: finish_before)
-      if (!adjacencyList.has(predecessorId)) {
-        adjacencyList.set(predecessorId, []);
-      }
-      adjacencyList.get(predecessorId)!.push({ successorId: issueId, relationType: "finish_before" });
-
-      if (!reverseAdjacencyList.has(issueId)) {
-        reverseAdjacencyList.set(issueId, []);
-      }
-      reverseAdjacencyList.get(issueId)!.push({ predecessorId, relationType: "finish_before" });
+      addEdgeWithDedup(predecessorId, issueId, "finish_before", adjacencyList, reverseAdjacencyList);
     }
   }
 
@@ -201,7 +194,7 @@ export function topologicalSort(adjacencyList: AdjacencyList, allIssueIds: Set<s
     if (edges) {
       for (let i = 0; i < edges.length; i++) {
         const edge = edges[i];
-        const newInDegree = (inDegree.get(edge.successorId) ?? 1) - 1;
+        const newInDegree = (inDegree.get(edge.successorId) ?? 0) - 1;
         inDegree.set(edge.successorId, newInDegree);
         if (newInDegree === 0) {
           queue.push(edge.successorId);
@@ -219,25 +212,29 @@ export function topologicalSort(adjacencyList: AdjacencyList, allIssueIds: Set<s
 
 export function addDays(dateStr: string, days: number): string {
   const date = new Date(dateStr);
-  date.setDate(date.getDate() + days);
+  date.setUTCDate(date.getUTCDate() + days);
   return date.toISOString().split("T")[0];
 }
 
 export function daysBetween(dateA: string, dateB: string): number {
   const a = new Date(dateA);
   const b = new Date(dateB);
-  const diffTime = Math.abs(b.getTime() - a.getTime());
-  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+  const diffTime = b.getTime() - a.getTime();
+  const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
   return diffDays;
 }
 
 export function maxDate(...dates: Array<string>): string {
-  if (dates.length === 0) return "";
+  if (dates.length === 0) {
+    throw new Error("maxDate requires at least one date");
+  }
   return dates.reduce((max, current) => (current > max ? current : max));
 }
 
 export function minDate(...dates: Array<string>): string {
-  if (dates.length === 0) return "";
+  if (dates.length === 0) {
+    throw new Error("minDate requires at least one date");
+  }
   return dates.reduce((min, current) => (current < min ? current : min));
 }
 
@@ -343,11 +340,23 @@ export function forwardPass(
 }
 
 /**
- * Backward pass: compute LS and LF for each issue
+ * Backward pass: compute LS and LF for each issue.
+ *
+ * Handles three edge types correctly:
+ * - FS (blocking): predecessor LF = successor LS - 1
+ * - SS (start_before): predecessor LS = successor LS (direct LS constraint)
+ * - FF (finish_before): predecessor LF = successor LF
+ *
+ * For issues with mixed successors (FS/SS/FF), we collect LS constraints from SS
+ * separately from LF constraints from FS/FF, then reconcile:
+ * - From FS: LF_constraint = successor.LS - 1 → LS = LF_constraint - duration + 1
+ * - From SS: LS_constraint = successor.LS (direct)
+ * - From FF: LF_constraint = successor.LF → LS = LF_constraint - duration + 1
+ * - Final: LS = min(all LS candidates), then LF = LS + duration - 1
  *
  * @param sortedIds - topologically sorted issue IDs (will be reversed)
  * @param adjacencyList - predecessor→successor edges
- * @param reverseAdjacencyList - successor→predecessor edges
+ * @param _reverseAdjacencyList - successor→predecessor edges (unused)
  * @param forwardResults - forward pass results with ES, EF, duration
  * @returns map of { ls, lf } for each issue
  */
@@ -359,11 +368,16 @@ export function backwardPass(
 ): Map<string, { ls: string; lf: string }> {
   const results = new Map<string, { ls: string; lf: string }>();
 
-  // Determine project deadline: max(EF) across all issues
+  // Determine project deadline: max(EF) across all LEAF NODES (nodes with no successors)
   let projectDeadline = "";
-  for (const [, forwardData] of forwardResults) {
-    if (!projectDeadline || forwardData.ef > projectDeadline) {
-      projectDeadline = forwardData.ef;
+  for (const [issueId, forwardData] of forwardResults) {
+    // Check if this issue is a leaf node (no successors in adjacency list)
+    const hasSuccessors = adjacencyList.has(issueId) && adjacencyList.get(issueId)!.length > 0;
+    if (!hasSuccessors) {
+      // This is a leaf node
+      if (!projectDeadline || forwardData.ef > projectDeadline) {
+        projectDeadline = forwardData.ef;
+      }
     }
   }
 
@@ -379,49 +393,49 @@ export function backwardPass(
 
     const { duration } = forwardData;
 
-    // Compute LF (Late Finish)
-    let lf: string | undefined;
+    // Compute LS and LF
+    let ls: string | undefined;
     const successors = adjacencyList.get(issueId);
 
     if (successors && successors.length > 0) {
-      // Multiple successors: take the minimum constraint
-      const constraints: Array<string> = [];
+      // Collect LS constraints from all successors
+      const lsConstraints: Array<string> = [];
 
       for (const succ of successors) {
         const succResult = results.get(succ.successorId);
         if (!succResult) continue;
 
-        let constraint: string;
         if (succ.relationType === "blocking") {
-          // FS: LF = successor LS - 1
-          constraint = addDays(succResult.ls, -1);
+          // FS: derive LS from successor.LS
+          // LS = successor.LS - 1 - (duration - 1) = successor.LS - duration
+          const fsLs = addDays(succResult.ls, -duration);
+          lsConstraints.push(fsLs);
         } else if (succ.relationType === "start_before") {
-          // SS: LF = successor LS
-          constraint = succResult.ls;
+          // SS: LS = successor.LS (direct LS constraint)
+          lsConstraints.push(succResult.ls);
         } else if (succ.relationType === "finish_before") {
-          // FF: LF = successor LF
-          constraint = succResult.lf;
-        } else {
-          continue;
+          // FF: derive LS from successor.LF
+          // LS = successor.LF - (duration - 1) = successor.LF - duration + 1
+          const ffLs = addDays(succResult.lf, -(duration - 1));
+          lsConstraints.push(ffLs);
         }
-        constraints.push(constraint);
       }
 
-      if (constraints.length > 0) {
-        lf = minDate(...constraints);
+      if (lsConstraints.length > 0) {
+        ls = minDate(...lsConstraints);
       }
     } else {
-      // No successors (leaf node): LF = project deadline
-      lf = projectDeadline;
+      // No successors (leaf node): LS = project deadline - duration + 1
+      ls = addDays(projectDeadline, -(duration - 1));
     }
 
-    // If no LF determined, skip this issue
-    if (!lf) {
+    // If no LS determined, skip this issue
+    if (!ls) {
       continue;
     }
 
-    // Compute LS: LF - duration + 1
-    const ls = addDays(lf, -(duration - 1));
+    // Compute LF: LS + duration - 1
+    const lf = addDays(ls, duration - 1);
 
     results.set(issueId, { ls, lf });
   }
