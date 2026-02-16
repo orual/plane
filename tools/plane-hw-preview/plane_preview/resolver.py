@@ -25,11 +25,7 @@ class IssueResolver:
         # Build regex pattern for commit message parsing
         if config.commit_patterns:
             prefixes = "|".join(re.escape(pattern.prefix) for pattern in config.commit_patterns)
-            # Note: The regex pattern matches PREFIX-NUMBER with optional brackets.
-            # There is no word boundary assertion, so a substring like "NOTPWR-42" will
-            # match as "PWR-42". This is acceptable for commit message parsing (unlikely
-            # to cause issues in practice) and matches the design specification.
-            pattern_str = rf"\[?({prefixes})-(\d+)\]?"
+            pattern_str = rf"\[?\b({prefixes})-(\d+)\b\]?"
             self.commit_regex = re.compile(pattern_str, re.IGNORECASE)
         else:
             self.commit_regex = None
