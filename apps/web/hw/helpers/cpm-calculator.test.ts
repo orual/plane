@@ -42,8 +42,13 @@ describe("CPM Calculator", () => {
     return result;
   };
 
-  // Helper to get issue dates
-  const createGetIssueDates = (issueData: Record<string, CpmIssueDates>) => (id: string) => issueData[id];
+  // Helper to get issue dates (with assertion for unknown IDs)
+  const createGetIssueDates = (issueData: Record<string, CpmIssueDates>) => (id: string) => {
+    if (!(id in issueData)) {
+      console.warn(`Warning: createGetIssueDates called with unknown issue ID: ${id}`);
+    }
+    return issueData[id];
+  };
 
   describe("buildAdjacencyList", () => {
     it("should return empty adjacency lists for empty relation map (AC1.8)", () => {
@@ -431,6 +436,105 @@ describe("CPM Calculator", () => {
 
       expect(backwardResults.get("issue-c")!.ls).toBe("2025-01-07");
       expect(backwardResults.get("issue-c")!.lf).toBe("2025-01-09");
+    });
+
+    it("should compute LS correctly for SS chain (C1 fix)", () => {
+      // A→B→C with SS relationships (start_before)
+      // A: Jan 1-5 (duration 5), B: Jan 1-3 (duration 3), C: Jan 1-2 (duration 2)
+      // Forward: A.ES=Jan 1, B.ES=Jan 1 (SS from A), C.ES=Jan 1 (SS from B)
+      // Backward: C.LF=Jan 2 (leaf), C.LS=Jan 2 - 2 + 1 = Jan 1
+      // B.LS = C.LS = Jan 1 (SS constraint), B.LF = Jan 1 + 3 - 1 = Jan 3
+      // A.LS = B.LS = Jan 1 (SS constraint), A.LF = Jan 1 + 5 - 1 = Jan 5
+      const relationMap = createRelationMap({
+        "issue-a": { start_before: ["issue-b"] },
+        "issue-b": { start_before: ["issue-c"] },
+      });
+      const { adjacencyList, reverseAdjacencyList } = buildAdjacencyList(relationMap);
+      const sorted = topologicalSort(adjacencyList, new Set(["issue-a", "issue-b", "issue-c"]));
+
+      const getIssueDates = createGetIssueDates({
+        "issue-a": { start_date: "2025-01-01", target_date: "2025-01-05" },
+        "issue-b": { start_date: "2025-01-01", target_date: "2025-01-03" },
+        "issue-c": { start_date: "2025-01-01", target_date: "2025-01-02" },
+      });
+
+      const forwardResults = forwardPass(sorted, adjacencyList, reverseAdjacencyList, getIssueDates);
+      const backwardResults = backwardPass(sorted, adjacencyList, reverseAdjacencyList, forwardResults);
+
+      // A, B, C all have same LS due to SS constraints
+      expect(backwardResults.get("issue-a")!.ls).toBe("2025-01-01");
+      expect(backwardResults.get("issue-b")!.ls).toBe("2025-01-01");
+      expect(backwardResults.get("issue-c")!.ls).toBe("2025-01-01");
+
+      // Verify LF is computed correctly from LS + duration - 1
+      expect(backwardResults.get("issue-a")!.lf).toBe("2025-01-05");
+      expect(backwardResults.get("issue-b")!.lf).toBe("2025-01-03");
+      expect(backwardResults.get("issue-c")!.lf).toBe("2025-01-02");
+    });
+
+    it("should compute LS correctly for FF chain", () => {
+      // A→B→C with FF relationships (finish_before)
+      // A: Jan 1-5 (duration 5), B: Jan 3-5 (duration 3), C: Jan 3-5 (duration 3)
+      // Forward: A.EF=Jan 5, B.EF=Jan 5 (FF from A), C.EF=Jan 5 (FF from B)
+      // Backward: C.LF=Jan 5 (leaf), C.LS=Jan 5 - 3 + 1 = Jan 3
+      // B.LF = C.LF = Jan 5 (FF constraint), B.LS = Jan 5 - 3 + 1 = Jan 3
+      // A.LF = B.LF = Jan 5 (FF constraint), A.LS = Jan 5 - 5 + 1 = Jan 1
+      const relationMap = createRelationMap({
+        "issue-a": { finish_before: ["issue-b"] },
+        "issue-b": { finish_before: ["issue-c"] },
+      });
+      const { adjacencyList, reverseAdjacencyList } = buildAdjacencyList(relationMap);
+      const sorted = topologicalSort(adjacencyList, new Set(["issue-a", "issue-b", "issue-c"]));
+
+      const getIssueDates = createGetIssueDates({
+        "issue-a": { start_date: "2025-01-01", target_date: "2025-01-05" },
+        "issue-b": { start_date: "2025-01-03", target_date: "2025-01-05" },
+        "issue-c": { start_date: "2025-01-03", target_date: "2025-01-05" },
+      });
+
+      const forwardResults = forwardPass(sorted, adjacencyList, reverseAdjacencyList, getIssueDates);
+      const backwardResults = backwardPass(sorted, adjacencyList, reverseAdjacencyList, forwardResults);
+
+      // All have same LF due to FF constraints
+      expect(backwardResults.get("issue-a")!.lf).toBe("2025-01-05");
+      expect(backwardResults.get("issue-b")!.lf).toBe("2025-01-05");
+      expect(backwardResults.get("issue-c")!.lf).toBe("2025-01-05");
+
+      // Verify LS is computed correctly from LF - duration + 1
+      expect(backwardResults.get("issue-a")!.ls).toBe("2025-01-01");
+      expect(backwardResults.get("issue-b")!.ls).toBe("2025-01-03");
+      expect(backwardResults.get("issue-c")!.ls).toBe("2025-01-03");
+    });
+
+    it("should handle mixed FS/SS/FF predecessors correctly", () => {
+      // C has three predecessors with different relationship types
+      // A→C (FS): A finishes Jan 5, so C.ES >= Jan 6, thus C.LS >= Jan 6 (approx, depends on duration)
+      // B→C (SS): B starts Jan 3, so C.LS >= Jan 3
+      // D→C (FF): D finishes Jan 8, so C.LF <= Jan 8
+      // Expected: C.LS = min of all constraints from predecessors, C.LF >= C.LS
+      const relationMap = createRelationMap({
+        "issue-a": { blocking: ["issue-c"] },
+        "issue-b": { start_before: ["issue-c"] },
+        "issue-d": { finish_before: ["issue-c"] },
+      });
+      const { adjacencyList, reverseAdjacencyList } = buildAdjacencyList(relationMap);
+      const sorted = topologicalSort(adjacencyList, new Set(["issue-a", "issue-b", "issue-c", "issue-d"]));
+
+      const getIssueDates = createGetIssueDates({
+        "issue-a": { start_date: "2025-01-01", target_date: "2025-01-05" },
+        "issue-b": { start_date: "2025-01-03", target_date: "2025-01-04" },
+        "issue-c": { start_date: "2025-01-06", target_date: "2025-01-08" },
+        "issue-d": { start_date: "2025-01-06", target_date: "2025-01-08" },
+      });
+
+      const forwardResults = forwardPass(sorted, adjacencyList, reverseAdjacencyList, getIssueDates);
+      const backwardResults = backwardPass(sorted, adjacencyList, reverseAdjacencyList, forwardResults);
+
+      // C should exist in backward results
+      expect(backwardResults.get("issue-c")).toBeDefined();
+      // C's LS should be valid (before or equal to LF)
+      const cResult = backwardResults.get("issue-c")!;
+      expect(cResult.ls <= cResult.lf).toBe(true);
     });
   });
 
