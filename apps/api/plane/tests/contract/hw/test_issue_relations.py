@@ -74,10 +74,10 @@ class TestIssueRelationListCreate:
     """Test issue relation list and create endpoints."""
 
     def get_list_url(self, workspace_slug, project_id, issue_id):
-        return f"/api/workspaces/{workspace_slug}/projects/{project_id}/issues/{issue_id}/relations/"
+        return f"/api/workspaces/{workspace_slug}/projects/{project_id}/issues/{issue_id}/issue-relation/"
 
     def get_remove_url(self, workspace_slug, project_id, issue_id):
-        return f"/api/workspaces/{workspace_slug}/projects/{project_id}/issues/{issue_id}/relations/remove/"
+        return f"/api/workspaces/{workspace_slug}/projects/{project_id}/issues/{issue_id}/remove-relation/"
 
     @pytest.mark.django_db
     def test_list_empty_relations(self, session_client, workspace, project, issue_a):
