@@ -4,7 +4,7 @@
 
 # Python import
 import os
-from typing import List, Dict, Tuple
+from typing import Tuple
 
 # Third party import
 import litellm
@@ -84,6 +84,10 @@ def get_llm_config() -> Tuple[str | None, str | None, str | None, str | None]:
             },
         ]
     )
+
+    if not provider_key:
+        log_exception(ValueError("No LLM provider configured"))
+        return None, None, None, None
 
     provider_config = PROVIDER_MODELS.get(provider_key.lower())
     if not provider_config:
@@ -171,7 +175,9 @@ class GPTIntegrationEndpoint(BaseAPIView):
         if not task:
             return Response({"error": "Task is required"}, status=status.HTTP_400_BAD_REQUEST)
 
-        text, error, reasoning_content = get_llm_response(task, request.data.get("prompt", False), api_key, model, provider, base_url)
+        text, error, reasoning_content = get_llm_response(
+            task, request.data.get("prompt", ""), api_key, model, provider, base_url
+        )
         if not text and error:
             return Response(
                 {"error": "An internal error has occurred."},
@@ -208,7 +214,9 @@ class WorkspaceGPTIntegrationEndpoint(BaseAPIView):
         if not task:
             return Response({"error": "Task is required"}, status=status.HTTP_400_BAD_REQUEST)
 
-        text, error, reasoning_content = get_llm_response(task, request.data.get("prompt", False), api_key, model, provider, base_url)
+        text, error, reasoning_content = get_llm_response(
+            task, request.data.get("prompt", ""), api_key, model, provider, base_url
+        )
         if not text and error:
             return Response(
                 {"error": "An internal error has occurred."},

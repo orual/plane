@@ -200,7 +200,9 @@ class TestGetLlmResponse:
         """When litellm.completion raises AuthenticationError, returns clear error string."""
         from litellm import AuthenticationError
 
-        mock_completion.side_effect = AuthenticationError(message="Invalid API key")
+        mock_completion.side_effect = AuthenticationError(
+            message="Invalid API key", llm_provider="openai", model="gpt-4.1"
+        )
 
         text, error, reasoning = get_llm_response(
             task="Test task",
@@ -219,7 +221,9 @@ class TestGetLlmResponse:
         """When litellm.completion raises RateLimitError, returns user-friendly error string."""
         from litellm import RateLimitError
 
-        mock_completion.side_effect = RateLimitError(message="Rate limited")
+        mock_completion.side_effect = RateLimitError(
+            message="Rate limited", llm_provider="openai", model="gpt-4.1"
+        )
 
         text, error, reasoning = get_llm_response(
             task="Test task",
@@ -239,7 +243,9 @@ class TestGetLlmResponse:
         from litellm import APIError
 
         error_msg = "API error occurred"
-        mock_completion.side_effect = APIError(message=error_msg)
+        mock_completion.side_effect = APIError(
+            status_code=500, message=error_msg, llm_provider="openai", model="gpt-4.1"
+        )
 
         text, error, reasoning = get_llm_response(
             task="Test task",
