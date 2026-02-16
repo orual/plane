@@ -121,16 +121,15 @@ def _dfs_find_cycle(
     visited.add(current_issue_id)
     current_path = path + [current_issue_id]
 
-    # Find all issues that depend on the current issue.
-    # For each relation type, IssueRelation(issue=A, related_issue=B, relation_type='blocked_by')
-    # means A is blocked by B. So to find issues that depend on B, we query
-    # related_issue=B and get the issue side (the dependents).
-    dependent_relations = IssueRelation.objects.filter(
-        related_issue_id=current_issue_id,
+    # Follow the current issue's own dependencies.
+    # IssueRelation(issue=A, related_issue=B, relation_type='blocked_by') means
+    # A depends on B. Query issue_id=current to find what current depends on.
+    dependency_targets = IssueRelation.objects.filter(
+        issue_id=current_issue_id,
         relation_type__in=DEPENDENCY_RELATION_TYPES,
-    ).values_list("issue_id", flat=True)
+    ).values_list("related_issue_id", flat=True)
 
-    for dependent_issue_id in dependent_relations:
+    for dependent_issue_id in dependency_targets:
         result = _dfs_find_cycle(str(dependent_issue_id), target_issue_id, visited, current_path, depth + 1)
         if result is not None:
             return result
