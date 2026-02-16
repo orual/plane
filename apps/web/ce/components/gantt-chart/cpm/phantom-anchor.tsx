@@ -4,6 +4,12 @@
  * See the LICENSE file for details.
  */
 
-export * from "./cpm-toggle";
-export * from "./cpm-tooltip-content";
-export * from "./phantom-anchor";
+type Props = {
+  issueId: string;
+  side: "left" | "right";
+  top: number;
+};
+
+export function PhantomAnchor(_props: Props) {
+  return null;
+}

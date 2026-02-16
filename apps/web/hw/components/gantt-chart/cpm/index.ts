@@ -6,3 +6,4 @@
 
 export * from "./cpm-toggle";
 export * from "./cpm-tooltip-content";
+export * from "./phantom-anchor";
