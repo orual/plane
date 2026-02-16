@@ -6,7 +6,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment */
 
 import { isEqual, set } from "lodash-es";
-import { action, makeObservable, observable, runInAction } from "mobx";
+import { action, computed, makeObservable, observable, runInAction } from "mobx";
 import { computedFn } from "mobx-utils";
 // components
 import type {
@@ -26,6 +26,8 @@ import {
 // helpers
 import type { ConflictInfo } from "../../helpers/dependency-conflict";
 import { detectDependencyConflicts } from "../../helpers/dependency-conflict";
+import { computeCpm } from "@/plane-web/helpers/cpm-calculator";
+import type { CpmResultMap } from "@/plane-web/helpers/cpm-calculator";
 // store
 import type { RootStore } from "@/plane-web/store/root.store";
 
@@ -60,6 +62,8 @@ export interface IBaseTimelineStore {
     hoveredTargetEndpoint: "left" | "right" | null;
     isValidTarget: boolean;
   };
+  cpmEnabled: boolean;
+  crossProjectCpmEnabled: boolean;
   //
   setBlockIds: (ids: string[]) => void;
   getBlockById: (blockId: string) => IGanttBlock;
@@ -68,6 +72,10 @@ export interface IBaseTimelineStore {
   isBlockActive: (blockId: string) => boolean;
   getDependencyConflicts: (blockId: string) => Array<ConflictInfo>;
   hasConflict: (blockId: string) => boolean;
+  cpmResults: CpmResultMap;
+  isCritical: (blockId: string) => boolean;
+  getSlack: (blockId: string) => number;
+  getComputedDates: (blockId: string) => { start_date: string; target_date: string } | null;
   // actions
   updateCurrentView: (view: TGanttViews) => void;
   updateCurrentViewData: (data: ChartDataType | undefined) => void;
@@ -89,6 +97,8 @@ export interface IBaseTimelineStore {
   endDependencyDrag: () => void;
   computePreviewPositions: (draggedBlockId: string) => void;
   clearPreviewPositions: () => void;
+  setCpmEnabled: (enabled: boolean) => void;
+  setCrossProjectCpmEnabled: (enabled: boolean) => void;
 
   getDateFromPositionOnGantt: (position: number, offsetDays: number) => Date | undefined;
   getPositionFromDateOnGantt: (date: string | Date, offSetWidth: number) => number | undefined;
@@ -108,6 +118,8 @@ export class BaseTimeLineStore implements IBaseTimelineStore {
   rootStore: RootStore;
 
   isDependencyEnabled = false;
+  cpmEnabled = false;
+  crossProjectCpmEnabled = false;
 
   // Dependency drag state
   dependencyDragState: {
@@ -142,6 +154,10 @@ export class BaseTimeLineStore implements IBaseTimelineStore {
       renderView: observable,
       previewBlockIds: observable,
       dependencyDragState: observable.deep,
+      cpmEnabled: observable,
+      crossProjectCpmEnabled: observable,
+      // computed
+      cpmResults: computed,
       // actions
       setIsDragging: action,
       setBlockIds: action.bound,
@@ -156,6 +172,8 @@ export class BaseTimeLineStore implements IBaseTimelineStore {
       endDependencyDrag: action.bound,
       computePreviewPositions: action.bound,
       clearPreviewPositions: action.bound,
+      setCpmEnabled: action,
+      setCrossProjectCpmEnabled: action,
     });
 
     this.initGantt();
@@ -464,6 +482,22 @@ export class BaseTimeLineStore implements IBaseTimelineStore {
   };
 
   /**
+   * @description toggle CPM calculation
+   * @param enabled whether to enable CPM calculation
+   */
+  setCpmEnabled = (enabled: boolean): void => {
+    this.cpmEnabled = enabled;
+  };
+
+  /**
+   * @description toggle cross-project CPM calculation
+   * @param enabled whether to enable cross-project CPM
+   */
+  setCrossProjectCpmEnabled = (enabled: boolean): void => {
+    this.crossProjectCpmEnabled = enabled;
+  };
+
+  /**
    * Find downstream dependents of a block by traversing the relation graph
    * @param blockId the source block ID
    * @param visited set of already-visited block IDs
@@ -638,6 +672,68 @@ export class BaseTimeLineStore implements IBaseTimelineStore {
       this.previewBlockIds.clear();
     });
   };
+
+  /**
+   * Compute CPM results for the entire block graph.
+   * Returns empty map if CPM is disabled.
+   * Automatically recomputes when block dates or relations change.
+   * @returns Map of block IDs to CPM calculation results
+   */
+  get cpmResults(): CpmResultMap {
+    if (!this.cpmEnabled) return new Map();
+
+    const relationMap = this.rootStore.issue.issueDetail.relation.relationMap;
+    const getIssueDates = (id: string) => {
+      const block = this.blocksMap[id];
+      if (!block) return undefined;
+      return {
+        start_date: block.start_date,
+        target_date: block.target_date,
+      };
+    };
+
+    return computeCpm(relationMap, getIssueDates);
+  }
+
+  /**
+   * Check if a block is on the critical path (zero slack).
+   * Uses computedFn for per-block memoization.
+   * @param blockId the block to check
+   * @returns true if the block has zero slack
+   */
+  isCritical = computedFn((blockId: string): boolean => {
+    const result = this.cpmResults.get(blockId);
+    return result?.isCritical ?? false;
+  });
+
+  /**
+   * Get the total float (slack) for a block in days.
+   * Uses computedFn for per-block memoization.
+   * @param blockId the block to check
+   * @returns slack value in days (0 for blocks not in CPM)
+   */
+  getSlack = computedFn((blockId: string): number => {
+    const result = this.cpmResults.get(blockId);
+    return result?.slack ?? 0;
+  });
+
+  /**
+   * Get computed dates for a dateless block from CPM results.
+   * Returns null for dated blocks or blocks not in CPM results.
+   * Uses computedFn for per-block memoization.
+   * @param blockId the block to check
+   * @returns computed start/target dates or null
+   */
+  getComputedDates = computedFn((blockId: string): { start_date: string; target_date: string } | null => {
+    const block = this.blocksMap[blockId];
+    if (!block) return null;
+    if (block.start_date && block.target_date) return null;
+
+    const result = this.cpmResults.get(blockId);
+    if (!result) return null;
+
+    return { start_date: result.es, target_date: result.ef };
+  });
 
   /**
    * Get dependency conflicts for a block

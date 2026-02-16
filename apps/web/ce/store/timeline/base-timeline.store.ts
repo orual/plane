@@ -6,7 +6,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment */
 
 import { isEqual, set } from "lodash-es";
-import { action, makeObservable, observable, runInAction } from "mobx";
+import { action, computed, makeObservable, observable, runInAction } from "mobx";
 import { computedFn } from "mobx-utils";
 // components
 import type {
@@ -25,6 +25,7 @@ import {
 } from "@/components/gantt-chart/views/helpers";
 // helpers
 import type { ConflictInfo } from "@/plane-web/helpers/dependency-conflict";
+import type { CpmResultMap } from "@/plane-web/helpers/cpm-calculator";
 // store
 import type { RootStore } from "@/plane-web/store/root.store";
 
@@ -59,6 +60,8 @@ export interface IBaseTimelineStore {
     hoveredTargetEndpoint: "left" | "right" | null;
     isValidTarget: boolean;
   };
+  cpmEnabled: boolean;
+  crossProjectCpmEnabled: boolean;
   //
   setBlockIds: (ids: string[]) => void;
   getBlockById: (blockId: string) => IGanttBlock;
@@ -67,6 +70,10 @@ export interface IBaseTimelineStore {
   isBlockActive: (blockId: string) => boolean;
   getDependencyConflicts: (blockId: string) => Array<ConflictInfo>;
   hasConflict: (blockId: string) => boolean;
+  cpmResults: CpmResultMap;
+  isCritical: (blockId: string) => boolean;
+  getSlack: (blockId: string) => number;
+  getComputedDates: (blockId: string) => { start_date: string; target_date: string } | null;
   // actions
   updateCurrentView: (view: TGanttViews) => void;
   updateCurrentViewData: (data: ChartDataType | undefined) => void;
@@ -88,6 +95,8 @@ export interface IBaseTimelineStore {
   endDependencyDrag: () => void;
   computePreviewPositions: (draggedBlockId: string) => void;
   clearPreviewPositions: () => void;
+  setCpmEnabled: (enabled: boolean) => void;
+  setCrossProjectCpmEnabled: (enabled: boolean) => void;
 
   getDateFromPositionOnGantt: (position: number, offsetDays: number) => Date | undefined;
   getPositionFromDateOnGantt: (date: string | Date, offSetWidth: number) => number | undefined;
@@ -107,6 +116,8 @@ export class BaseTimeLineStore implements IBaseTimelineStore {
   rootStore: RootStore;
 
   isDependencyEnabled = false;
+  cpmEnabled = false;
+  crossProjectCpmEnabled = false;
 
   // Dependency drag state (CE edition: stubs only)
   dependencyDragState: {
@@ -141,6 +152,10 @@ export class BaseTimeLineStore implements IBaseTimelineStore {
       renderView: observable,
       previewBlockIds: observable,
       dependencyDragState: observable.deep,
+      cpmEnabled: observable,
+      crossProjectCpmEnabled: observable,
+      // computed
+      cpmResults: computed,
       // actions
       setIsDragging: action,
       setBlockIds: action.bound,
@@ -155,6 +170,8 @@ export class BaseTimeLineStore implements IBaseTimelineStore {
       endDependencyDrag: action.bound,
       computePreviewPositions: action.bound,
       clearPreviewPositions: action.bound,
+      setCpmEnabled: action,
+      setCrossProjectCpmEnabled: action,
     });
 
     this.initGantt();
@@ -430,6 +447,22 @@ export class BaseTimeLineStore implements IBaseTimelineStore {
   };
 
   /**
+   * @description CE stub: toggle CPM calculation (not supported)
+   * CPM is a HW-only feature
+   */
+  setCpmEnabled = (_enabled: boolean): void => {
+    // CE does not support CPM
+  };
+
+  /**
+   * @description CE stub: toggle cross-project CPM (not supported)
+   * CPM is a HW-only feature
+   */
+  setCrossProjectCpmEnabled = (_enabled: boolean): void => {
+    // CE does not support CPM
+  };
+
+  /**
    * @description CE stub: compute preview positions for dependent blocks (not supported)
    * Preview positions are a HW-only feature
    */
@@ -444,6 +477,32 @@ export class BaseTimeLineStore implements IBaseTimelineStore {
   clearPreviewPositions = () => {
     // CE does not support dependency preview
   };
+
+  /**
+   * @description CE stub: CPM results (not supported)
+   * CPM is a HW-only feature — always returns empty map
+   */
+  get cpmResults(): CpmResultMap {
+    return new Map();
+  }
+
+  /**
+   * @description CE stub: check if a block is critical (not supported)
+   * CPM is a HW-only feature — always returns false
+   */
+  isCritical = computedFn((_blockId: string): boolean => false);
+
+  /**
+   * @description CE stub: get block slack (not supported)
+   * CPM is a HW-only feature — always returns 0
+   */
+  getSlack = computedFn((_blockId: string): number => 0);
+
+  /**
+   * @description CE stub: get computed dates (not supported)
+   * CPM is a HW-only feature — always returns null
+   */
+  getComputedDates = computedFn((_blockId: string): { start_date: string; target_date: string } | null => null);
 
   /**
    * @description CE stub: get dependency conflicts for a block (not supported)
