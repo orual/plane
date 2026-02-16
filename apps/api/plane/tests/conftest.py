@@ -36,10 +36,15 @@ def user_data():
 @pytest.fixture
 def create_user(db, user_data):
     """Create and return a user instance"""
-    user = User.objects.create(
+    from uuid import uuid4
+
+    user, _ = User.objects.get_or_create(
         email=user_data["email"],
-        first_name=user_data["first_name"],
-        last_name=user_data["last_name"],
+        defaults={
+            "username": uuid4().hex,
+            "first_name": user_data["first_name"],
+            "last_name": user_data["last_name"],
+        },
     )
     user.set_password(user_data["password"])
     user.save()
