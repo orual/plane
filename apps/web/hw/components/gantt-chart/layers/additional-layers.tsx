@@ -91,6 +91,8 @@ export const GanttAdditionalLayers: FC<Props> = observer(function GanttAdditiona
           <div
             key={`slack-${blockId}`}
             className="absolute rounded-sm"
+            data-test="cpm-slack-bar"
+            data-test-issue-id={blockId}
             style={{
               left: position.left,
               width: position.width,

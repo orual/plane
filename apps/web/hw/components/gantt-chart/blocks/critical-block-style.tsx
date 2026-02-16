@@ -41,5 +41,9 @@ export const CriticalBlockStyle = observer(function CriticalBlockStyle({
     ...(isComputed ? { borderStyle: "dashed", borderWidth: "1.5px", borderColor: CRITICAL_COLOR } : {}),
   };
 
-  return <div style={criticalStyle}>{children}</div>;
+  return (
+    <div style={criticalStyle} data-test="cpm-critical-block" data-test-issue-id={blockId}>
+      {children}
+    </div>
+  );
 });

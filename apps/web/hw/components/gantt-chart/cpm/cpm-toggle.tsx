@@ -17,6 +17,7 @@ export const CpmToggle = observer(function CpmToggle() {
     <div className="flex flex-col gap-1">
       <button
         type="button"
+        data-test="cpm-toggle"
         className={`flex items-center gap-1.5 rounded px-2 py-1 text-xs font-medium transition-colors ${
           isActive ? "bg-red-500/10 text-red-600" : "text-custom-text-300 hover:bg-custom-background-80"
         }`}
@@ -29,6 +30,7 @@ export const CpmToggle = observer(function CpmToggle() {
         <label className="flex items-center gap-1.5 text-xs text-custom-text-300 cursor-pointer pl-2">
           <input
             type="checkbox"
+            data-test="cpm-cross-project-toggle"
             checked={timelineStore.crossProjectCpmEnabled}
             onChange={(e) => {
               timelineStore.setCrossProjectCpmEnabled(e.target.checked);

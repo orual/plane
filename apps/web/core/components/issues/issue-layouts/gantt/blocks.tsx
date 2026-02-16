@@ -75,6 +75,7 @@ export const IssueGanttBlock = observer(function IssueGanttBlock(props: Props) {
           <CriticalBlockStyle blockId={issueId} baseStyle={blockStyle}>
             <div
               id={`issue-${issueId}`}
+              {...(isComputedDate ? { "data-test": "cpm-computed-block", "data-test-issue-id": issueId } : {})}
               className={cn(
                 "relative flex h-full w-full cursor-pointer items-center rounded-sm space-between",
                 {
