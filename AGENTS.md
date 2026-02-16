@@ -25,6 +25,15 @@ reviewing code as you did writing it. LLM-assisted contributions that do not mee
 be declined outright. Remember, your code is your responsibility.
 ```
 
+## Git and PR workflow
+
+This is a **fork** of `makeplane/plane`. The fork's working branch is `hw`, not `preview`.
+
+- **Default PR target:** `hw`. All feature branches should PR against `hw`.
+- **NEVER** create a PR against `preview` or `upstream/preview`. The `preview` branch tracks `makeplane/plane` upstream and is not ours to merge into.
+- **NEVER** push to the `upstream` remote. The push URL is deliberately broken (`no_push_to_upstream`). Fetch only.
+- **Worktrees** live in `.worktrees/` (gitignored). Feature branches are created from `hw`.
+
 ## General conventions
 
 ### Correctness over convenience
