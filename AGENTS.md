@@ -84,6 +84,9 @@ Backend
 ├── apps/api        Django REST API (port 8000)
 └── apps/live       Real-time collaboration (Node.js, Hocuspocus + Yjs)
 
+Tools
+└── plane-hw-preview   KiCad hardware preview CLI (Python, standalone)
+
 Infrastructure: PostgreSQL, Redis, RabbitMQ, S3/MinIO
 ```
 
