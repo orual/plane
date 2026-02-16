@@ -8,7 +8,6 @@ mocking the Plane API.
 import json
 import os
 import shutil
-import subprocess
 from pathlib import Path
 from unittest import mock
 
@@ -18,7 +17,6 @@ from click.testing import CliRunner
 from httpx import Response
 
 from plane_preview.cli import main
-
 
 # Fixtures directory at the root of tests/
 FIXTURES_DIR = Path(__file__).parent / "fixtures"
@@ -141,8 +139,9 @@ class TestEndToEndPipeline:
         assert result.exit_code == 0, f"CLI failed with output:\n{result.output}"
 
         # Verify at least one asset upload request was made
-        asset_upload_requests = [r for r in respx.calls if r.request.method == "POST"
-                                  and "assets" in r.request.url.path]
+        asset_upload_requests = [
+            r for r in respx.calls if r.request.method == "POST" and "assets" in r.request.url.path
+        ]
         assert len(asset_upload_requests) > 0, "No asset upload requests found"
 
         # Verify S3 upload was called (real SVG data)
