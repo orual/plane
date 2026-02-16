@@ -69,7 +69,7 @@ class TestAgentRegistration:
         # Verify bot user was created
         agent_profile = AgentProfile.objects.get(id=response.data["id"])
         assert agent_profile.user.is_bot is True
-        assert agent_profile.user.bot_type == "agent"
+        assert agent_profile.user.bot_type == "AGENT"
         assert agent_profile.user.username.startswith("agent_")
         assert agent_profile.user.email.endswith("@agent.internal")
 

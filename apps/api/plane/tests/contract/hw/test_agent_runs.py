@@ -55,7 +55,7 @@ def agent_profile(db, workspace, create_user):
         email="test_agent_bot@agent.internal",
         display_name="Test Agent",
         is_bot=True,
-        bot_type="agent",
+        bot_type="AGENT",
     )
     # Create WorkspaceMember for the bot user (required for permission checks)
     WorkspaceMember.objects.create(
@@ -176,8 +176,15 @@ class TestAgentRunLifecycle:
 
         detail_url = self.get_run_detail_url(workspace.slug, run_id)
 
-        # First transition to completed
-        agent_client.patch(detail_url, {"status": AgentRunStatus.COMPLETED}, format="json")
+        # Transition: created → in_progress
+        in_progress_response = agent_client.patch(detail_url, {"status": AgentRunStatus.IN_PROGRESS}, format="json")
+        assert in_progress_response.status_code == status.HTTP_200_OK
+        assert in_progress_response.data["status"] == AgentRunStatus.IN_PROGRESS
+
+        # Transition: in_progress → completed
+        complete_response = agent_client.patch(detail_url, {"status": AgentRunStatus.COMPLETED}, format="json")
+        assert complete_response.status_code == status.HTTP_200_OK
+        assert complete_response.data["status"] == AgentRunStatus.COMPLETED
 
         # Try invalid transition: completed → in_progress
         invalid_response = agent_client.patch(detail_url, {"status": AgentRunStatus.IN_PROGRESS}, format="json")

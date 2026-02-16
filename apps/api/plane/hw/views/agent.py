@@ -272,6 +272,12 @@ class AgentRunViewSet(BaseViewSet):
                 # Return serialized response
                 serializer = AgentRunSerializer(run)
                 return Response(serializer.data, status=status.HTTP_200_OK)
+            else:
+                # For non-terminal transitions, update and save
+                run.status = new_status
+                run.save(update_fields=["status"])
+                serializer = AgentRunSerializer(run)
+                return Response(serializer.data, status=status.HTTP_200_OK)
 
         serializer = AgentRunSerializer(run, data=update_data, partial=True)
         if serializer.is_valid():

@@ -2,6 +2,8 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 # See the LICENSE file for details.
 
+from rest_framework import serializers
+
 from plane.app.serializers import BaseSerializer
 from plane.hw.models import AgentProfile, AgentRun, AgentRunActivity
 
@@ -73,6 +75,10 @@ class AgentRunSerializer(BaseSerializer):
 
 
 class AgentRunCreateSerializer(BaseSerializer):
+    agent_id = serializers.UUIDField(write_only=True)
+    project_id = serializers.UUIDField(write_only=True, required=False, allow_null=True)
+    issue_id = serializers.UUIDField(write_only=True, required=False, allow_null=True)
+
     class Meta:
         model = AgentRun
         fields = [
