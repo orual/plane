@@ -1,6 +1,5 @@
 """Render KiCad files using configurable commands and auto-detect renderers."""
 
-import fnmatch
 import glob
 import logging
 import shlex
@@ -10,7 +9,7 @@ import tempfile
 from pathlib import Path
 
 from plane_preview.config import Config, RendererConfig
-from plane_preview.types import RenderFile
+from plane_preview.types import RenderFile, glob_match
 
 logger = logging.getLogger(__name__)
 
@@ -213,7 +212,7 @@ class Renderer:
         Returns:
             List of matching RendererConfig entries, empty if none match.
         """
-        return [r for r in self._renderers if fnmatch.fnmatch(file_path, r.match)]
+        return [r for r in self._renderers if glob_match(file_path, r.match)]
 
     def _is_kicad_file(self, file_path: str) -> bool:
         """Check if file is a KiCad file that requires a renderer.

@@ -313,3 +313,28 @@ class TestIssueResolver:
 
         assert len(targets) == 1
         assert len(targets[0].render_files) == 2
+
+    def test_doublestar_matches_root_level_files(self):
+        """Verify ** glob patterns match files at the repository root.
+
+        A pattern like **/*.kicad_sch must match both nested files
+        (e.g., hardware/main.kicad_sch) and root-level files (e.g., Board.kicad_sch).
+        """
+        config = Config(
+            base_url="https://example.com",
+            workspace="test",
+            commit_patterns=(),
+            path_mappings=(
+                PathMapping(pattern="**/*.kicad_sch", project="hw", default_issue="HW-1"),
+            ),
+            renderers=None,
+        )
+        resolver = IssueResolver(config)
+
+        targets = resolver.resolve(
+            changed_files=["Board.kicad_sch", "hardware/sub/Sheet.kicad_sch"],
+            commit_message="",
+        )
+
+        assert len(targets) == 1
+        assert len(targets[0].render_files) == 2

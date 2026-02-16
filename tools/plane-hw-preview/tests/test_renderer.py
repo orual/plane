@@ -569,3 +569,37 @@ class TestRenderer:
 
             assert "In1.Cu" in layer_cmd[0]
             assert "B.Cu" in layer_cmd[0]
+
+    def test_doublestar_renderer_matches_root_level_files(self, basic_config, tmp_path):
+        """Verify ** glob patterns in renderer match files at the repository root.
+
+        A renderer with match="**/*.kicad_sch" must render files at any depth,
+        including the repository root where there is no directory prefix.
+        """
+        config = Config(
+            base_url="http://localhost:8000",
+            workspace="test-workspace",
+            commit_patterns=(),
+            path_mappings=(),
+            renderers=(
+                RendererConfig(
+                    match="**/*.kicad_sch",
+                    command="echo {file}",
+                    config="",
+                    formats=("svg",),
+                ),
+            ),
+        )
+
+        test_file = tmp_path / "Board.kicad_sch"
+        test_file.write_text("dummy")
+
+        renderer = Renderer(config)
+
+        with mock.patch("plane_preview.renderer.subprocess.run") as mock_run:
+            mock_run.return_value = mock.Mock(returncode=0, stderr=b"")
+
+            with mock.patch("plane_preview.renderer.glob.glob", return_value=[]):
+                renderer.render(["Board.kicad_sch"])
+
+            assert mock_run.called

@@ -1,5 +1,6 @@
 """Shared types used across the plane_preview package."""
 
+import fnmatch
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -36,3 +37,18 @@ class PlaneAPIError(Exception):
     """Raised when the Plane API returns an error."""
 
     pass
+
+
+def glob_match(file_path: str, pattern: str) -> bool:
+    """Match a file path against a glob pattern, handling ** for root-level files.
+
+    Python's fnmatch treats ** as a literal two-character wildcard within a single
+    path segment, so **/*.ext fails to match root-level files like Board.ext.
+    This function works around that by also trying the pattern's tail when it
+    starts with **/.
+    """
+    if fnmatch.fnmatch(file_path, pattern):
+        return True
+    if pattern.startswith("**/"):
+        return fnmatch.fnmatch(file_path, pattern[3:])
+    return False

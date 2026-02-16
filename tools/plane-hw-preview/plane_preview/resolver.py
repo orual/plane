@@ -1,12 +1,11 @@
 """Issue resolver for mapping changed files to Plane issue targets."""
 
-import fnmatch
 import logging
 import re
 from pathlib import Path
 
 from plane_preview.config import Config, PathMapping
-from plane_preview.types import PreviewTarget, RenderFile
+from plane_preview.types import PreviewTarget, RenderFile, glob_match
 
 logger = logging.getLogger(__name__)
 
@@ -133,7 +132,7 @@ class IssueResolver:
         matches = []
 
         for mapping in self.config.path_mappings:
-            if fnmatch.fnmatch(file_path, mapping.pattern):
+            if glob_match(file_path, mapping.pattern):
                 # Count path segments before ** or at end of pattern
                 pattern_parts = mapping.pattern.rstrip("/").split("/")
                 # Remove trailing ** if present
