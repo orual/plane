@@ -27,6 +27,7 @@ import { IssueIdentifier } from "@/plane-web/components/issues/issue-details/iss
 import { IssueStats } from "@/plane-web/components/issues/issue-layouts/issue-stats";
 import { ComputedDateIndicator } from "@/plane-web/components/gantt-chart/blocks/computed-date-indicator";
 import { CriticalBlockStyle } from "@/plane-web/components/gantt-chart/blocks/critical-block-style";
+import { CpmTooltipContent } from "@/plane-web/components/gantt-chart";
 // local imports
 import { WorkItemPreviewCard } from "../../preview-card";
 import { getBlockViewDetails } from "../utils";
@@ -112,6 +113,7 @@ export const IssueGanttBlock = observer(function IssueGanttBlock(props: Props) {
               workItem={issueDetails}
             />
           )}
+          <CpmTooltipContent blockId={issueId} />
         </>
       </Popover.Panel>
     </Popover>
