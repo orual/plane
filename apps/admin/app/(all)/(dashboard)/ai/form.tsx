@@ -4,11 +4,12 @@
  * See the LICENSE file for details.
  */
 
-import { useForm } from "react-hook-form";
+import { useForm, Controller } from "react-hook-form";
 import { Lightbulb } from "lucide-react";
 import { Button } from "@plane/propel/button";
 import { TOAST_TYPE, setToast } from "@plane/propel/toast";
 import type { IFormattedInstanceConfiguration, TInstanceAIConfigurationKeys } from "@plane/types";
+import { CustomSelect } from "@plane/ui";
 // components
 import type { TControllerInputFormField } from "@/components/common/controller-input";
 import { ControllerInput } from "@/components/common/controller-input";
@@ -20,6 +21,14 @@ type IInstanceAIForm = {
 };
 
 type AIFormValues = Record<TInstanceAIConfigurationKeys, string>;
+
+type TLLMProviderKeys = "anthropic" | "openai" | "gemini";
+
+const LLM_PROVIDER_OPTIONS: { [key in TLLMProviderKeys]: string } = {
+  anthropic: "Anthropic",
+  openai: "OpenAI",
+  gemini: "Google Gemini",
+};
 
 export function InstanceAIForm(props: IInstanceAIForm) {
   const { config } = props;
@@ -34,6 +43,8 @@ export function InstanceAIForm(props: IInstanceAIForm) {
     defaultValues: {
       LLM_API_KEY: config["LLM_API_KEY"],
       LLM_MODEL: config["LLM_MODEL"],
+      LLM_PROVIDER: config["LLM_PROVIDER"] || "anthropic",
+      LLM_BASE_URL: config["LLM_BASE_URL"],
     },
   });
 
@@ -80,30 +91,66 @@ export function InstanceAIForm(props: IInstanceAIForm) {
       error: Boolean(errors.LLM_API_KEY),
       required: false,
     },
+    {
+      key: "LLM_BASE_URL",
+      type: "text",
+      label: "Base URL (optional)",
+      description:
+        "Custom endpoint URL for Ollama or self-hosted providers. Leave blank to use the provider's default API endpoint.",
+      placeholder: "http://localhost:11434",
+      error: Boolean(errors.LLM_BASE_URL),
+      required: false,
+    },
   ];
 
-  const onSubmit = async (formData: AIFormValues) => {
+  const onSubmit = async (formData: AIFormValues): Promise<void> => {
     const payload: Partial<AIFormValues> = { ...formData };
 
-    await updateInstanceConfigurations(payload)
-      .then(() =>
-        setToast({
-          type: TOAST_TYPE.SUCCESS,
-          title: "Success",
-          message: "AI Settings updated successfully",
-        })
-      )
-      .catch((err) => console.error(err));
+    try {
+      await updateInstanceConfigurations(payload);
+      setToast({
+        type: TOAST_TYPE.SUCCESS,
+        title: "Success",
+        message: "AI Settings updated successfully",
+      });
+    } catch (err) {
+      console.error(err);
+    }
   };
 
   return (
     <div className="space-y-8">
       <div className="space-y-3">
         <div>
-          <div className="pb-1 text-18 font-medium text-primary">OpenAI</div>
-          <div className="text-13 font-regular text-tertiary">If you use ChatGPT, this is for you.</div>
+          <div className="pb-1 text-18 font-medium text-primary">AI Provider Configuration</div>
+          <div className="text-13 font-regular text-tertiary">
+            Configure your AI provider settings for the instance.
+          </div>
         </div>
         <div className="grid-col grid w-full grid-cols-1 items-center justify-between gap-x-12 gap-y-8 lg:grid-cols-3">
+          <div className="flex flex-col gap-1">
+            <h4 className="text-13 text-tertiary">LLM Provider</h4>
+            <Controller
+              control={control}
+              name="LLM_PROVIDER"
+              render={({ field: { value, onChange } }) => (
+                <CustomSelect
+                  value={value}
+                  label={LLM_PROVIDER_OPTIONS[value as TLLMProviderKeys]}
+                  onChange={onChange}
+                  buttonClassName="rounded-md border-subtle"
+                  input
+                >
+                  {Object.entries(LLM_PROVIDER_OPTIONS).map(([key, label]) => (
+                    <CustomSelect.Option key={key} value={key} className="w-full">
+                      {label}
+                    </CustomSelect.Option>
+                  ))}
+                </CustomSelect>
+              )}
+            />
+            <p className="pt-0.5 text-11 text-tertiary">Select your AI provider. Anthropic is recommended.</p>
+          </div>
           {aiFormFields.map((field) => (
             <ControllerInput
               key={field.key}
@@ -121,7 +168,14 @@ export function InstanceAIForm(props: IInstanceAIForm) {
       </div>
 
       <div className="flex flex-col gap-4 items-start">
-        <Button variant="primary" size="lg" onClick={handleSubmit(onSubmit)} loading={isSubmitting}>
+        <Button
+          variant="primary"
+          size="lg"
+          onClick={() => {
+            void handleSubmit(onSubmit)();
+          }}
+          loading={isSubmitting}
+        >
           {isSubmitting ? "Saving" : "Save changes"}
         </Button>
 
