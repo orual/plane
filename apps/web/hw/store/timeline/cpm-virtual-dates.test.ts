@@ -4,6 +4,8 @@
  * See the LICENSE file for details.
  */
 
+/* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-argument */
+
 import { describe, it, expect } from "vitest";
 import { runInAction } from "mobx";
 import type { IGanttBlock, ChartDataType } from "@plane/types";
@@ -66,6 +68,84 @@ function createMockRootStore(issues: Record<string, MockIssue> = {}): MockRootSt
 
 describe("CPM Virtual Date Injection (Phase 3) - Drag Conversion & Styling", () => {
   let store: BaseTimeLineStore;
+
+  describe("AC3.1 & AC3.7: Virtual date injection with CPM toggle", () => {
+    it("should inject computed dates and calculate position for dateless block with dependency (AC3.1)", () => {
+      const issues = {
+        "block-a": {
+          id: "block-a",
+          name: "Task A",
+          start_date: "2024-01-10",
+          target_date: "2024-01-12",
+          sort_order: 0,
+          project_id: "proj-1",
+        },
+        "block-b": {
+          id: "block-b",
+          name: "Task B (dateless)",
+          start_date: null,
+          target_date: null,
+          sort_order: 1,
+          project_id: "proj-1",
+        },
+      };
+
+      const rootStore = createMockRootStore(issues);
+      store = new BaseTimeLineStore(rootStore as any);
+      store.setBlockIds(["block-a", "block-b"]);
+
+      const chartData = createMockChartData();
+      runInAction(() => {
+        store.currentViewData = chartData;
+      });
+
+      // Set up relation: B is blocked by A (FS - Finish-to-Start)
+      runInAction(() => {
+        rootStore.issue.issueDetail.relation.relationMap = {
+          "block-b": {
+            blocking: [],
+            blocked_by: ["block-a"],
+            start_before: [],
+            start_after: [],
+            finish_before: [],
+            finish_after: [],
+            relates_to: [],
+            duplicate: [],
+            implements: [],
+            implemented_by: [],
+          },
+        };
+      });
+
+      // Initially CPM disabled - block B should have no dates
+      store.updateBlocks((id) => issues[id as keyof typeof issues]);
+      expect(store.blocksMap["block-b"]?.start_date).toBeUndefined();
+      expect(store.blocksMap["block-b"]?.target_date).toBeUndefined();
+      expect(store.blocksMap["block-b"]?.position).toBeUndefined();
+
+      // Enable CPM and update blocks
+      store.setCpmEnabled(true);
+      // First update with block A to populate blocksMap for CPM computation
+      store.updateBlocks((id) => issues[id as keyof typeof issues]);
+
+      const blockB = store.blocksMap["block-b"];
+
+      // Verify: Block B should have computed dates injected
+      // (CPM needs both blocks to be in blocksMap to compute dates)
+      expect(blockB?.start_date).toBeDefined();
+      expect(blockB?.target_date).toBeDefined();
+      expect(blockB?.dateSource).toBe("computed");
+
+      // Verify: Position should be calculated (marginLeft and width both set)
+      expect(blockB?.position?.marginLeft).toBeGreaterThanOrEqual(0);
+      expect(blockB?.position?.width).toBeGreaterThan(0);
+
+      // Verify: Block B's start date should be after or on A's target date (FS dependency)
+      const computedStart = new Date(blockB.start_date!);
+      const taskAEnd = new Date(issues["block-a"].target_date);
+      expect(computedStart.getTime()).toBeGreaterThanOrEqual(taskAEnd.getTime());
+    });
+  });
 
   describe("AC3.4: Dragging a computed-date block sets both dates (converts to manual)", () => {
     it("should set both start_date and target_date when dragging a block with dateSource: computed", () => {
@@ -285,6 +365,203 @@ describe("CPM Virtual Date Injection (Phase 3) - Drag Conversion & Styling", () 
       };
 
       expect(manualBlock.dateSource).toBeUndefined();
+    });
+  });
+
+  describe("AC3.6: Dateless tasks with no dependencies remain hidden", () => {
+    it("should not inject dates for dateless blocks with no dependencies", () => {
+      const issues = {
+        "block-a": {
+          id: "block-a",
+          name: "Task A (with dates)",
+          start_date: "2024-01-10",
+          target_date: "2024-01-12",
+          sort_order: 0,
+          project_id: "proj-1",
+        },
+        "block-c": {
+          id: "block-c",
+          name: "Task C (dateless, no deps)",
+          start_date: null,
+          target_date: null,
+          sort_order: 2,
+          project_id: "proj-1",
+        },
+      };
+
+      const rootStore = createMockRootStore(issues);
+      store = new BaseTimeLineStore(rootStore as any);
+      store.setBlockIds(["block-a", "block-c"]);
+
+      const chartData = createMockChartData();
+      runInAction(() => {
+        store.currentViewData = chartData;
+      });
+
+      // No relations defined - block C is not in any dependency chain
+      runInAction(() => {
+        rootStore.issue.issueDetail.relation.relationMap = {
+          // Only block A, block C has no entry
+        };
+      });
+
+      // Enable CPM
+      store.setCpmEnabled(true);
+      store.updateBlocks((id) => issues[id as keyof typeof issues]);
+
+      const blockC = store.blocksMap["block-c"];
+
+      // Verify: Block C should remain dateless (no computed dates since it has no dependencies)
+      expect(blockC?.start_date).toBeUndefined();
+      expect(blockC?.target_date).toBeUndefined();
+      expect(blockC?.dateSource).toBeUndefined();
+
+      // Verify: No position calculated without dates
+      expect(blockC?.position).toBeUndefined();
+    });
+
+    it("should not inject dates for isolated dateless blocks when CPM enabled", () => {
+      const issues = {
+        "block-x": {
+          id: "block-x",
+          name: "Isolated Task",
+          start_date: null,
+          target_date: null,
+          sort_order: 0,
+          project_id: "proj-1",
+        },
+      };
+
+      const rootStore = createMockRootStore(issues);
+      store = new BaseTimeLineStore(rootStore as any);
+      store.setBlockIds(["block-x"]);
+
+      const chartData = createMockChartData();
+      runInAction(() => {
+        store.currentViewData = chartData;
+      });
+
+      runInAction(() => {
+        rootStore.issue.issueDetail.relation.relationMap = {};
+      });
+
+      // Enable CPM
+      store.setCpmEnabled(true);
+      store.updateBlocks((id) => issues[id as keyof typeof issues]);
+
+      const blockX = store.blocksMap["block-x"];
+
+      // Verify: No dates or dateSource for isolated dateless block
+      expect(blockX?.start_date).toBeUndefined();
+      expect(blockX?.target_date).toBeUndefined();
+      expect(blockX?.dateSource).toBeUndefined();
+    });
+  });
+
+  describe("AC3.7: Toggling CPM off removes computed-date blocks from visibility", () => {
+    it("should remove computed dates when CPM is toggled off (AC3.7)", () => {
+      // Manually set up a computed-date block to test the toggle behavior
+      const testIssues = {
+        "toggle-test": {
+          id: "toggle-test",
+          name: "Toggle Test",
+          start_date: null,
+          target_date: null,
+          sort_order: 0,
+          project_id: "proj-1",
+        },
+      };
+
+      const testRootStore = createMockRootStore(testIssues);
+      const testStore = new BaseTimeLineStore(testRootStore as any);
+      testStore.setBlockIds(["toggle-test"]);
+
+      const chartData = createMockChartData();
+      runInAction(() => {
+        testStore.currentViewData = chartData;
+      });
+
+      // Manually set a computed-date block in the store to simulate injection
+      runInAction(() => {
+        testStore.blocksMap["toggle-test"] = {
+          id: "toggle-test",
+          name: "Toggle Test",
+          data: testIssues["toggle-test"],
+          sort_order: 0,
+          start_date: "2024-01-13",
+          target_date: "2024-01-15",
+          dateSource: "computed",
+          position: {
+            marginLeft: 250,
+            width: 100,
+          },
+        };
+      });
+
+      // With CPM enabled, computed block has dates
+      testStore.setCpmEnabled(true);
+      const block = testStore.blocksMap["toggle-test"];
+      expect(block?.start_date).toBe("2024-01-13");
+      expect(block?.dateSource).toBe("computed");
+
+      // Disable CPM - the block still has dates in blocksMap
+      testStore.setCpmEnabled(false);
+
+      // But when updateBlocks is called with CPM disabled, injection should not occur
+      // and the block should revert to dateless state (as if coming from the dateless issue data)
+      testStore.updateBlocks((id) => testIssues[id as keyof typeof testIssues]);
+
+      // Verify: Block reverts to dateless state since updateBlocks won't inject without CPM
+      const blockAfterDisable = testStore.blocksMap["toggle-test"];
+      expect(blockAfterDisable?.start_date).toBeUndefined();
+      expect(blockAfterDisable?.target_date).toBeUndefined();
+      expect(blockAfterDisable?.dateSource).toBeUndefined();
+    });
+
+    it("should preserve manual dates when CPM is toggled off", () => {
+      const issues = {
+        "block-m": {
+          id: "block-m",
+          name: "Task M (manual dates)",
+          start_date: "2024-01-10",
+          target_date: "2024-01-15",
+          sort_order: 0,
+          project_id: "proj-1",
+        },
+      };
+
+      const rootStore = createMockRootStore(issues);
+      store = new BaseTimeLineStore(rootStore as any);
+      store.setBlockIds(["block-m"]);
+
+      const chartData = createMockChartData();
+      runInAction(() => {
+        store.currentViewData = chartData;
+      });
+
+      runInAction(() => {
+        rootStore.issue.issueDetail.relation.relationMap = {};
+      });
+
+      // Enable CPM
+      store.setCpmEnabled(true);
+      store.updateBlocks((id) => issues[id as keyof typeof issues]);
+
+      let blockM = store.blocksMap["block-m"];
+      expect(blockM?.start_date).toBe("2024-01-10");
+      expect(blockM?.target_date).toBe("2024-01-15");
+      expect(blockM?.dateSource).toBeUndefined(); // Manual dates have no dateSource
+
+      // Disable CPM
+      store.setCpmEnabled(false);
+      store.updateBlocks((id) => issues[id as keyof typeof issues]);
+
+      blockM = store.blocksMap["block-m"];
+
+      // Verify: Manual dates are preserved
+      expect(blockM?.start_date).toBe("2024-01-10");
+      expect(blockM?.target_date).toBe("2024-01-15");
+      expect(blockM?.dateSource).toBeUndefined();
     });
   });
 });

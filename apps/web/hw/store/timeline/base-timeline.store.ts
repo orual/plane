@@ -300,6 +300,9 @@ export class BaseTimeLineStore implements IBaseTimelineStore {
           block.target_date = computedDates.target_date;
           block.dateSource = "computed";
         }
+      } else {
+        // Clear dateSource for manually-dated or dateless blocks (not computed)
+        block.dateSource = undefined;
       }
       if (this.currentViewData && (this.currentViewData?.data?.startDate || this.currentViewData?.data?.dayWidth)) {
         block.position = getItemPositionWidth(this.currentViewData, block);
