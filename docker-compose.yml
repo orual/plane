@@ -81,6 +81,23 @@ services:
       - plane-db
       - plane-redis
 
+  plane-mcp:
+    container_name: plane-mcp
+    build:
+      context: .
+      dockerfile: mcp/Dockerfile
+    restart: always
+    command: >
+      sh -c "plane-mcp-server http --host 0.0.0.0 --port 8001"
+    ports:
+      - "8001:8001"
+    environment:
+      PLANE_BASE_URL: http://api:8000
+      PLANE_API_KEY: ${MCP_API_KEY:-}
+      PLANE_WORKSPACE_SLUG: ${MCP_WORKSPACE_SLUG:-}
+    depends_on:
+      - api
+
   migrator:
     container_name: plane-migrator
     build:
