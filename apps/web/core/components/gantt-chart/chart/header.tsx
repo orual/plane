@@ -13,6 +13,7 @@ import { Row } from "@plane/ui";
 // components
 import { cn } from "@plane/utils";
 import { VIEWS_LIST } from "@/components/gantt-chart/data";
+import { CpmToggle } from "@/plane-web/components/gantt-chart";
 // helpers
 // hooks
 import { useTimeLineChartStore } from "@/hooks/use-timeline-chart";
@@ -73,6 +74,8 @@ export const GanttChartHeader = observer(function GanttChartHeader(props: Props)
           {t("common.today")}
         </button>
       )}
+
+      <CpmToggle />
 
       <button
         type="button"
