@@ -640,8 +640,7 @@ describe("CPM Calculator", () => {
 
       const result = computeCpm(relationMap, getIssueDates);
 
-      // B has only start date, gets default duration
-      expect(result.get("issue-b")!.duration).toBeUndefined(); // duration not in CpmResult
+      // B has only start date, gets default duration of 1 day
       expect(result.get("issue-b")!.es).toBe("2025-01-05");
       expect(result.get("issue-b")!.ef).toBe("2025-01-05");
     });
