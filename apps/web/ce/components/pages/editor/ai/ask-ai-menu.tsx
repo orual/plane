@@ -23,7 +23,7 @@ type Props = {
   workspaceSlug: string;
 };
 
-export function AskPiMenu(props: Props) {
+export function AskAIMenu(props: Props) {
   const { handleInsertText, handleRegenerate, isRegenerating, response, workspaceSlug } = props;
   // states
   const [query, setQuery] = useState("");
