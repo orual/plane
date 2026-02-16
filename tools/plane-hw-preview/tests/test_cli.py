@@ -1,7 +1,6 @@
 """Tests for CLI commands."""
 
 import json
-import os
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
@@ -130,9 +129,8 @@ path_mappings: []
 """
             Path(".plane-preview.yml").write_text(config_content)
 
-            # Clear PLANE_API_KEY from environment
-            env = os.environ.copy()
-            env.pop("PLANE_API_KEY", None)
+            # Minimal env without PLANE_API_KEY
+            env = {}
 
             result = runner.invoke(main, ["post", "--adapter", "github"], env=env, catch_exceptions=False)
 
@@ -247,16 +245,14 @@ path_mappings: []
             event_file = Path("event.json")
             event_file.write_text(json.dumps(event_payload))
 
-            # Mock adapter result
-            mock_adapter = MagicMock()
-            mock_adapter.extract.return_value = MagicMock(
+            # Mock adapter result (extract is a classmethod on GitHubAdapter)
+            mock_adapter_cls.extract.return_value = MagicMock(
                 commit_sha="abc123",
                 commit_message="feat: test [TEST-1]",
                 commit_url="https://github.com/test/repo/commit/abc123",
                 branch="main",
                 changed_files=["board.kicad_pcb"],
             )
-            mock_adapter_cls.return_value = mock_adapter
 
             # Mock resolver result
             render_file = RenderFile(

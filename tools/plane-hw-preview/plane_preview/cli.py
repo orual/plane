@@ -2,6 +2,7 @@
 
 import os
 import shutil
+import sys
 from pathlib import Path
 
 import click
@@ -11,7 +12,7 @@ from plane_preview.client import PlaneClient
 from plane_preview.config import ConfigLoader
 from plane_preview.renderer import Renderer
 from plane_preview.resolver import IssueResolver
-from plane_preview.types import PlaneAPIError
+from plane_preview.types import PlaneAPIError, PreviewTarget
 
 
 @click.group()
@@ -28,7 +29,7 @@ def init(force):
 
     if config_path.exists() and not force:
         click.echo(".plane-preview.yml already exists. Use --force to overwrite.")
-        raise SystemExit(1)
+        sys.exit(1)
 
     # Get template path
     template_path = Path(__file__).parent / "templates" / "plane-preview.yml"
@@ -63,14 +64,14 @@ def post(adapter, config):
         api_key = os.getenv("PLANE_API_KEY")
         if not api_key:
             click.echo("Error: PLANE_API_KEY environment variable is not set.")
-            raise SystemExit(1)
+            sys.exit(1)
 
         # Extract commit info via adapter
         if adapter == "github":
             adapter_result = GitHubAdapter.extract()
         else:
             click.echo(f"Error: Unknown adapter '{adapter}'")
-            raise SystemExit(1)
+            sys.exit(1)
 
         # Resolve changed files to targets
         resolver = IssueResolver(config_obj)
@@ -95,8 +96,6 @@ def post(adapter, config):
                     matched_files.append(render_map[placeholder_file.source_path])
 
             if matched_files:
-                from plane_preview.types import PreviewTarget
-
                 matched_target = PreviewTarget(
                     project_id=target.project_id,
                     issue_id=target.issue_id,
@@ -120,8 +119,8 @@ def post(adapter, config):
         click.echo(f"Posted previews to {len(matched_targets)} issue(s).")
 
     except PlaneAPIError as e:
-        click.echo(f"Error: {str(e)}")
-        raise SystemExit(1)
+        click.echo(f"Error: {e}")
+        sys.exit(1)
 
 
 if __name__ == "__main__":
