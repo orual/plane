@@ -11,6 +11,8 @@ import {
   buildAdjacencyList,
   topologicalSort,
   forwardPass,
+  backwardPass,
+  computeCpm,
   addDays,
   daysBetween,
   maxDate,
@@ -394,6 +396,183 @@ describe("CPM Calculator", () => {
       expect(results.get("issue-a")!.duration).toBe(1);
       expect(results.get("issue-a")!.es).toBe("2025-01-10");
       expect(results.get("issue-a")!.ef).toBe("2025-01-10");
+    });
+  });
+
+  describe("backwardPass", () => {
+    it("should compute LS and LF for a linear FS chain (AC1.5)", () => {
+      // A→B→C with all dates specified
+      // A: Jan 1-3 (duration 3), B: Jan 4-6 (duration 3), C: Jan 7-9 (duration 3)
+      // Backward pass from C: C.LF = C.EF = Jan 9, C.LS = Jan 9 - 3 + 1 = Jan 7
+      // B.LF = C.LS - 1 = Jan 6, B.LS = Jan 6 - 3 + 1 = Jan 4
+      // A.LF = B.LS - 1 = Jan 3, A.LS = Jan 3 - 3 + 1 = Jan 1
+      const relationMap = createRelationMap({
+        "issue-a": { blocking: ["issue-b"] },
+        "issue-b": { blocking: ["issue-c"] },
+      });
+      const { adjacencyList, reverseAdjacencyList } = buildAdjacencyList(relationMap);
+      const sorted = topologicalSort(adjacencyList, new Set(["issue-a", "issue-b", "issue-c"]));
+
+      const getIssueDates = createGetIssueDates({
+        "issue-a": { start_date: "2025-01-01", target_date: "2025-01-03" },
+        "issue-b": { start_date: "2025-01-04", target_date: "2025-01-06" },
+        "issue-c": { start_date: "2025-01-07", target_date: "2025-01-09" },
+      });
+
+      const forwardResults = forwardPass(sorted, adjacencyList, reverseAdjacencyList, getIssueDates);
+      const backwardResults = backwardPass(sorted, adjacencyList, reverseAdjacencyList, forwardResults);
+
+      // Verify backward pass results
+      expect(backwardResults.get("issue-a")!.ls).toBe("2025-01-01");
+      expect(backwardResults.get("issue-a")!.lf).toBe("2025-01-03");
+
+      expect(backwardResults.get("issue-b")!.ls).toBe("2025-01-04");
+      expect(backwardResults.get("issue-b")!.lf).toBe("2025-01-06");
+
+      expect(backwardResults.get("issue-c")!.ls).toBe("2025-01-07");
+      expect(backwardResults.get("issue-c")!.lf).toBe("2025-01-09");
+    });
+  });
+
+  describe("computeCpm", () => {
+    it("should return empty map for no dependencies (AC1.8)", () => {
+      const relationMap = createRelationMap({});
+      const getIssueDates = createGetIssueDates({});
+
+      const result = computeCpm(relationMap, getIssueDates);
+
+      expect(result.size).toBe(0);
+    });
+
+    it("should compute full CPM for a linear chain all on critical path (AC1.6)", () => {
+      // A→B→C linear path, all on critical path
+      const relationMap = createRelationMap({
+        "issue-a": { blocking: ["issue-b"] },
+        "issue-b": { blocking: ["issue-c"] },
+      });
+      const getIssueDates = createGetIssueDates({
+        "issue-a": { start_date: "2025-01-01", target_date: "2025-01-03" },
+        "issue-b": { start_date: "2025-01-04", target_date: "2025-01-06" },
+        "issue-c": { start_date: "2025-01-07", target_date: "2025-01-09" },
+      });
+
+      const result = computeCpm(relationMap, getIssueDates);
+
+      // All tasks should be on critical path with slack=0
+      expect(result.get("issue-a")!.slack).toBe(0);
+      expect(result.get("issue-a")!.isCritical).toBe(true);
+      expect(result.get("issue-b")!.slack).toBe(0);
+      expect(result.get("issue-b")!.isCritical).toBe(true);
+      expect(result.get("issue-c")!.slack).toBe(0);
+      expect(result.get("issue-c")!.isCritical).toBe(true);
+    });
+
+    it("should compute slack for non-critical tasks in parallel paths (AC1.6)", () => {
+      // A→B→C (long path) and A→D (short path)
+      // C finishes Jan 9, D finishes Jan 4, so D has slack
+      const relationMap = createRelationMap({
+        "issue-a": { blocking: ["issue-b", "issue-d"] },
+        "issue-b": { blocking: ["issue-c"] },
+      });
+      const getIssueDates = createGetIssueDates({
+        "issue-a": { start_date: "2025-01-01", target_date: "2025-01-03" },
+        "issue-b": { start_date: "2025-01-04", target_date: "2025-01-06" },
+        "issue-c": { start_date: "2025-01-07", target_date: "2025-01-09" },
+        "issue-d": { start_date: "2025-01-04", target_date: "2025-01-04" }, // Short task
+      });
+
+      const result = computeCpm(relationMap, getIssueDates);
+
+      // A, B, C are critical
+      expect(result.get("issue-a")!.isCritical).toBe(true);
+      expect(result.get("issue-b")!.isCritical).toBe(true);
+      expect(result.get("issue-c")!.isCritical).toBe(true);
+
+      // D has slack: LF = Jan 9, LS = Jan 9 - 1 + 1 = Jan 9, but ES = Jan 4, so slack > 0
+      expect(result.get("issue-d")!.slack).toBeGreaterThan(0);
+      expect(result.get("issue-d")!.isCritical).toBe(false);
+    });
+
+    it("should handle chains up to MAX_PROPAGATION_DEPTH (AC1.9)", () => {
+      // Chain of 101 issues - only first 100 should be processed
+      const relations: Record<string, Record<string, Array<string> | undefined>> = {};
+      for (let i = 0; i < 101; i++) {
+        relations[`issue-${i}`] = {
+          blocking: i < 100 ? [`issue-${i + 1}`] : undefined,
+        };
+      }
+      const relationMap = createRelationMap(relations);
+
+      // Create dates for all issues
+      const issueData: Record<string, CpmIssueDates> = {};
+      for (let i = 0; i < 101; i++) {
+        issueData[`issue-${i}`] = {
+          start_date: `2025-01-${String(Math.floor(i / 28) + 1).padStart(2, "0")}`,
+          target_date: `2025-01-${String(Math.floor(i / 28) + 1).padStart(2, "0")}`,
+        };
+      }
+      const getIssueDates = createGetIssueDates(issueData);
+
+      const result = computeCpm(relationMap, getIssueDates);
+
+      // Only first 100 issues should be in results (topological sort stops at depth 100)
+      expect(result.size).toBeLessThanOrEqual(100);
+    });
+
+    it("should handle diamond graph with mixed dependency types (AC1.6)", () => {
+      // A→B→D (FS) and A→C→D (FS), where B is longer than C
+      // A, B, D should be critical; C should have slack
+      const relationMap = createRelationMap({
+        "issue-a": { blocking: ["issue-b", "issue-c"] },
+        "issue-b": { blocking: ["issue-d"] },
+        "issue-c": { blocking: ["issue-d"] },
+      });
+      const getIssueDates = createGetIssueDates({
+        "issue-a": { start_date: "2025-01-01", target_date: "2025-01-03" },
+        "issue-b": { start_date: "2025-01-04", target_date: "2025-01-08" }, // 5 days
+        "issue-c": { start_date: "2025-01-04", target_date: "2025-01-05" }, // 2 days
+        "issue-d": { start_date: "2025-01-09", target_date: "2025-01-09" },
+      });
+
+      const result = computeCpm(relationMap, getIssueDates);
+
+      // A, B, D should be critical
+      expect(result.get("issue-a")!.isCritical).toBe(true);
+      expect(result.get("issue-b")!.isCritical).toBe(true);
+      expect(result.get("issue-d")!.isCritical).toBe(true);
+
+      // C should have slack because B is the constraining path
+      expect(result.get("issue-c")!.slack).toBeGreaterThan(0);
+      expect(result.get("issue-c")!.isCritical).toBe(false);
+    });
+
+    it("should compute full results with es, ef, ls, lf for all issues", () => {
+      const relationMap = createRelationMap({
+        "issue-a": { blocking: ["issue-b"] },
+      });
+      const getIssueDates = createGetIssueDates({
+        "issue-a": { start_date: "2025-01-01", target_date: "2025-01-03" },
+        "issue-b": { start_date: "2025-01-04", target_date: "2025-01-06" },
+      });
+
+      const result = computeCpm(relationMap, getIssueDates);
+
+      // Verify all fields are present
+      const resultA = result.get("issue-a")!;
+      expect(resultA.es).toBe("2025-01-01");
+      expect(resultA.ef).toBe("2025-01-03");
+      expect(resultA.ls).toBe("2025-01-01");
+      expect(resultA.lf).toBe("2025-01-03");
+      expect(resultA.slack).toBe(0);
+      expect(resultA.isCritical).toBe(true);
+
+      const resultB = result.get("issue-b")!;
+      expect(resultB.es).toBe("2025-01-04");
+      expect(resultB.ef).toBe("2025-01-06");
+      expect(resultB.ls).toBe("2025-01-04");
+      expect(resultB.lf).toBe("2025-01-06");
+      expect(resultB.slack).toBe(0);
+      expect(resultB.isCritical).toBe(true);
     });
   });
 });
