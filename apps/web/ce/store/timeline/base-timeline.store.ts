@@ -25,7 +25,7 @@ import {
 } from "@/components/gantt-chart/views/helpers";
 // helpers
 import type { ConflictInfo } from "@/plane-web/helpers/dependency-conflict";
-import type { CpmResultMap } from "@/plane-web/helpers/cpm-calculator";
+import type { CpmResultMap } from "../../helpers/cpm-calculator";
 // store
 import type { RootStore } from "@/plane-web/store/root.store";
 
@@ -62,6 +62,7 @@ export interface IBaseTimelineStore {
   };
   cpmEnabled: boolean;
   crossProjectCpmEnabled: boolean;
+  isDraggingBlock: boolean;
   //
   setBlockIds: (ids: string[]) => void;
   getBlockById: (blockId: string) => IGanttBlock;
@@ -97,6 +98,7 @@ export interface IBaseTimelineStore {
   clearPreviewPositions: () => void;
   setCpmEnabled: (enabled: boolean) => void;
   setCrossProjectCpmEnabled: (enabled: boolean) => void;
+  setDraggingBlock: (dragging: boolean) => void;
 
   getDateFromPositionOnGantt: (position: number, offsetDays: number) => Date | undefined;
   getPositionFromDateOnGantt: (date: string | Date, offSetWidth: number) => number | undefined;
@@ -118,6 +120,7 @@ export class BaseTimeLineStore implements IBaseTimelineStore {
   isDependencyEnabled = false;
   cpmEnabled = false;
   crossProjectCpmEnabled = false;
+  isDraggingBlock = false;
 
   // Dependency drag state (CE edition: stubs only)
   dependencyDragState: {
@@ -154,6 +157,7 @@ export class BaseTimeLineStore implements IBaseTimelineStore {
       dependencyDragState: observable.deep,
       cpmEnabled: observable,
       crossProjectCpmEnabled: observable,
+      isDraggingBlock: observable,
       // computed
       cpmResults: computed,
       // actions
@@ -172,6 +176,7 @@ export class BaseTimeLineStore implements IBaseTimelineStore {
       clearPreviewPositions: action.bound,
       setCpmEnabled: action,
       setCrossProjectCpmEnabled: action,
+      setDraggingBlock: action,
     });
 
     this.initGantt();
@@ -460,6 +465,14 @@ export class BaseTimeLineStore implements IBaseTimelineStore {
    */
   setCrossProjectCpmEnabled = (_enabled: boolean): void => {
     // CE does not support CPM
+  };
+
+  /**
+   * @description CE stub: set drag state (not supported)
+   * CPM drag debouncing is a HW-only feature
+   */
+  setDraggingBlock = (_dragging: boolean): void => {
+    // CE does not support CPM drag debouncing
   };
 
   /**
