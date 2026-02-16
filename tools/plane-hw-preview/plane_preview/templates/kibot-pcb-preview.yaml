@@ -1,0 +1,10 @@
+kibot:
+  version: 1
+
+outputs:
+  - name: pcb_svg
+    type: pcb_print
+    dir: .
+    options:
+      format: SVG
+      output: "%f-pcb.svg"
