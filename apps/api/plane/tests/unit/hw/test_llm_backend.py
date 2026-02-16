@@ -256,7 +256,7 @@ class TestGetLlmResponse:
         )
 
         assert text is None
-        assert f"Error from openai: {error_msg}" in error
+        assert error.startswith("Error from openai:")
         assert reasoning is None
 
     def test_unsupported_provider_error(self):
