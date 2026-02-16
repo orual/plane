@@ -21,6 +21,7 @@ export interface IGanttBlock {
   start_date: string | undefined;
   target_date: string | undefined;
   meta?: Record<string, any>;
+  dateSource?: "manual" | "computed";
 }
 
 export interface IBlockUpdateData {
