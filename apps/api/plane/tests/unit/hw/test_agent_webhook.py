@@ -38,10 +38,10 @@ class TestAgentWebhookTask:
         event_type = "issue_comment.mention"
         event_data = {"test": "data"}
 
-        with patch("requests.post") as mock_post:
+        with patch("plane.bgtasks.agent_webhook_task.requests.post") as mock_post:
             mock_post.return_value = MagicMock(status_code=200)
 
-            agent_webhook_send_task.delay(
+            agent_webhook_send_task(
                 agent_profile_id=str(agent.id),
                 run_id=run_id,
                 event_type=event_type,
@@ -49,14 +49,11 @@ class TestAgentWebhookTask:
                 current_site="https://example.com",
             )
 
-            # Verify POST was called
             assert mock_post.called
             call_kwargs = mock_post.call_args[1]
 
-            # Verify HMAC signature is present
             assert "X-Plane-Signature" in call_kwargs["headers"]
 
-            # Compute expected signature
             payload = {
                 "event": event_type,
                 "action": "created",
@@ -71,7 +68,6 @@ class TestAgentWebhookTask:
                 hashlib.sha256,
             ).hexdigest()
 
-            # Verify signature matches
             assert call_kwargs["headers"]["X-Plane-Signature"] == expected_signature
 
     @pytest.mark.django_db
@@ -83,10 +79,10 @@ class TestAgentWebhookTask:
         )
         run_id = "test-run-12345"
 
-        with patch("requests.post") as mock_post:
+        with patch("plane.bgtasks.agent_webhook_task.requests.post") as mock_post:
             mock_post.return_value = MagicMock(status_code=200)
 
-            agent_webhook_send_task.delay(
+            agent_webhook_send_task(
                 agent_profile_id=str(agent.id),
                 run_id=run_id,
                 event_type="issue_comment.mention",
@@ -94,17 +90,14 @@ class TestAgentWebhookTask:
                 current_site="https://example.com",
             )
 
-            # Verify POST was called
             assert mock_post.called
             call_kwargs = mock_post.call_args[1]
 
-            # Verify payload contains run_id
             payload = call_kwargs["json"]
             assert payload["run_id"] == run_id
 
     def test_agent_webhook_task_decorator_has_retry_config(self):
         """Verify hw-ai-infra.AC10.4: task is decorated with retry config (600s backoff, 5 max retries)."""
-        # Check task decorator configuration
         assert agent_webhook_send_task.autoretry_for == (requests.RequestException,)
         assert agent_webhook_send_task.retry_backoff == 600
         assert agent_webhook_send_task.max_retries == 5
@@ -118,26 +111,26 @@ class TestAgentWebhookTask:
             is_active=True,
         )
 
-        with patch("requests.post") as mock_post:
-            # Simulate request failure
+        with patch("plane.bgtasks.agent_webhook_task.requests.post") as mock_post:
             mock_post.side_effect = requests.RequestException("Connection failed")
 
-            # Mock the task context to simulate max retries reached
-            with patch.object(agent_webhook_send_task, "request") as mock_request:
-                mock_request.retries = 5
-
-                # Call the task directly to test deactivation logic
-                agent_webhook_send_task.run(
-                    agent_profile_id=str(agent.id),
-                    run_id="test-run-id",
-                    event_type="issue_comment.mention",
-                    event_data={"test": "data"},
-                    current_site="https://example.com",
-                )
-
-                # Verify agent is deactivated
-                refreshed_agent = AgentProfile.objects.get(id=agent.id)
-                assert refreshed_agent.is_active is False
+            # Use apply() with retries kwarg to simulate max retries reached.
+            # apply() executes the task inline and lets us set request context.
+            result = agent_webhook_send_task.apply(
+                kwargs={
+                    "agent_profile_id": str(agent.id),
+                    "run_id": "test-run-id",
+                    "event_type": "issue_comment.mention",
+                    "event_data": {"test": "data"},
+                    "current_site": "https://example.com",
+                },
+                retries=5,
+            )
+            # apply() runs synchronously; any exception is stored in result
+            # The task catches RequestException at max retries and deactivates,
+            # so it should succeed (return None) rather than re-raise.
+            refreshed_agent = AgentProfile.objects.get(id=agent.id)
+            assert refreshed_agent.is_active is False
 
     @pytest.mark.django_db
     def test_agent_webhook_task_skips_inactive_agent(self):
@@ -147,8 +140,8 @@ class TestAgentWebhookTask:
             is_active=False,
         )
 
-        with patch("requests.post") as mock_post:
-            agent_webhook_send_task.delay(
+        with patch("plane.bgtasks.agent_webhook_task.requests.post") as mock_post:
+            agent_webhook_send_task(
                 agent_profile_id=str(agent.id),
                 run_id="test-run-id",
                 event_type="issue_comment.mention",
@@ -156,7 +149,6 @@ class TestAgentWebhookTask:
                 current_site="https://example.com",
             )
 
-            # Verify POST was not called
             assert not mock_post.called
 
     @pytest.mark.django_db
@@ -164,10 +156,10 @@ class TestAgentWebhookTask:
         """Verify webhook request includes all required headers."""
         agent = AgentProfileFactory(is_active=True)
 
-        with patch("requests.post") as mock_post:
+        with patch("plane.bgtasks.agent_webhook_task.requests.post") as mock_post:
             mock_post.return_value = MagicMock(status_code=200)
 
-            agent_webhook_send_task.delay(
+            agent_webhook_send_task(
                 agent_profile_id=str(agent.id),
                 run_id="test-run-id",
                 event_type="issue_comment.mention",
@@ -178,7 +170,6 @@ class TestAgentWebhookTask:
             call_kwargs = mock_post.call_args[1]
             headers = call_kwargs["headers"]
 
-            # Verify required headers
             assert headers["Content-Type"] == "application/json"
             assert headers["User-Agent"] == "Autopilot"
             assert "X-Plane-Delivery" in headers
@@ -189,10 +180,10 @@ class TestAgentWebhookTask:
         """Verify webhook request uses 30-second timeout."""
         agent = AgentProfileFactory(is_active=True)
 
-        with patch("requests.post") as mock_post:
+        with patch("plane.bgtasks.agent_webhook_task.requests.post") as mock_post:
             mock_post.return_value = MagicMock(status_code=200)
 
-            agent_webhook_send_task.delay(
+            agent_webhook_send_task(
                 agent_profile_id=str(agent.id),
                 run_id="test-run-id",
                 event_type="issue_comment.mention",
@@ -210,10 +201,10 @@ class TestAgentWebhookTask:
         event_type = "issue_comment.mention"
         event_data = {"workspace_slug": "test", "issue_id": "123"}
 
-        with patch("requests.post") as mock_post:
+        with patch("plane.bgtasks.agent_webhook_task.requests.post") as mock_post:
             mock_post.return_value = MagicMock(status_code=200)
 
-            agent_webhook_send_task.delay(
+            agent_webhook_send_task(
                 agent_profile_id=str(agent.id),
                 run_id="test-run-id",
                 event_type=event_type,
@@ -224,7 +215,6 @@ class TestAgentWebhookTask:
             call_kwargs = mock_post.call_args[1]
             payload = call_kwargs["json"]
 
-            # Verify payload structure
             assert payload["event"] == event_type
             assert payload["action"] == "created"
             assert payload["agent_id"] == str(agent.id)
@@ -258,7 +248,6 @@ class TestAgentMentionDetection:
                 current_site="https://example.com",
             )
 
-            # Verify webhook was dispatched
             assert mock_delay.called
 
     @pytest.mark.django_db
@@ -282,7 +271,6 @@ class TestAgentMentionDetection:
                 current_site="https://example.com",
             )
 
-            # Verify AgentRun was created
             run = AgentRun.objects.get(agent=agent)
             assert run.status == AgentRunStatus.CREATED
             assert run.issue_id == issue.id
@@ -310,10 +298,7 @@ class TestAgentMentionDetection:
                 current_site="https://example.com",
             )
 
-            # Verify webhook was NOT dispatched
             assert not mock_delay.called
-
-            # Verify no AgentRun was created
             assert not AgentRun.objects.filter(agent=agent).exists()
 
     @pytest.mark.django_db
@@ -332,7 +317,6 @@ class TestAgentMentionDetection:
                 current_site="https://example.com",
             )
 
-            # Verify webhook was NOT dispatched
             assert not mock_delay.called
 
     @pytest.mark.django_db
@@ -361,7 +345,6 @@ class TestAgentMentionDetection:
                 current_site="https://example.com",
             )
 
-            # Verify webhooks were dispatched for both agents
             assert mock_delay.call_count == 2
 
     @pytest.mark.django_db
@@ -380,7 +363,6 @@ class TestAgentMentionDetection:
                 current_site="https://example.com",
             )
 
-            # Verify webhook was NOT dispatched (no matching agents)
             assert not mock_delay.called
 
     @pytest.mark.django_db
@@ -404,7 +386,6 @@ class TestAgentMentionDetection:
                 current_site="https://example.com",
             )
 
-            # Verify webhook was dispatched only for myagent
             assert mock_delay.call_count == 1
 
     @pytest.mark.django_db
@@ -417,7 +398,6 @@ class TestAgentMentionDetection:
             display_name="myagent",
             is_active=True,
         )
-        # Agent with same name in different workspace
         _agent2 = AgentProfileFactory(
             workspace=workspace2,
             display_name="myagent",
@@ -435,7 +415,6 @@ class TestAgentMentionDetection:
                 current_site="https://example.com",
             )
 
-            # Verify webhook was dispatched only once (for workspace1's agent)
             assert mock_delay.call_count == 1
 
     @pytest.mark.django_db
@@ -459,7 +438,6 @@ class TestAgentMentionDetection:
                 current_site="https://example.com",
             )
 
-            # Verify webhook was dispatched
             assert mock_delay.called
 
     @pytest.mark.django_db
@@ -484,7 +462,6 @@ class TestAgentMentionDetection:
                 current_site="https://example.com",
             )
 
-            # Verify correct call signature
             call_args = mock_delay.call_args
             assert call_args[1]["event_type"] == "issue_comment.mention"
             assert call_args[1]["event_data"]["workspace_slug"] == workspace.slug
@@ -515,7 +492,6 @@ class TestAgentMentionDetection:
                 current_site="https://example.com",
             )
 
-            # Verify run trigger metadata
             run = AgentRun.objects.get(agent=agent)
             assert run.trigger_metadata["trigger"] == "mention"
             assert run.trigger_metadata["comment_text"] == comment_text

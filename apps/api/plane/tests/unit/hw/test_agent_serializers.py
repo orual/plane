@@ -174,7 +174,7 @@ class TestAgentRunSerializer:
             "id": run.id,
             "agent_id": run.agent_id,
             "workspace_id": run.workspace_id,
-            "status": "completed",
+            "status": "in_progress",
             "stale_timeout": 600,
             "created_at": "2026-01-01T00:00:00Z",
         }
@@ -204,8 +204,8 @@ class TestAgentRunSerializer:
         serializer = AgentRunSerializer(run)
         assert serializer.data["status"] == "in_progress"
         assert serializer.data["stale_timeout"] == 500
-        assert serializer.data["agent_id"] == str(run.agent_id)
-        assert serializer.data["workspace_id"] == str(run.workspace_id)
+        assert str(serializer.data["agent_id"]) == str(run.agent_id)
+        assert str(serializer.data["workspace_id"]) == str(run.workspace_id)
 
 
 @pytest.mark.unit
