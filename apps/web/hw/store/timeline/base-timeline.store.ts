@@ -26,8 +26,8 @@ import {
 // helpers
 import type { ConflictInfo } from "../../helpers/dependency-conflict";
 import { detectDependencyConflicts } from "../../helpers/dependency-conflict";
-import { computeCpm } from "@/plane-web/helpers/cpm-calculator";
-import type { CpmResultMap } from "@/plane-web/helpers/cpm-calculator";
+import { computeCpm } from "../../helpers/cpm-calculator";
+import type { CpmResultMap } from "../../helpers/cpm-calculator";
 // store
 import type { RootStore } from "@/plane-web/store/root.store";
 
@@ -64,6 +64,7 @@ export interface IBaseTimelineStore {
   };
   cpmEnabled: boolean;
   crossProjectCpmEnabled: boolean;
+  isDraggingBlock: boolean;
   //
   setBlockIds: (ids: string[]) => void;
   getBlockById: (blockId: string) => IGanttBlock;
@@ -99,6 +100,7 @@ export interface IBaseTimelineStore {
   clearPreviewPositions: () => void;
   setCpmEnabled: (enabled: boolean) => void;
   setCrossProjectCpmEnabled: (enabled: boolean) => void;
+  setDraggingBlock: (dragging: boolean) => void;
 
   getDateFromPositionOnGantt: (position: number, offsetDays: number) => Date | undefined;
   getPositionFromDateOnGantt: (date: string | Date, offSetWidth: number) => number | undefined;
@@ -120,6 +122,10 @@ export class BaseTimeLineStore implements IBaseTimelineStore {
   isDependencyEnabled = false;
   cpmEnabled = false;
   crossProjectCpmEnabled = false;
+  isDraggingBlock = false;
+
+  // Cache for CPM results during drag to avoid expensive recomputation
+  private _lastCpmResults: CpmResultMap = new Map();
 
   // Dependency drag state
   dependencyDragState: {
@@ -156,6 +162,7 @@ export class BaseTimeLineStore implements IBaseTimelineStore {
       dependencyDragState: observable.deep,
       cpmEnabled: observable,
       crossProjectCpmEnabled: observable,
+      isDraggingBlock: observable,
       // computed
       cpmResults: computed,
       // actions
@@ -174,6 +181,7 @@ export class BaseTimeLineStore implements IBaseTimelineStore {
       clearPreviewPositions: action.bound,
       setCpmEnabled: action,
       setCrossProjectCpmEnabled: action,
+      setDraggingBlock: action,
     });
 
     this.initGantt();
@@ -498,6 +506,14 @@ export class BaseTimeLineStore implements IBaseTimelineStore {
   };
 
   /**
+   * @description set drag state to suppress CPM recalculation during drag
+   * @param dragging whether a block is currently being dragged
+   */
+  setDraggingBlock = (dragging: boolean): void => {
+    this.isDraggingBlock = dragging;
+  };
+
+  /**
    * Find downstream dependents of a block by traversing the relation graph
    * @param blockId the source block ID
    * @param visited set of already-visited block IDs
@@ -676,11 +692,13 @@ export class BaseTimeLineStore implements IBaseTimelineStore {
   /**
    * Compute CPM results for the entire block graph.
    * Returns empty map if CPM is disabled.
+   * During drag operations, returns cached results to avoid expensive recomputation.
    * Automatically recomputes when block dates or relations change.
    * @returns Map of block IDs to CPM calculation results
    */
   get cpmResults(): CpmResultMap {
     if (!this.cpmEnabled) return new Map();
+    if (this.isDraggingBlock) return this._lastCpmResults;
 
     const relationMap = this.rootStore.issue.issueDetail.relation.relationMap;
     const getIssueDates = (id: string) => {
@@ -692,7 +710,9 @@ export class BaseTimeLineStore implements IBaseTimelineStore {
       };
     };
 
-    return computeCpm(relationMap, getIssueDates);
+    const result = computeCpm(relationMap, getIssueDates);
+    this._lastCpmResults = result;
+    return result;
   }
 
   /**
