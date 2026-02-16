@@ -62,13 +62,12 @@ export const GanttAdditionalLayers: FC<Props> = observer(function GanttAdditiona
       if (!relations) continue;
 
       // Check all relation types for external issue references
-      for (const [_relationType, relatedIds] of Object.entries(relations)) {
+      for (const [relationType, relatedIds] of Object.entries(relations)) {
         if (!relatedIds || !Array.isArray(relatedIds)) continue;
 
         for (const relatedId of relatedIds) {
           if (!localBlockIds.has(relatedId)) {
-            // Determine side based on relation type (simplified: predecessors on left, successors on right)
-            const side = ["blocked_by", "start_after", "finish_after"].includes(_relationType) ? "left" : "right";
+            const side = ["blocked_by", "start_after", "finish_after"].includes(relationType) ? "left" : "right";
             externalIssuesWithPosition.push({ issueId: relatedId, side, blockIndex: i });
           }
         }

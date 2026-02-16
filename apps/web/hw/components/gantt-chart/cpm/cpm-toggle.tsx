@@ -9,8 +9,7 @@ import { useParams } from "next/navigation";
 import { useTimeLineChartStore } from "@/hooks/use-timeline-chart";
 
 export const CpmToggle = observer(function CpmToggle() {
-  const params = useParams();
-  const workspaceSlug = params.workspaceSlug;
+  const { workspaceSlug } = useParams();
   const timelineStore = useTimeLineChartStore();
   const isActive = timelineStore.cpmEnabled;
 
