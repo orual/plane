@@ -1,0 +1,36 @@
+name: Hardware preview
+
+on:
+  push:
+    paths:
+      - "**.kicad_sch"
+      - "**.kicad_pcb"
+
+jobs:
+  preview:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install KiCad
+        run: |
+          sudo add-apt-repository --yes ppa:kicad/kicad-8.0-releases
+          sudo apt-get update
+          sudo apt-get install --no-install-recommends -y kicad
+
+      - name: Install plane-hw-preview
+        run: pip install ./tools/plane-hw-preview
+
+      - name: Post previews to Plane
+        env:
+          PLANE_API_KEY: ${{ secrets.PLANE_API_KEY }}
+        run: plane-preview post --adapter github
+
+# Alternative: KiBot-based rendering
+# Replace the KiCad install step with the KiBot GitHub Action:
+#
+#       - uses: INTI-CMNB/KiBot@v2
+#         with:
+#           config: .kibot.yaml
