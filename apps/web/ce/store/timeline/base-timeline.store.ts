@@ -26,6 +26,7 @@ import {
 // helpers
 import type { ConflictInfo } from "@/plane-web/helpers/dependency-conflict";
 import type { CpmResultMap } from "../../helpers/cpm-calculator";
+import type { TIssueRelationTypes } from "../../types/gantt-chart";
 // store
 import type { RootStore } from "@/plane-web/store/root.store";
 
@@ -62,6 +63,7 @@ export interface IBaseTimelineStore {
   };
   cpmEnabled: boolean;
   crossProjectCpmEnabled: boolean;
+  crossProjectRelationCache: Record<string, Record<TIssueRelationTypes, string[]>>;
   isDraggingBlock: boolean;
   //
   setBlockIds: (ids: string[]) => void;
@@ -99,6 +101,7 @@ export interface IBaseTimelineStore {
   setCpmEnabled: (enabled: boolean) => void;
   setCrossProjectCpmEnabled: (enabled: boolean) => void;
   setDraggingBlock: (dragging: boolean) => void;
+  fetchCrossProjectRelations: (workspaceSlug: string) => Promise<void>;
 
   getDateFromPositionOnGantt: (position: number, offsetDays: number) => Date | undefined;
   getPositionFromDateOnGantt: (date: string | Date, offSetWidth: number) => number | undefined;
@@ -120,6 +123,7 @@ export class BaseTimeLineStore implements IBaseTimelineStore {
   isDependencyEnabled = false;
   cpmEnabled = false;
   crossProjectCpmEnabled = false;
+  crossProjectRelationCache: Record<string, Record<TIssueRelationTypes, string[]>> = {};
   isDraggingBlock = false;
 
   // Dependency drag state (CE edition: stubs only)
@@ -157,6 +161,7 @@ export class BaseTimeLineStore implements IBaseTimelineStore {
       dependencyDragState: observable.deep,
       cpmEnabled: observable,
       crossProjectCpmEnabled: observable,
+      crossProjectRelationCache: observable,
       isDraggingBlock: observable,
       // computed
       cpmResults: computed,
@@ -177,6 +182,7 @@ export class BaseTimeLineStore implements IBaseTimelineStore {
       setCpmEnabled: action,
       setCrossProjectCpmEnabled: action,
       setDraggingBlock: action,
+      fetchCrossProjectRelations: action,
     });
 
     this.initGantt();
@@ -465,6 +471,14 @@ export class BaseTimeLineStore implements IBaseTimelineStore {
    */
   setCrossProjectCpmEnabled = (_enabled: boolean): void => {
     // CE does not support CPM
+  };
+
+  /**
+   * @description CE stub: fetch cross-project relations (not supported)
+   * Cross-project CPM is a HW-only feature
+   */
+  fetchCrossProjectRelations = async (_workspaceSlug: string): Promise<void> => {
+    // CE does not support cross-project CPM
   };
 
   /**

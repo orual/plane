@@ -28,6 +28,7 @@ import type { ConflictInfo } from "../../helpers/dependency-conflict";
 import { detectDependencyConflicts } from "../../helpers/dependency-conflict";
 import { computeCpm } from "../../helpers/cpm-calculator";
 import type { CpmResultMap } from "../../helpers/cpm-calculator";
+import type { TIssueRelationTypes } from "../../types/gantt-chart";
 // store
 import type { RootStore } from "@/plane-web/store/root.store";
 
@@ -64,6 +65,7 @@ export interface IBaseTimelineStore {
   };
   cpmEnabled: boolean;
   crossProjectCpmEnabled: boolean;
+  crossProjectRelationCache: Record<string, Record<TIssueRelationTypes, string[]>>;
   isDraggingBlock: boolean;
   //
   setBlockIds: (ids: string[]) => void;
@@ -101,6 +103,7 @@ export interface IBaseTimelineStore {
   setCpmEnabled: (enabled: boolean) => void;
   setCrossProjectCpmEnabled: (enabled: boolean) => void;
   setDraggingBlock: (dragging: boolean) => void;
+  fetchCrossProjectRelations: (workspaceSlug: string) => Promise<void>;
 
   getDateFromPositionOnGantt: (position: number, offsetDays: number) => Date | undefined;
   getPositionFromDateOnGantt: (date: string | Date, offSetWidth: number) => number | undefined;
@@ -122,6 +125,7 @@ export class BaseTimeLineStore implements IBaseTimelineStore {
   isDependencyEnabled = false;
   cpmEnabled = false;
   crossProjectCpmEnabled = false;
+  crossProjectRelationCache: Record<string, Record<TIssueRelationTypes, string[]>> = {};
   isDraggingBlock = false;
 
   // Cache for CPM results during drag to avoid expensive recomputation
@@ -162,6 +166,7 @@ export class BaseTimeLineStore implements IBaseTimelineStore {
       dependencyDragState: observable.deep,
       cpmEnabled: observable,
       crossProjectCpmEnabled: observable,
+      crossProjectRelationCache: observable,
       isDraggingBlock: observable,
       // computed
       cpmResults: computed,
@@ -182,6 +187,7 @@ export class BaseTimeLineStore implements IBaseTimelineStore {
       setCpmEnabled: action,
       setCrossProjectCpmEnabled: action,
       setDraggingBlock: action,
+      fetchCrossProjectRelations: action,
     });
 
     this.initGantt();
@@ -520,6 +526,58 @@ export class BaseTimeLineStore implements IBaseTimelineStore {
   };
 
   /**
+   * @description fetch relations for all external issues referenced in the current project's relation map
+   * @param workspaceSlug the workspace slug for API calls
+   */
+  fetchCrossProjectRelations = async (workspaceSlug: string): Promise<void> => {
+    // Collect all issue IDs referenced in the current project's relation map
+    // that are NOT in the current project's blocksMap (they're external)
+    const relationMap = this.rootStore.issue.issueDetail.relation.relationMap;
+    const localBlockIds = new Set(Object.keys(this.blocksMap));
+    const externalIds = new Set<string>();
+
+    for (const [issueId, relations] of Object.entries(relationMap)) {
+      if (!localBlockIds.has(issueId)) continue;
+      for (const relType of Object.keys(relations) as TIssueRelationTypes[]) {
+        for (const targetId of relations[relType]) {
+          if (!localBlockIds.has(targetId)) {
+            externalIds.add(targetId);
+          }
+        }
+      }
+    }
+
+    // Fetch relations for each external issue. The relation store's fetchRelations
+    // also populates the issue store with full issue objects (including dates) for
+    // the related issues, so external issue data becomes available for CPM lookup.
+    const issueDetailStore = this.rootStore.issue.issueDetail;
+
+    for (const externalId of externalIds) {
+      try {
+        // Look up the external issue to get its project_id. The issue data is
+        // already in the store because the local relation fetch (fetchRelations)
+        // calls addIssue() with full issue objects for all related issues.
+        const externalIssue = issueDetailStore.issue.getIssueById(externalId);
+        if (!externalIssue?.project_id) continue;
+
+        // Fetch the external issue's own relations — this populates relationMap
+        // for the external issue and also adds its related issues to the store
+        await issueDetailStore.relation.fetchRelations(workspaceSlug, externalIssue.project_id, externalId);
+
+        // Cache external issue's relations for CPM graph traversal
+        const externalRelations = issueDetailStore.relation.relationMap[externalId];
+        if (externalRelations) {
+          runInAction(() => {
+            this.crossProjectRelationCache[externalId] = externalRelations;
+          });
+        }
+      } catch {
+        // Skip external issues that fail to fetch (permissions, deleted, etc.)
+      }
+    }
+  };
+
+  /**
    * @description set drag state to suppress CPM recalculation during drag
    * @param dragging whether a block is currently being dragged
    */
@@ -708,6 +766,7 @@ export class BaseTimeLineStore implements IBaseTimelineStore {
    * Returns empty map if CPM is disabled.
    * During drag operations, returns cached results to avoid expensive recomputation.
    * Automatically recomputes when block dates or relations change.
+   * When crossProjectCpmEnabled is true, merges external relations into the graph.
    * @returns Map of block IDs to CPM calculation results
    */
   get cpmResults(): CpmResultMap {
@@ -715,16 +774,27 @@ export class BaseTimeLineStore implements IBaseTimelineStore {
     if (this.isDraggingBlock) return this._lastCpmResults;
 
     const relationMap = this.rootStore.issue.issueDetail.relation.relationMap;
+
+    // Merge cross-project relations when enabled
+    const effectiveRelationMap = this.crossProjectCpmEnabled
+      ? { ...relationMap, ...this.crossProjectRelationCache }
+      : relationMap;
+
     const getIssueDates = (id: string) => {
+      // Check local blocks first, then fall back to issue store for external issues
       const block = this.blocksMap[id];
-      if (!block) return undefined;
-      return {
-        start_date: block.start_date,
-        target_date: block.target_date,
-      };
+      if (block) {
+        return { start_date: block.start_date, target_date: block.target_date };
+      }
+      // For external issues: look up in root issue store
+      const issue = this.rootStore.issue.issueDetail.issue.getIssueById(id);
+      if (issue) {
+        return { start_date: issue.start_date ?? undefined, target_date: issue.target_date ?? undefined };
+      }
+      return undefined;
     };
 
-    const result = computeCpm(relationMap, getIssueDates);
+    const result = computeCpm(effectiveRelationMap, getIssueDates);
     this._lastCpmResults = result;
     return result;
   }
