@@ -5,14 +5,17 @@
 import uuid
 
 from django.contrib.auth.hashers import make_password
-from django.db import transaction
+from django.db import transaction, IntegrityError
 from django.utils import timezone
+from django.utils.html import escape
 from rest_framework import status
 from rest_framework.response import Response
 
+from plane.api.middleware.api_authentication import APIKeyAuthentication
 from plane.app.permissions import ROLE, allow_permission
 from plane.app.views import BaseViewSet
-from plane.db.models import APIToken, User, Workspace, IssueComment
+from plane.authentication.session import BaseSessionAuthentication
+from plane.db.models import APIToken, User, Workspace, IssueComment, WorkspaceMember
 from plane.db.models.user import BotTypeEnum
 from plane.hw.models import (
     AgentProfile,
@@ -25,6 +28,7 @@ from plane.hw.serializers import (
     AgentProfileSerializer,
     AgentProfileCreateSerializer,
     AgentRunSerializer,
+    AgentRunCreateSerializer,
     AgentRunActivitySerializer,
 )
 
@@ -89,7 +93,16 @@ class AgentProfileViewSet(BaseViewSet):
                     event_triggers=serializer.validated_data.get("event_triggers", {}),
                 )
 
+                # Create workspace member for the bot user (needed for permission checks)
+                WorkspaceMember.objects.create(
+                    workspace=workspace,
+                    member=bot_user,
+                    role=20,  # Admin role to allow token-based operations
+                    is_active=True,
+                )
+
                 # Create API token
+                # user_type=1 represents a service account token (not a regular user API key)
                 api_token = APIToken.objects.create(
                     label=f"agent-{agent_profile.display_name}",
                     user=bot_user,
@@ -105,7 +118,12 @@ class AgentProfileViewSet(BaseViewSet):
 
                 return Response(response_data, status=status.HTTP_201_CREATED)
 
-        except Exception as e:
+        except IntegrityError:
+            return Response(
+                {"error": "Failed to create agent profile"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        except ValueError as e:
             return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
     @allow_permission([ROLE.ADMIN], level="WORKSPACE")
@@ -130,6 +148,7 @@ class AgentRunViewSet(BaseViewSet):
 
     serializer_class = AgentRunSerializer
     model = AgentRun
+    authentication_classes = [BaseSessionAuthentication, APIKeyAuthentication]
 
     def get_queryset(self):
         return (
@@ -162,12 +181,13 @@ class AgentRunViewSet(BaseViewSet):
         serializer = AgentRunSerializer(run)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
+    @allow_permission([ROLE.ADMIN, ROLE.MEMBER], level="WORKSPACE")
     def create(self, request, slug):
         """Create a new run. Requires authentication (agent token or user)."""
         workspace = Workspace.objects.get(slug=slug)
 
-        # Validate input
-        serializer = AgentRunSerializer(data=request.data)
+        # Validate input with create serializer
+        serializer = AgentRunCreateSerializer(data=request.data)
         if not serializer.is_valid():
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
@@ -206,9 +226,15 @@ class AgentRunViewSet(BaseViewSet):
             response_serializer = AgentRunSerializer(run)
             return Response(response_serializer.data, status=status.HTTP_201_CREATED)
 
-        except Exception as e:
+        except ValueError as e:
             return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        except IntegrityError:
+            return Response(
+                {"error": "A run with this configuration already exists"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
+    @allow_permission([ROLE.ADMIN, ROLE.MEMBER], level="WORKSPACE")
     def partial_update(self, request, slug, pk):
         """Update run status with validation. Requires authentication."""
         run = self.get_queryset().get(pk=pk)
@@ -255,6 +281,7 @@ class AgentRunActivityViewSet(BaseViewSet):
 
     serializer_class = AgentRunActivitySerializer
     model = AgentRunActivity
+    authentication_classes = [BaseSessionAuthentication, APIKeyAuthentication]
 
     def get_queryset(self):
         return (
@@ -271,13 +298,12 @@ class AgentRunActivityViewSet(BaseViewSet):
         serializer = AgentRunActivitySerializer(queryset, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
+    @allow_permission([ROLE.ADMIN, ROLE.MEMBER], level="WORKSPACE")
     def create(self, request, slug, run_id):
         """Post new activity. Auto-creates IssueComment for response activities."""
         # Get the run
         try:
-            run = AgentRun.objects.select_related("agent", "issue").get(
-                id=run_id, workspace__slug=slug
-            )
+            run = AgentRun.objects.select_related("agent", "issue").get(id=run_id, workspace__slug=slug)
         except AgentRun.DoesNotExist:
             return Response(
                 {"error": "Run not found"},
@@ -305,7 +331,7 @@ class AgentRunActivityViewSet(BaseViewSet):
         # Auto-transition if needed
         if run.status in (AgentRunStatus.CREATED, AgentRunStatus.STALE):
             run.status = AgentRunStatus.IN_PROGRESS
-            run.save()
+            run.save(update_fields=["status"])
 
         # Create activity
         serializer = AgentRunActivitySerializer(data=request.data)
@@ -326,9 +352,11 @@ class AgentRunActivityViewSet(BaseViewSet):
 
             # Auto-create IssueComment for response activities
             if activity.activity_type == AgentActivityType.RESPONSE and run.issue_id:
+                # Escape content to prevent XSS
+                escaped_content = escape(activity.content)
                 IssueComment.objects.create(
                     comment_stripped=activity.content,
-                    comment_html=f"<p>{activity.content}</p>",
+                    comment_html=f"<p>{escaped_content}</p>",
                     comment_json={
                         "type": "doc",
                         "content": [
@@ -348,5 +376,10 @@ class AgentRunActivityViewSet(BaseViewSet):
             response_serializer = AgentRunActivitySerializer(activity)
             return Response(response_serializer.data, status=status.HTTP_201_CREATED)
 
-        except Exception as e:
+        except IntegrityError:
+            return Response(
+                {"error": "Failed to create activity"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        except ValueError as e:
             return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)

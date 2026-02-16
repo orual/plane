@@ -4,7 +4,6 @@
 
 import pytest
 from rest_framework import status
-from django.urls import reverse
 
 from plane.db.models import APIToken, User, WorkspaceMember
 from plane.hw.models import AgentProfile
@@ -66,7 +65,6 @@ class TestAgentRegistration:
         assert "api_token" in response.data
         assert response.data["display_name"] == "Test Agent"
         assert response.data["webhook_url"] == "https://example.com/webhook"
-        assert response.data["webhook_secret"] == "secret123"
 
         # Verify bot user was created
         agent_profile = AgentProfile.objects.get(id=response.data["id"])
@@ -74,6 +72,9 @@ class TestAgentRegistration:
         assert agent_profile.user.bot_type == "agent"
         assert agent_profile.user.username.startswith("agent_")
         assert agent_profile.user.email.endswith("@agent.internal")
+
+        # Verify webhook_secret was stored in database
+        assert agent_profile.webhook_secret == "secret123"
 
         # Verify API token was created
         api_token = APIToken.objects.get(token=response.data["api_token"])
@@ -137,15 +138,13 @@ class TestAgentRegistration:
         response = session_client.post(url, data, format="json")
         assert response.status_code == status.HTTP_201_CREATED
 
-        # Retrieve the agent to verify stored data
+        # Retrieve the agent to verify stored data from database
         agent_id = response.data["id"]
-        detail_url = self.get_agent_detail_url(workspace.slug, agent_id)
-        detail_response = session_client.get(detail_url)
+        agent_profile = AgentProfile.objects.get(id=agent_id)
 
-        assert detail_response.status_code == status.HTTP_200_OK
-        assert detail_response.data["webhook_url"] == "https://webhook.example.com/agent"
-        assert detail_response.data["webhook_secret"] == "super-secret-key"
-        assert detail_response.data["event_triggers"] == {
+        assert agent_profile.webhook_url == "https://webhook.example.com/agent"
+        assert agent_profile.webhook_secret == "super-secret-key"
+        assert agent_profile.event_triggers == {
             "issue_created": True,
             "issue_updated": False,
             "issue_commented": True,

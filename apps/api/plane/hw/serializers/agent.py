@@ -63,10 +63,23 @@ class AgentRunSerializer(BaseSerializer):
             "id",
             "agent_id",
             "workspace_id",
+            "project_id",
+            "issue_id",
             "last_activity_at",
             "completed_at",
             "created_at",
             "updated_at",
+        ]
+
+
+class AgentRunCreateSerializer(BaseSerializer):
+    class Meta:
+        model = AgentRun
+        fields = [
+            "agent_id",
+            "project_id",
+            "issue_id",
+            "trigger_metadata",
         ]
 
 

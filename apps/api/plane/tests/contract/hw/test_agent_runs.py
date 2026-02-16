@@ -4,10 +4,9 @@
 
 import pytest
 from rest_framework import status
-from django.urls import reverse
 
 from plane.db.models import APIToken, IssueComment, Issue, Project, ProjectMember, State, User, WorkspaceMember
-from plane.hw.models import AgentProfile, AgentRun, AgentRunActivity, AgentRunStatus, AgentActivityType
+from plane.hw.models import AgentProfile, AgentRun, AgentRunStatus, AgentActivityType
 
 
 @pytest.fixture
@@ -246,7 +245,6 @@ class TestAgentRunActivities:
         response = agent_client.post(activities_url, activity_data, format="json")
 
         assert response.status_code == status.HTTP_201_CREATED
-        activity_id = response.data["id"]
 
         # Verify IssueComment was created
         comment = IssueComment.objects.filter(issue=issue).first()
@@ -300,7 +298,6 @@ class TestAgentRunActivities:
         response = agent_client.post(activities_url, activity_data, format="json")
 
         assert response.status_code == status.HTTP_201_CREATED
-        activity_id = response.data["id"]
 
         # Retrieve activities and verify error is present
         list_response = agent_client.get(activities_url)
