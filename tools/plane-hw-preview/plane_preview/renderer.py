@@ -177,7 +177,7 @@ class Renderer:
 
             if result.returncode != 0:
                 logger.error(
-                    "render command failed for %s: %s", file_path, result.stderr.decode('utf-8', errors='replace')
+                    "render command failed for %s: %s", file_path, result.stderr.decode("utf-8", errors="replace")
                 )
                 continue
 

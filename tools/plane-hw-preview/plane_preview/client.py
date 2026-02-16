@@ -305,9 +305,7 @@ class PlaneClient:
             for render_file, upload_result in uploads:
                 html_parts.append(f"<h4>{html.escape(render_file.source_path)}</h4>")
                 img_alt = f"{html.escape(render_file.render_path.name)} render"
-                html_parts.append(
-                    f'<p><img src="{html.escape(upload_result.asset_url)}" alt="{img_alt}" /></p>'
-                )
+                html_parts.append(f'<p><img src="{html.escape(upload_result.asset_url)}" alt="{img_alt}" /></p>')
 
             comment_html = "\n".join(html_parts)
 
