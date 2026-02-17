@@ -72,7 +72,14 @@ class PlaneClient:
             reraise=True,
         )
 
-    def upload_asset(self, file_path: Path, mime_type: str) -> AssetUploadResult | None:
+    def upload_asset(
+        self,
+        file_path: Path,
+        mime_type: str,
+        project_id: str | None = None,
+        issue_id: str | None = None,
+        entity_type: str | None = None,
+    ) -> AssetUploadResult | None:
         """Upload an asset to Plane and S3.
 
         Performs three steps:
@@ -83,6 +90,9 @@ class PlaneClient:
         Args:
             file_path: Path to the file to upload
             mime_type: MIME type of the file
+            project_id: Project UUID to scope the asset to
+            issue_id: Issue UUID to scope the asset to
+            entity_type: Asset entity type (e.g., COMMENT_DESCRIPTION)
 
         Returns:
             AssetUploadResult on success, None if file exceeds MAX_FILE_SIZE
@@ -102,7 +112,9 @@ class PlaneClient:
             return None
 
         # Step 1: Get presigned URL
-        asset_id, upload_data, asset_url = self._get_presigned_url(file_path, file_size, mime_type)
+        asset_id, upload_data, asset_url = self._get_presigned_url(
+            file_path, file_size, mime_type, project_id, issue_id, entity_type
+        )
 
         # Step 2: Upload to S3
         self._upload_to_s3(file_path, upload_data)
@@ -112,13 +124,24 @@ class PlaneClient:
 
         return AssetUploadResult(asset_id=asset_id, asset_url=asset_url)
 
-    def _get_presigned_url(self, file_path: Path, file_size: int, mime_type: str) -> tuple[str, dict, str]:
+    def _get_presigned_url(
+        self,
+        file_path: Path,
+        file_size: int,
+        mime_type: str,
+        project_id: str | None = None,
+        issue_id: str | None = None,
+        entity_type: str | None = None,
+    ) -> tuple[str, dict, str]:
         """Get presigned S3 URL from Plane API.
 
         Args:
             file_path: Path to the file
             file_size: File size in bytes
             mime_type: MIME type
+            project_id: Project UUID to scope the asset to
+            issue_id: Issue UUID to scope the asset to
+            entity_type: Asset entity type (e.g., COMMENT_DESCRIPTION)
 
         Returns:
             Tuple of (asset_id, upload_data, asset_url)
@@ -127,11 +150,17 @@ class PlaneClient:
             PlaneAPIError: If request fails after retries
         """
         url = f"/api/v1/workspaces/{self.workspace}/assets/"
-        body = {
+        body: dict = {
             "name": file_path.name,
             "type": mime_type,
             "size": file_size,
         }
+        if project_id is not None:
+            body["project_id"] = project_id
+        if issue_id is not None:
+            body["issue_id"] = issue_id
+        if entity_type is not None:
+            body["entity_type"] = entity_type
 
         try:
             for attempt in self._get_api_retry():
@@ -263,6 +292,45 @@ class PlaneClient:
             raise
         raise PlaneAPIError("Failed to create comment: unexpected retry exhaustion")
 
+    def resolve_issue_identifier(self, project_id: str, identifier: str) -> str | None:
+        """Resolve a human-readable issue identifier (e.g., TEST-8) to a UUID.
+
+        Parses the sequence number from the identifier, queries the work-items
+        API, and returns the matching issue's UUID.
+
+        Args:
+            project_id: Project UUID
+            identifier: Issue identifier like "TEST-8"
+
+        Returns:
+            Issue UUID string, or None if not found
+        """
+        parts = identifier.rsplit("-", 1)
+        if len(parts) != 2 or not parts[1].isdigit():
+            logger.warning("Invalid issue identifier format: %s", identifier)
+            return None
+
+        sequence_id = int(parts[1])
+        url = f"/api/v1/workspaces/{self.workspace}/projects/{project_id}/work-items/"
+
+        try:
+            for attempt in self._get_api_retry():
+                with attempt:
+                    response = self._client.get(url, params={"search": str(sequence_id)})
+                    if response.status_code >= 500:
+                        raise _HTTPError(f"HTTP {response.status_code}")
+                    if response.status_code != 200:
+                        logger.warning("Failed to search issues: %s", response.status_code)
+                        return None
+                    data = response.json()
+                    for issue in data.get("results", []):
+                        if issue.get("sequence_id") == sequence_id:
+                            return issue["id"]
+                    return None
+        except _HTTPError:
+            logger.error("Failed to resolve issue %s after retries", identifier)
+            return None
+
     def post_preview(
         self,
         targets: list[PreviewTarget],
@@ -287,6 +355,8 @@ class PlaneClient:
                 upload_result = self.upload_asset(
                     render_file.render_path,
                     render_file.mime_type,
+                    project_id=target.project_id,
+                    entity_type="COMMENT_DESCRIPTION",
                 )
                 if upload_result is not None:
                     uploads.append((render_file, upload_result))
@@ -304,8 +374,11 @@ class PlaneClient:
 
             for render_file, upload_result in uploads:
                 html_parts.append(f"<h4>{html.escape(render_file.source_path)}</h4>")
-                img_alt = f"{html.escape(render_file.render_path.name)} render"
-                html_parts.append(f'<p><img src="{html.escape(upload_result.asset_url)}" alt="{img_alt}" /></p>')
+                html_parts.append(
+                    f'<image-component src="{html.escape(upload_result.asset_id)}" '
+                    f'width="35%" height="auto" status="uploaded">'
+                    f"</image-component>"
+                )
 
             comment_html = "\n".join(html_parts)
 

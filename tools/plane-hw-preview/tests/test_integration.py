@@ -119,10 +119,20 @@ class TestEndToEndPipeline:
             return_value=Response(204)
         )
 
-        # Comment creation endpoint
+        # Issue identifier resolution endpoint
+        respx.get(
+            "https://plane.example.com/api/v1/workspaces/test-workspace/projects/power-stage/work-items/"
+        ).mock(
+            return_value=Response(
+                200,
+                json={"results": [{"id": "pwr-issue-uuid", "sequence_id": 42}]},
+            )
+        )
+
+        # Comment creation endpoint (uses resolved UUID, not human identifier)
         comment_response = {"id": "comment-uuid"}
         respx.post(
-            "https://plane.example.com/api/v1/workspaces/test-workspace/projects/power-stage/work-items/PWR-42/comments/"
+            "https://plane.example.com/api/v1/workspaces/test-workspace/projects/power-stage/work-items/pwr-issue-uuid/comments/"
         ).mock(return_value=Response(201, json=comment_response))
 
         # Run the CLI
@@ -154,7 +164,7 @@ class TestEndToEndPipeline:
         comment_request = comment_requests[0]
         comment_body = json.loads(comment_request.request.content)
         assert "comment_html" in comment_body
-        assert "<img" in comment_body["comment_html"], "Comment HTML should contain <img> tags"
+        assert "<image-component" in comment_body["comment_html"], "Comment HTML should contain image-component tags"
 
     @requires_kicad
     @respx.mock
@@ -211,15 +221,34 @@ class TestEndToEndPipeline:
             return_value=Response(204)
         )
 
-        # Comment creation endpoints - separate for each project
+        # Issue identifier resolution endpoints
+        respx.get(
+            "https://plane.example.com/api/v1/workspaces/test-workspace/projects/power-stage/work-items/"
+        ).mock(
+            return_value=Response(
+                200,
+                json={"results": [{"id": "pwr-issue-uuid", "sequence_id": 42}]},
+            )
+        )
+
+        respx.get(
+            "https://plane.example.com/api/v1/workspaces/test-workspace/projects/control-board/work-items/"
+        ).mock(
+            return_value=Response(
+                200,
+                json={"results": [{"id": "ctrl-issue-uuid", "sequence_id": 7}]},
+            )
+        )
+
+        # Comment creation endpoints - separate for each project (use resolved UUIDs)
         pwr_comment = {"id": "comment-pwr"}
         respx.post(
-            "https://plane.example.com/api/v1/workspaces/test-workspace/projects/power-stage/work-items/PWR-42/comments/"
+            "https://plane.example.com/api/v1/workspaces/test-workspace/projects/power-stage/work-items/pwr-issue-uuid/comments/"
         ).mock(return_value=Response(201, json=pwr_comment))
 
         ctrl_comment = {"id": "comment-ctrl"}
         respx.post(
-            "https://plane.example.com/api/v1/workspaces/test-workspace/projects/control-board/work-items/CTRL-7/comments/"
+            "https://plane.example.com/api/v1/workspaces/test-workspace/projects/control-board/work-items/ctrl-issue-uuid/comments/"
         ).mock(return_value=Response(201, json=ctrl_comment))
 
         # Run the CLI
@@ -251,7 +280,7 @@ class TestEndToEndPipeline:
 
         # Verify each comment contains <img> tags
         pwr_body = json.loads(pwr_req.request.content)
-        assert "<img" in pwr_body["comment_html"], "PWR comment should contain <img> tags"
+        assert "<image-component" in pwr_body["comment_html"], "PWR comment should contain image-component tags"
 
         ctrl_body = json.loads(ctrl_req.request.content)
-        assert "<img" in ctrl_body["comment_html"], "CTRL comment should contain <img> tags"
+        assert "<image-component" in ctrl_body["comment_html"], "CTRL comment should contain image-component tags"

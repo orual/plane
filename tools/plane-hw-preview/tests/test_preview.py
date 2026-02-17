@@ -110,10 +110,10 @@ class TestPreviewPosting:
         assert len(comment_requests) == 1
         comment_html = comment_requests[0]["comment_html"]
 
-        # Verify it contains TWO img tags
-        assert comment_html.count("<img") == 2
-        assert "asset1.svg" in comment_html
-        assert "asset2.svg" in comment_html
+        # Verify it contains TWO image-component tags with asset IDs
+        assert comment_html.count("<image-component") == 2
+        assert "asset-uuid-1" in comment_html
+        assert "asset-uuid-2" in comment_html
         # Verify header format
         assert "abc123d" in comment_html  # short sha
         assert "main" in comment_html
@@ -210,13 +210,13 @@ class TestPreviewPosting:
         # Verify TWO comments were created
         assert len(comment_requests) == 2
 
-        # Verify first comment contains asset1
-        assert "asset1.svg" in comment_requests[0]["comment_html"]
-        assert "asset2.svg" not in comment_requests[0]["comment_html"]
+        # Verify first comment contains asset-1 ID
+        assert "asset-1" in comment_requests[0]["comment_html"]
+        assert "asset-2" not in comment_requests[0]["comment_html"]
 
-        # Verify second comment contains asset2
-        assert "asset2.svg" in comment_requests[1]["comment_html"]
-        assert "asset1.svg" not in comment_requests[1]["comment_html"]
+        # Verify second comment contains asset-2 ID
+        assert "asset-2" in comment_requests[1]["comment_html"]
+        assert "asset-1" not in comment_requests[1]["comment_html"]
 
     @respx.mock
     def test_invalid_issue_id_skipped(self, client, render_file_factory, caplog):

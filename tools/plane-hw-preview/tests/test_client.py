@@ -275,3 +275,37 @@ class TestPlaneClient:
         comment_body = comment_requests[0]
         assert "img" in comment_body["comment_html"]
         assert "s3.example.com/asset.svg" in comment_body["comment_html"]
+
+    def test_resolve_issue_identifier(self, client, mock_respx):
+        """Verify that a human-readable identifier like TEST-8 is resolved to a UUID.
+
+        The client should call the work-items API, match the sequence ID,
+        and return the issue UUID.
+        """
+        respx.get(
+            "https://api.example.com/api/v1/workspaces/test-ws/projects/proj-uuid/work-items/"
+        ).mock(
+            return_value=Response(
+                200,
+                json={
+                    "results": [
+                        {"id": "issue-uuid-8", "sequence_id": 8, "name": "Test issue"},
+                        {"id": "issue-uuid-7", "sequence_id": 7, "name": "Other issue"},
+                    ]
+                },
+            )
+        )
+
+        result = client.resolve_issue_identifier("proj-uuid", "TEST-8")
+        assert result == "issue-uuid-8"
+
+    def test_resolve_issue_identifier_not_found(self, client, mock_respx):
+        """Verify that a non-existent issue identifier returns None."""
+        respx.get(
+            "https://api.example.com/api/v1/workspaces/test-ws/projects/proj-uuid/work-items/"
+        ).mock(
+            return_value=Response(200, json={"results": []})
+        )
+
+        result = client.resolve_issue_identifier("proj-uuid", "TEST-999")
+        assert result is None

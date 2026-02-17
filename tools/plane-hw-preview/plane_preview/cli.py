@@ -110,14 +110,33 @@ def post(adapter, config):
 
         # Post previews via PlaneClient
         with PlaneClient(config_obj.base_url, api_key, config_obj.workspace) as client:
+            # Resolve human-readable identifiers (e.g., TEST-8) to UUIDs
+            resolved_targets = []
+            for target in matched_targets:
+                issue_uuid = client.resolve_issue_identifier(target.project_id, target.issue_id)
+                if issue_uuid is None:
+                    click.echo(f"Issue {target.issue_id} not found, skipping.")
+                    continue
+                resolved_targets.append(
+                    PreviewTarget(
+                        project_id=target.project_id,
+                        issue_id=issue_uuid,
+                        render_files=target.render_files,
+                    )
+                )
+
+            if not resolved_targets:
+                click.echo("No issues could be resolved. Nothing to post.")
+                return
+
             client.post_preview(
-                matched_targets,
+                resolved_targets,
                 adapter_result.commit_sha,
                 adapter_result.commit_url,
                 adapter_result.branch,
             )
 
-        click.echo(f"Posted previews to {len(matched_targets)} issue(s).")
+        click.echo(f"Posted previews to {len(resolved_targets)} issue(s).")
 
     except PlaneAPIError as e:
         click.echo(f"Error: {e}")
