@@ -19,12 +19,13 @@ type Props = {
   handleInsertText: (insertOnNextLine: boolean) => void;
   handleRegenerate: () => Promise<void>;
   isRegenerating: boolean;
+  onSubmit: (query: string) => Promise<void>;
   response: string | undefined;
   workspaceSlug: string;
 };
 
 export function AskAIMenu(props: Props) {
-  const { handleInsertText, handleRegenerate, isRegenerating, response, workspaceSlug } = props;
+  const { handleInsertText, handleRegenerate, isRegenerating, onSubmit: _onSubmit, response, workspaceSlug } = props;
   // states
   const [query, setQuery] = useState("");
   // store hooks

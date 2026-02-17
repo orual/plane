@@ -199,6 +199,7 @@ export function EditorAIMenu(props: Props) {
               handleInsertText={handleInsertText}
               handleRegenerate={handleRegenerate}
               isRegenerating={isRegenerating}
+              onSubmit={async () => {}}
               response={response}
               workspaceSlug={workspaceSlug}
             />

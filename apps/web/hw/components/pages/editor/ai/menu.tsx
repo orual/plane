@@ -199,6 +199,14 @@ export function EditorAIMenu(props: Props) {
               handleInsertText={handleInsertText}
               handleRegenerate={handleRegenerate}
               isRegenerating={isRegenerating}
+              onSubmit={async (query) => {
+                const selection = editorRef?.getSelectedText() ?? "";
+                setResponse(undefined);
+                await handleGenerateResponse({
+                  task: AI_EDITOR_TASKS.ASK_ANYTHING,
+                  text_input: selection ? `${query}\n\nText:\n${selection}` : query,
+                });
+              }}
               response={response}
               workspaceSlug={workspaceSlug}
             />
