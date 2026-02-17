@@ -164,6 +164,94 @@
       "created_at": "2026-02-16T19:39:55.411778384-05:00",
       "updated_at": "2026-02-16T19:39:55.411778384-05:00",
       "metadata_json": "{\"branch\":\"kicad-preview\",\"confidence\":95}"
+    },
+    {
+      "id": 16,
+      "change_id": "832686d1-e851-4fa4-a225-7ee03597f5a7",
+      "node_type": "goal",
+      "title": "Debug MCP container crash-loop — missing PLANE_OAUTH_PROVIDER_CLIENT_ID",
+      "description": null,
+      "status": "pending",
+      "created_at": "2026-02-16T19:49:42.223335672-05:00",
+      "updated_at": "2026-02-16T19:49:42.223335672-05:00",
+      "metadata_json": "{\"branch\":\"hw\",\"confidence\":90,\"prompt\":\"okay let's go through our testing plan for the hw-ai-infra worktree .worktrees/hw-ai-infra/docs/test-plans/2026-02-14-hw-ai-infra.md i am noticing running the containers that the mcp container is repeatedly restarting with this trace: ValueError: client_id is required - set via parameter or PLANE_OAUTH_PROVIDER_CLIENT_ID\"}"
+    },
+    {
+      "id": 17,
+      "change_id": "bb521a03-9d0b-45af-8325-c6f60917041c",
+      "node_type": "observation",
+      "title": "plane-mcp-server 0.2.3 from PyPI requires OAuth (PlaneOAuthProvider) — cloud-only feature not in our fork",
+      "description": null,
+      "status": "pending",
+      "created_at": "2026-02-16T19:50:45.847162446-05:00",
+      "updated_at": "2026-02-16T19:50:45.847162446-05:00",
+      "metadata_json": "{\"branch\":\"hw\",\"confidence\":95}"
+    },
+    {
+      "id": 18,
+      "change_id": "c955f225-4429-4b38-b949-555a94a15a37",
+      "node_type": "decision",
+      "title": "How to fix MCP sidecar: replace upstream OAuth-dependent package",
+      "description": null,
+      "status": "pending",
+      "created_at": "2026-02-16T19:50:57.192833601-05:00",
+      "updated_at": "2026-02-16T19:50:57.192833601-05:00",
+      "metadata_json": "{\"branch\":\"hw\",\"confidence\":85}"
+    },
+    {
+      "id": 19,
+      "change_id": "009c2783-be50-4b0a-8e9e-bde37d85845d",
+      "node_type": "outcome",
+      "title": "Decision: skip MCP sidecar for now, remove from docker-compose, mark Phase 3 tests as N/A",
+      "description": null,
+      "status": "pending",
+      "created_at": "2026-02-16T19:51:34.301392436-05:00",
+      "updated_at": "2026-02-16T19:51:34.301392436-05:00",
+      "metadata_json": "{\"branch\":\"hw\",\"confidence\":95}"
+    },
+    {
+      "id": 20,
+      "change_id": "5facb158-f480-4fe2-96e0-7860942d768d",
+      "node_type": "action",
+      "title": "Removed plane-mcp service from both docker-compose files, deleted mcp/Dockerfile, removed MCP env vars from .env.example",
+      "description": null,
+      "status": "pending",
+      "created_at": "2026-02-16T19:53:06.308458921-05:00",
+      "updated_at": "2026-02-16T19:53:06.308458921-05:00",
+      "metadata_json": "{\"branch\":\"hw\",\"confidence\":95}"
+    },
+    {
+      "id": 21,
+      "change_id": "2469bd5c-8dba-41e8-9ac3-caa8fa73156c",
+      "node_type": "goal",
+      "title": "Agent management UI",
+      "description": null,
+      "status": "pending",
+      "created_at": "2026-02-16T21:36:25.521257021-05:00",
+      "updated_at": "2026-02-16T21:36:25.521257021-05:00",
+      "metadata_json": "{\"branch\":\"hw\",\"confidence\":50,\"prompt\":\"Build a settings panel for workspace admins to manage AI agents — register new agents, edit webhook URLs/secrets, activate/deactivate, view runs across issues. Currently all agent CRUD is API-only (curl). Need a proper UI surface in workspace settings.\"}"
+    },
+    {
+      "id": 22,
+      "change_id": "44cc1d34-bb1e-4603-a5a7-5919788c428d",
+      "node_type": "goal",
+      "title": "Agent name autocomplete in mentions",
+      "description": null,
+      "status": "pending",
+      "created_at": "2026-02-16T21:36:29.888108591-05:00",
+      "updated_at": "2026-02-16T21:36:29.888108591-05:00",
+      "metadata_json": "{\"branch\":\"hw\",\"confidence\":50,\"prompt\":\"The @mention autocomplete in issue comments should include registered agent names alongside user names. Currently agents can only be triggered by manually typing @agent-name — the autocomplete dropdown doesn't know about agents.\"}"
+    },
+    {
+      "id": 23,
+      "change_id": "5ff52926-a4a8-4a73-8693-6743a90773ce",
+      "node_type": "goal",
+      "title": "Agent chat UI",
+      "description": null,
+      "status": "pending",
+      "created_at": "2026-02-16T21:36:36.324694085-05:00",
+      "updated_at": "2026-02-16T21:36:36.324694085-05:00",
+      "metadata_json": "{\"branch\":\"hw\",\"confidence\":40,\"prompt\":\"A more general conversational interface for interacting with agents beyond the current issue-scoped elicitation card. Think a chat panel where you can have a back-and-forth with an agent, see its reasoning in real-time, and steer its work. Goes beyond the current activity-stream-with-single-response pattern.\"}"
     }
   ],
   "edges": [
@@ -298,6 +386,50 @@
       "weight": 1.0,
       "rationale": "CI action is part of kicad-preview merge readiness",
       "created_at": "2026-02-16T19:40:00.169771265-05:00"
+    },
+    {
+      "id": 13,
+      "from_node_id": 16,
+      "to_node_id": 17,
+      "from_change_id": "832686d1-e851-4fa4-a225-7ee03597f5a7",
+      "to_change_id": "bb521a03-9d0b-45af-8325-c6f60917041c",
+      "edge_type": "leads_to",
+      "weight": 1.0,
+      "rationale": "Root cause identified",
+      "created_at": "2026-02-16T19:50:45.863912514-05:00"
+    },
+    {
+      "id": 14,
+      "from_node_id": 16,
+      "to_node_id": 18,
+      "from_change_id": "832686d1-e851-4fa4-a225-7ee03597f5a7",
+      "to_change_id": "c955f225-4429-4b38-b949-555a94a15a37",
+      "edge_type": "leads_to",
+      "weight": 1.0,
+      "rationale": "Decision needed to resolve crash",
+      "created_at": "2026-02-16T19:50:57.210010227-05:00"
+    },
+    {
+      "id": 15,
+      "from_node_id": 18,
+      "to_node_id": 19,
+      "from_change_id": "c955f225-4429-4b38-b949-555a94a15a37",
+      "to_change_id": "009c2783-be50-4b0a-8e9e-bde37d85845d",
+      "edge_type": "leads_to",
+      "weight": 1.0,
+      "rationale": "User chose to skip MCP",
+      "created_at": "2026-02-16T19:51:34.318337127-05:00"
+    },
+    {
+      "id": 16,
+      "from_node_id": 19,
+      "to_node_id": 20,
+      "from_change_id": "009c2783-be50-4b0a-8e9e-bde37d85845d",
+      "to_change_id": "5facb158-f480-4fe2-96e0-7860942d768d",
+      "edge_type": "leads_to",
+      "weight": 1.0,
+      "rationale": "Implementation of skip-MCP decision",
+      "created_at": "2026-02-16T19:53:06.325529529-05:00"
     }
   ]
 }
