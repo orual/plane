@@ -1,0 +1,58 @@
+name: "Hardware preview"
+description: "Render KiCad designs and post previews to Plane issues"
+
+inputs:
+  plane-api-key:
+    description: "Plane API key"
+    required: true
+  config:
+    description: "Path to .plane-preview.yml config file"
+    required: false
+    default: ".plane-preview.yml"
+  install-kicad:
+    description: "Install kicad-cli via apt PPA"
+    required: false
+    default: "true"
+  kicad-version:
+    description: "KiCad PPA version (only used if install-kicad is true)"
+    required: false
+    default: "9.0"
+  python-version:
+    description: "Python version for setup-python"
+    required: false
+    default: "3.12"
+
+runs:
+  using: "composite"
+  steps:
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ inputs.python-version }}
+
+    - name: Install kicad-cli
+      if: ${{ inputs.install-kicad == 'true' }}
+      shell: bash
+      run: |
+        sudo add-apt-repository -y ppa:kicad/kicad-${{ inputs.kicad-version }}-releases
+        sudo apt-get update
+        sudo apt-get install -y --no-install-recommends kicad
+        kicad-cli version
+
+    - name: Checkout plane-hw-preview
+      uses: actions/checkout@v4
+      with:
+        repository: orual/plane
+        ref: kicad-preview
+        sparse-checkout: tools/plane-hw-preview
+        path: .plane-preview-src
+
+    - name: Install plane-preview
+      shell: bash
+      run: pip install .plane-preview-src/tools/plane-hw-preview
+
+    - name: Run plane-preview post
+      shell: bash
+      env:
+        PLANE_API_KEY: ${{ inputs.plane-api-key }}
+      run: plane-preview post --adapter github --config "${{ inputs.config }}"
