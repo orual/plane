@@ -1,1 +1,26 @@
-[]
+[
+  {
+    "hash": "38d59aa78153367108b2e7d93508ae271c309586",
+    "short_hash": "38d59aa",
+    "author": "Orual",
+    "date": "2026-02-16T19:28:44-05:00",
+    "message": "feat(preview): add reusable GitHub composite action for hw-preview\n\nComposite action that other hardware repos can reference to render\nKiCad designs and post previews to Plane issues. Handles Python setup,\noptional kicad-cli installation via PPA, and sparse checkout of the\nplane-hw-preview tool.",
+    "files_changed": 1
+  },
+  {
+    "hash": "59b7ae9256a77468d6b3e67cc8380e0a83e2d5cd",
+    "short_hash": "59b7ae9",
+    "author": "Orual",
+    "date": "2026-02-16T19:14:58-05:00",
+    "message": "feat(preview): resolve issue identifiers, use image-component tags\n\nAdd resolve_issue_identifier() to convert human identifiers (TEST-8)\nto UUIDs via the work-items search API. Switch comment HTML from raw\n<img> to Plane's <image-component> for inline rendering. Upload assets\nas COMMENT_DESCRIPTION to avoid cluttering the attachment list. Update\nall tests for the new comment format and identifier resolution flow.",
+    "files_changed": 5
+  },
+  {
+    "hash": "70b2b6960da5c79d10ab52fcb01ee97ff9a29d9d",
+    "short_hash": "70b2b69",
+    "author": "Orual",
+    "date": "2026-02-16T18:00:11-05:00",
+    "message": "fix(preview): PCB renderer produces front/back composites and per-layer SVGs\n\nThe old default rendered all PCB layers into a single opaque SVG, making\nmulti-layer boards unreadable. Now generates three render passes: front\ncomposite (F.Cu + silkscreen + edge cuts), back composite, and individual\ncopper layers via --mode-multi. Non-existent inner layers are silently\nskipped by kicad-cli.\n\nAlso changes the renderer to run all matching configs per file instead of\nfirst-match-wins, enabling the multi-pass approach.",
+    "files_changed": 5
+  }
+]

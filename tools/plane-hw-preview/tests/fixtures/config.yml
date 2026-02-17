@@ -1,0 +1,35 @@
+plane:
+  base_url: https://plane.example.com
+  workspace: test-workspace
+
+commit_patterns:
+  - prefix: "PWR"
+    project: "power-stage"
+  - prefix: "CTRL"
+    project: "control-board"
+
+path_mappings:
+  - pattern: "power-stage/**"
+    project: "power-stage"
+    default_issue: "PWR-1"
+  - pattern: "control/**"
+    project: "control-board"
+    default_issue: "CTRL-1"
+
+renderers:
+  - match: "**/*.kicad_sch"
+    command: "kicad-cli sch export svg -o {output_dir} {file}"
+    config: ""
+    formats: ["svg"]
+  - match: "**/*.kicad_pcb"
+    command: "kicad-cli pcb export svg --mode-single --layers F.Cu,F.SilkS,Edge.Cuts --page-size-mode 2 -o {output_dir}/{file_stem}-front.svg {file}"
+    config: ""
+    formats: ["svg"]
+  - match: "**/*.kicad_pcb"
+    command: "kicad-cli pcb export svg --mode-single --layers B.Cu,B.SilkS,Edge.Cuts --page-size-mode 2 -o {output_dir}/{file_stem}-back.svg {file}"
+    config: ""
+    formats: ["svg"]
+  - match: "**/*.kicad_pcb"
+    command: "kicad-cli pcb export svg --mode-multi --layers F.Cu,In1.Cu,In2.Cu,In3.Cu,In4.Cu,In5.Cu,In6.Cu,B.Cu --page-size-mode 2 -o {output_dir} {file}"
+    config: ""
+    formats: ["svg"]

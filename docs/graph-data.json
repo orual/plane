@@ -76,6 +76,94 @@
       "created_at": "2026-02-16T17:35:20.481394397-05:00",
       "updated_at": "2026-02-16T17:35:20.481394397-05:00",
       "metadata_json": "{\"branch\":\"hw\",\"confidence\":90,\"prompt\":\"Grepped for date_propagated, is_propagated, auto_date, date_source — nothing. Server propagation sets real start_date/target_date on dependent issues, indistinguishable from manual dates on the client. Any client-side heuristic (compare with CPM ES/EF, check for blocking relations) would be fragile.\"}"
+    },
+    {
+      "id": 8,
+      "change_id": "56b81503-7260-44b6-83f6-8f44b89bcbd1",
+      "node_type": "goal",
+      "title": "Work through kicad-preview test plan for merge readiness",
+      "description": null,
+      "status": "pending",
+      "created_at": "2026-02-16T17:44:08.860790089-05:00",
+      "updated_at": "2026-02-16T17:44:08.860790089-05:00",
+      "metadata_json": "{\"branch\":\"kicad-preview\",\"confidence\":85,\"prompt\":\"okay we're going to work through this testing plan together so we can merge this pr. .worktrees/kicad-preview/docs/test-plans/2026-02-14-kicad-preview.md\"}"
+    },
+    {
+      "id": 9,
+      "change_id": "7ff060bc-8e44-4ddc-bc78-37a0659af22e",
+      "node_type": "outcome",
+      "title": "Phase 1 CLI smoke tests all pass (1.1-1.5)",
+      "description": null,
+      "status": "pending",
+      "created_at": "2026-02-16T17:45:33.818517143-05:00",
+      "updated_at": "2026-02-16T17:45:33.818517143-05:00",
+      "metadata_json": "{\"branch\":\"kicad-preview\",\"confidence\":95}"
+    },
+    {
+      "id": 10,
+      "change_id": "76168fa7-7b31-479a-9b76-ce7fd7b2aca8",
+      "node_type": "decision",
+      "title": "PCB renderer: composite + per-layer multi-mode",
+      "description": null,
+      "status": "pending",
+      "created_at": "2026-02-16T17:52:17.004917967-05:00",
+      "updated_at": "2026-02-16T17:52:17.004917967-05:00",
+      "metadata_json": "{\"branch\":\"kicad-preview\",\"confidence\":90,\"prompt\":\"composite plus layers individually. yeah it's a lot of svgs for a complex board but its clearer while still giving an overview.\"}"
+    },
+    {
+      "id": 11,
+      "change_id": "ac64b63c-49c8-43f0-a114-4640a67e2c0c",
+      "node_type": "action",
+      "title": "Committed PCB multi-renderer fix",
+      "description": null,
+      "status": "pending",
+      "created_at": "2026-02-16T18:00:16.181770619-05:00",
+      "updated_at": "2026-02-16T18:00:16.181770619-05:00",
+      "metadata_json": "{\"branch\":\"kicad-preview\",\"commit\":\"70b2b6960d\",\"confidence\":95}"
+    },
+    {
+      "id": 12,
+      "change_id": "23a83b6c-99bf-4e83-ac70-764410086b29",
+      "node_type": "outcome",
+      "title": "Phase 3 live integration verified — proxy fixed, image-component rendering works, COMMENT_DESCRIPTION entity type confirmed",
+      "description": null,
+      "status": "pending",
+      "created_at": "2026-02-16T19:15:20.409909709-05:00",
+      "updated_at": "2026-02-16T19:15:20.409909709-05:00",
+      "metadata_json": "{\"branch\":\"kicad-preview\",\"commit\":\"59b7ae9256\",\"confidence\":95}"
+    },
+    {
+      "id": 13,
+      "change_id": "56a40b66-1930-436f-bc7c-28af7e0a29d0",
+      "node_type": "goal",
+      "title": "GitHub composite action for hw-preview",
+      "description": null,
+      "status": "pending",
+      "created_at": "2026-02-16T19:39:47.307202710-05:00",
+      "updated_at": "2026-02-16T19:39:47.307202710-05:00",
+      "metadata_json": "{\"branch\":\"kicad-preview\",\"commit\":\"38d59aa781\",\"confidence\":95,\"prompt\":\"Implement the following plan:\\n\\nCreate a reusable GitHub composite action in the plane repo that other hardware repos (like BooskieBadge) can reference. The action handles installing plane-preview and running the post command. Optionally installs kicad-cli for repos that don't bring their own renderer.\"}"
+    },
+    {
+      "id": 14,
+      "change_id": "e661a7f5-f7a2-44b7-b52d-3eae0d3ae3d7",
+      "node_type": "action",
+      "title": "Created composite action and BooskieBadge workflow",
+      "description": null,
+      "status": "pending",
+      "created_at": "2026-02-16T19:39:51.240440767-05:00",
+      "updated_at": "2026-02-16T19:39:51.240440767-05:00",
+      "metadata_json": "{\"branch\":\"kicad-preview\",\"commit\":\"38d59aa781\",\"confidence\":95,\"files\":[\".github/actions/hw-preview/action.yml\"]}"
+    },
+    {
+      "id": 15,
+      "change_id": "2423a25b-c86b-48fc-877c-b42e3f3168c7",
+      "node_type": "outcome",
+      "title": "CI pipeline validated — action plumbing works end-to-end",
+      "description": null,
+      "status": "pending",
+      "created_at": "2026-02-16T19:39:55.411778384-05:00",
+      "updated_at": "2026-02-16T19:39:55.411778384-05:00",
+      "metadata_json": "{\"branch\":\"kicad-preview\",\"confidence\":95}"
     }
   ],
   "edges": [
@@ -133,6 +221,83 @@
       "weight": 1.0,
       "rationale": "Technical constraint informing decision",
       "created_at": "2026-02-16T17:35:20.498893907-05:00"
+    },
+    {
+      "id": 6,
+      "from_node_id": 8,
+      "to_node_id": 9,
+      "from_change_id": "56b81503-7260-44b6-83f6-8f44b89bcbd1",
+      "to_change_id": "7ff060bc-8e44-4ddc-bc78-37a0659af22e",
+      "edge_type": "leads_to",
+      "weight": 1.0,
+      "rationale": "Phase 1 complete",
+      "created_at": "2026-02-16T17:45:33.835779360-05:00"
+    },
+    {
+      "id": 7,
+      "from_node_id": 8,
+      "to_node_id": 10,
+      "from_change_id": "56b81503-7260-44b6-83f6-8f44b89bcbd1",
+      "to_change_id": "76168fa7-7b31-479a-9b76-ce7fd7b2aca8",
+      "edge_type": "leads_to",
+      "weight": 1.0,
+      "rationale": "PCB rendering approach for test plan phase 2",
+      "created_at": "2026-02-16T17:52:17.081722522-05:00"
+    },
+    {
+      "id": 8,
+      "from_node_id": 10,
+      "to_node_id": 11,
+      "from_change_id": "76168fa7-7b31-479a-9b76-ce7fd7b2aca8",
+      "to_change_id": "ac64b63c-49c8-43f0-a114-4640a67e2c0c",
+      "edge_type": "leads_to",
+      "weight": 1.0,
+      "rationale": "Implementation of composite + per-layer decision",
+      "created_at": "2026-02-16T18:00:16.199371771-05:00"
+    },
+    {
+      "id": 9,
+      "from_node_id": 8,
+      "to_node_id": 12,
+      "from_change_id": "56b81503-7260-44b6-83f6-8f44b89bcbd1",
+      "to_change_id": "23a83b6c-99bf-4e83-ac70-764410086b29",
+      "edge_type": "leads_to",
+      "weight": 1.0,
+      "rationale": "Phase 3 Plane API integration complete",
+      "created_at": "2026-02-16T19:15:20.426558271-05:00"
+    },
+    {
+      "id": 10,
+      "from_node_id": 13,
+      "to_node_id": 14,
+      "from_change_id": "56a40b66-1930-436f-bc7c-28af7e0a29d0",
+      "to_change_id": "e661a7f5-f7a2-44b7-b52d-3eae0d3ae3d7",
+      "edge_type": "leads_to",
+      "weight": 1.0,
+      "rationale": "Implementation",
+      "created_at": "2026-02-16T19:39:51.373381213-05:00"
+    },
+    {
+      "id": 11,
+      "from_node_id": 14,
+      "to_node_id": 15,
+      "from_change_id": "e661a7f5-f7a2-44b7-b52d-3eae0d3ae3d7",
+      "to_change_id": "2423a25b-c86b-48fc-877c-b42e3f3168c7",
+      "edge_type": "leads_to",
+      "weight": 1.0,
+      "rationale": "GitHub Actions run confirmed all steps pass except expected API key absence",
+      "created_at": "2026-02-16T19:39:55.936888420-05:00"
+    },
+    {
+      "id": 12,
+      "from_node_id": 8,
+      "to_node_id": 13,
+      "from_change_id": "56b81503-7260-44b6-83f6-8f44b89bcbd1",
+      "to_change_id": "56a40b66-1930-436f-bc7c-28af7e0a29d0",
+      "edge_type": "leads_to",
+      "weight": 1.0,
+      "rationale": "CI action is part of kicad-preview merge readiness",
+      "created_at": "2026-02-16T19:40:00.169771265-05:00"
     }
   ]
 }

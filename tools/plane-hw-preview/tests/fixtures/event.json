@@ -1,0 +1,16 @@
+{
+  "head_commit": {
+    "id": "abc1234567890def",
+    "message": "PWR-42 CTRL-7 update board layouts",
+    "url": "https://github.com/org/hw-repo/commit/abc1234567890def"
+  },
+  "commits": [
+    {
+      "id": "abc1234567890def",
+      "added": ["power-stage/main.kicad_sch"],
+      "modified": ["control/board.kicad_pcb"],
+      "removed": []
+    }
+  ],
+  "ref": "refs/heads/main"
+}

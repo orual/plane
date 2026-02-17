@@ -333,7 +333,7 @@ class UserServerAssetEndpoint(BaseAPIView):
         )
 
         # Get the presigned URL
-        storage = S3Storage(request=request, is_server=True)
+        storage = S3Storage(request=request)
         # Generate a presigned URL to share an S3 object
         presigned_url = storage.generate_presigned_post(object_name=asset_key, file_type=type, file_size=size_limit)
         # Return the presigned URL
@@ -437,7 +437,7 @@ class GenericAssetEndpoint(BaseAPIView):
                 )
 
             # Generate presigned URL for GET
-            storage = S3Storage(request=request, is_server=True)
+            storage = S3Storage(request=request)
             presigned_url = storage.generate_presigned_url(
                 object_name=asset.asset.name, filename=asset.attributes.get("name")
             )
@@ -502,6 +502,8 @@ class GenericAssetEndpoint(BaseAPIView):
         type = request.data.get("type")
         size = int(request.data.get("size", settings.FILE_SIZE_LIMIT))
         project_id = request.data.get("project_id")
+        issue_id = request.data.get("issue_id")
+        entity_type = request.data.get("entity_type")
         external_id = request.data.get("external_id")
         external_source = request.data.get("external_source")
 
@@ -554,14 +556,15 @@ class GenericAssetEndpoint(BaseAPIView):
             size=size_limit,
             workspace_id=workspace.id,
             project_id=project_id,
+            issue_id=issue_id,
             created_by=request.user,
             external_id=external_id,
             external_source=external_source,
-            entity_type=FileAsset.EntityTypeContext.ISSUE_ATTACHMENT,  # Using ISSUE_ATTACHMENT since we'll bind it to issues # noqa: E501
+            entity_type=entity_type or FileAsset.EntityTypeContext.ISSUE_ATTACHMENT,
         )
 
         # Get the presigned URL
-        storage = S3Storage(request=request, is_server=True)
+        storage = S3Storage(request=request)
         presigned_url = storage.generate_presigned_post(object_name=asset_key, file_type=type, file_size=size_limit)
 
         return Response(
