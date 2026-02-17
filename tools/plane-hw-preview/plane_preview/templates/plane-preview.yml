@@ -1,0 +1,49 @@
+# plane-hw-preview configuration
+# Copy this file to your repository root as .plane-preview.yml
+
+plane:
+  # Your Plane instance URL
+  base_url: https://plane.example.com
+  # Workspace slug (from your Plane URL)
+  workspace: my-workspace
+
+# Map commit message prefixes to Plane projects.
+# When a commit message contains "PWR-42", it matches the project
+# configured with prefix "PWR" and links to issue 42 in that project.
+commit_patterns:
+  - prefix: "PWR"
+    project: "power-stage"
+  # - prefix: "CTRL"
+  #   project: "control-board"
+
+# Map file paths to Plane projects and default issues.
+# Used as fallback when commit messages don't contain issue identifiers.
+# More specific patterns take priority over broader ones.
+path_mappings:
+  - pattern: "hardware/power-stage/**"
+    project: "power-stage"
+    default_issue: "PWR-1"
+  # - pattern: "hardware/control/**"
+  #   project: "control-board"
+  #   default_issue: "CTRL-1"
+
+# Configure render commands per file type.
+# If omitted, the tool auto-detects kicad-cli or KiBot on PATH.
+# Multiple entries can match the same file — all matching renderers run.
+# renderers:
+#   # Schematics: one SVG per sheet
+#   - match: "**/*.kicad_sch"
+#     command: "kicad-cli sch export svg -o {output_dir} {file}"
+#     formats: ["svg"]
+#   # PCB front composite (copper + silkscreen + board outline)
+#   - match: "**/*.kicad_pcb"
+#     command: "kicad-cli pcb export svg --mode-single --layers F.Cu,F.SilkS,Edge.Cuts --page-size-mode 2 -o {output_dir}/{file_stem}-front.svg {file}"
+#     formats: ["svg"]
+#   # PCB back composite
+#   - match: "**/*.kicad_pcb"
+#     command: "kicad-cli pcb export svg --mode-single --layers B.Cu,B.SilkS,Edge.Cuts --page-size-mode 2 -o {output_dir}/{file_stem}-back.svg {file}"
+#     formats: ["svg"]
+#   # PCB individual copper layers (non-existent layers are silently skipped)
+#   - match: "**/*.kicad_pcb"
+#     command: "kicad-cli pcb export svg --mode-multi --layers F.Cu,In1.Cu,In2.Cu,In3.Cu,In4.Cu,In5.Cu,In6.Cu,B.Cu --page-size-mode 2 -o {output_dir} {file}"
+#     formats: ["svg"]

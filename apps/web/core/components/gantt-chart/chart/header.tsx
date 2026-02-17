@@ -13,6 +13,7 @@ import { Row } from "@plane/ui";
 // components
 import { cn } from "@plane/utils";
 import { VIEWS_LIST } from "@/components/gantt-chart/data";
+import { CpmToggle } from "@/plane-web/components/gantt-chart";
 // helpers
 // hooks
 import { useTimeLineChartStore } from "@/hooks/use-timeline-chart";
@@ -41,6 +42,8 @@ export const GanttChartHeader = observer(function GanttChartHeader(props: Props)
       className="relative flex w-full flex-shrink-0 flex-wrap items-center gap-2 whitespace-nowrap py-2 bg-surface-1"
       style={{ height: `${GANTT_BREADCRUMBS_HEIGHT}px` }}
     >
+      <CpmToggle />
+
       <div className="ml-auto">
         <div className="ml-auto text-11 font-medium text-tertiary">
           {blockIds ? `${blockIds.length} ${loaderTitle}` : t("common.loading")}

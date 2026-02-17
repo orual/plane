@@ -1,0 +1,9 @@
+kibot:
+  version: 1
+
+outputs:
+  - name: schematic_svg
+    type: svg_sch_print
+    dir: .
+    options:
+      output: "%f-schematic.svg"

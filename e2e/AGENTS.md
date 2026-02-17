@@ -61,7 +61,7 @@ e2e/
 ├── fixtures/index.ts           # Test fixtures (worker-scoped auth, per-test workspace/project)
 ├── helpers/
 │   ├── auth.ts                 # Authentication flow (sign-up, onboarding, rate limit retry)
-│   └── api.ts                  # API helpers (workspace, project, issue type creation)
+│   └── api.ts                  # API helpers (workspace, project, issue type, issue, relation creation)
 ├── tests/                      # Test files (*.spec.ts)
 └── playwright.config.ts        # Playwright configuration
 ```

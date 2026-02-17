@@ -122,3 +122,6 @@ result
 
 .devenv
 .worktrees/
+
+# Deciduous database (local)
+.deciduous/

@@ -169,3 +169,89 @@ export async function getPropertyDefinitions(request: APIRequestContext, token: 
   const data = await response.json();
   return Array.isArray(data) ? data : (data.results ?? []);
 }
+
+interface IssueCreatePayload {
+  name: string;
+  start_date?: string;
+  target_date?: string;
+}
+
+/**
+ * Create an issue via the API.
+ */
+export async function createIssue(
+  request: APIRequestContext,
+  token: string,
+  workspaceSlug: string,
+  projectId: string,
+  payload: IssueCreatePayload
+) {
+  const response = await request.post(`${API_BASE_URL}/api/workspaces/${workspaceSlug}/projects/${projectId}/issues/`, {
+    headers: {
+      Cookie: `session-id=${token}`,
+      "Content-Type": "application/json",
+    },
+    data: payload,
+  });
+
+  if (!response.ok()) {
+    throw new Error(`Failed to create issue: ${response.status()} ${await response.text()}`);
+  }
+
+  return response.json();
+}
+
+/**
+ * Create an issue relation (dependency) via the API.
+ */
+export async function createIssueRelation(
+  request: APIRequestContext,
+  token: string,
+  workspaceSlug: string,
+  projectId: string,
+  issueId: string,
+  payload: { relation_type: string; related_list: string[] }
+) {
+  const response = await request.post(
+    `${API_BASE_URL}/api/workspaces/${workspaceSlug}/projects/${projectId}/issues/${issueId}/issue-relations/`,
+    {
+      headers: {
+        Cookie: `session-id=${token}`,
+        "Content-Type": "application/json",
+      },
+      data: payload,
+    }
+  );
+
+  if (!response.ok()) {
+    throw new Error(`Failed to create issue relation: ${response.status()} ${await response.text()}`);
+  }
+
+  return response.json();
+}
+
+/**
+ * Get an issue by ID via the API.
+ */
+export async function getIssue(
+  request: APIRequestContext,
+  token: string,
+  workspaceSlug: string,
+  projectId: string,
+  issueId: string
+) {
+  const response = await request.get(
+    `${API_BASE_URL}/api/workspaces/${workspaceSlug}/projects/${projectId}/issues/${issueId}/`,
+    {
+      headers: {
+        Cookie: `session-id=${token}`,
+      },
+    }
+  );
+
+  if (!response.ok()) {
+    throw new Error(`Failed to get issue: ${response.status()} ${await response.text()}`);
+  }
+
+  return response.json();
+}
