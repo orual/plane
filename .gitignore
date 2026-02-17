@@ -121,3 +121,7 @@ result
 .venv/
 
 .devenv
+.worktrees/
+
+# Deciduous database (local)
+.deciduous/

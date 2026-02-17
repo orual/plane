@@ -10,7 +10,7 @@ import { useParams } from "next/navigation";
 import { Popover } from "@plane/propel/popover";
 import { Tooltip } from "@plane/propel/tooltip";
 import { ControlLink } from "@plane/ui";
-import { findTotalDaysInRange, generateWorkItemLink } from "@plane/utils";
+import { cn, findTotalDaysInRange, generateWorkItemLink } from "@plane/utils";
 // components
 import { SIDEBAR_WIDTH } from "@/components/gantt-chart/constants";
 // hooks
@@ -21,9 +21,12 @@ import { useProjectState } from "@/hooks/store/use-project-state";
 import { useIssueStoreType } from "@/hooks/use-issue-layout-store";
 import useIssuePeekOverviewRedirection from "@/hooks/use-issue-peek-overview-redirection";
 import { usePlatformOS } from "@/hooks/use-platform-os";
+import { useTimeLineChartStore } from "@/hooks/use-timeline-chart";
 // plane web imports
 import { IssueIdentifier } from "@/plane-web/components/issues/issue-details/issue-identifier";
 import { IssueStats } from "@/plane-web/components/issues/issue-layouts/issue-stats";
+import { ComputedDateIndicator } from "@/plane-web/components/gantt-chart/blocks/computed-date-indicator";
+import { applyCriticalBlockStyle } from "@/plane-web/components/gantt-chart/blocks/critical-block-style";
 // local imports
 import { WorkItemPreviewCard } from "../../preview-card";
 import { getBlockViewDetails } from "../utils";
@@ -44,6 +47,7 @@ export const IssueGanttBlock = observer(function IssueGanttBlock(props: Props) {
   const {
     issue: { getIssueById },
   } = useIssueDetail();
+  const timelineStore = useTimeLineChartStore();
   // hooks
   const { isMobile } = usePlatformOS();
   const { handleRedirection } = useIssuePeekOverviewRedirection(isEpic);
@@ -55,6 +59,11 @@ export const IssueGanttBlock = observer(function IssueGanttBlock(props: Props) {
 
   const { blockStyle } = getBlockViewDetails(issueDetails, stateDetails?.color ?? "");
 
+  const block = timelineStore.blocksMap[issueId];
+  const isComputedDate = block?.dateSource === "computed";
+
+  const { style: effectiveBlockStyle, isCritical } = applyCriticalBlockStyle(timelineStore, issueId, blockStyle);
+
   const handleIssuePeekOverview = () => handleRedirection(workspaceSlug, issueDetails, isMobile);
 
   const duration = findTotalDaysInRange(issueDetails?.start_date, issueDetails?.target_date) || 0;
@@ -65,40 +74,58 @@ export const IssueGanttBlock = observer(function IssueGanttBlock(props: Props) {
         className="w-full"
         render={
           <div
-            id={`issue-${issueId}`}
-            className="relative flex h-full w-full cursor-pointer items-center rounded-sm space-between"
-            style={blockStyle}
-            onClick={handleIssuePeekOverview}
+            style={effectiveBlockStyle}
+            {...(isCritical ? { "data-test": "cpm-critical-block", "data-test-issue-id": issueId } : {})}
           >
-            <div className="absolute left-0 top-0 h-full w-full bg-surface-1/50 " />
             <div
-              className="sticky w-auto overflow-hidden truncate px-2.5 py-1 text-13 text-primary flex-1"
-              style={{ left: `${SIDEBAR_WIDTH}px` }}
+              id={`issue-${issueId}`}
+              {...(isComputedDate ? { "data-test": "cpm-computed-block", "data-test-issue-id": issueId } : {})}
+              className={cn(
+                "relative flex h-full w-full cursor-pointer items-center rounded-sm space-between",
+                {
+                  "opacity-80 border-dashed border border-custom-border-300": isComputedDate,
+                }
+              )}
+              onClick={handleIssuePeekOverview}
             >
-              {issueDetails?.name}
+              <div className="absolute left-0 top-0 h-full w-full bg-surface-1/50 " />
+              <ComputedDateIndicator isComputedDate={isComputedDate} />
+              <div
+                className="sticky w-auto overflow-hidden truncate px-2.5 py-1 text-13 text-primary flex-1 relative"
+                style={{ left: `${SIDEBAR_WIDTH}px` }}
+              >
+                {issueDetails?.name}
+              </div>
+              {isEpic && (
+                <IssueStats
+                  issueId={issueId}
+                  className="sticky mx-2 font-medium text-primary overflow-hidden truncate w-auto justify-end flex-shrink-0"
+                  showProgressText={duration >= 2}
+                />
+              )}
             </div>
-            {isEpic && (
-              <IssueStats
-                issueId={issueId}
-                className="sticky mx-2 font-medium text-primary overflow-hidden truncate w-auto justify-end flex-shrink-0"
-                showProgressText={duration >= 2}
-              />
-            )}
           </div>
         }
       />
       <Popover.Panel side="bottom" align="start">
-        <>
-          {issueDetails && issueDetails?.project_id && (
-            <WorkItemPreviewCard
-              projectId={issueDetails.project_id}
-              stateDetails={{
-                id: issueDetails.state_id ?? undefined,
-              }}
-              workItem={issueDetails}
-            />
-          )}
-        </>
+        {issueDetails && issueDetails?.project_id && (
+          <WorkItemPreviewCard
+            projectId={issueDetails.project_id}
+            stateDetails={{
+              id: issueDetails.state_id ?? undefined,
+            }}
+            workItem={
+              isComputedDate && block
+                ? { ...issueDetails, start_date: block.start_date ?? null, target_date: block.target_date ?? null }
+                : issueDetails
+            }
+          />
+        )}
+        {isComputedDate && (
+          <div className="px-1 pt-1">
+            <span className="text-[10px] text-tertiary">computed</span>
+          </div>
+        )}
       </Popover.Panel>
     </Popover>
   );
