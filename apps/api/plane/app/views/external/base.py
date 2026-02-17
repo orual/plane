@@ -8,7 +8,7 @@ from typing import Tuple
 
 # Third party import
 import litellm
-from litellm import AuthenticationError, RateLimitError, APIError
+from litellm import APIConnectionError, APIError, AuthenticationError, InternalServerError, RateLimitError
 import requests
 
 from rest_framework import status
@@ -35,7 +35,7 @@ PROVIDER_MODELS = {
         ],
     },
     "openai": {
-        "prefix": "",
+        "prefix": "openai/",
         "default": "gpt-4.1",
         "models": [
             "gpt-5.2",
@@ -101,15 +101,6 @@ def get_llm_config() -> Tuple[str | None, str | None, str | None, str | None]:
     if not model:
         model = provider_config["default"]
 
-    if model not in provider_config["models"]:
-        log_exception(
-            ValueError(
-                f"Model {model} not supported by {provider_key}. "
-                f"Supported models: {', '.join(provider_config['models'])}"
-            )
-        )
-        return None, None, None, None
-
     return api_key, model, provider_key, base_url or ""
 
 
@@ -129,9 +120,6 @@ def get_llm_response(
     provider_config = PROVIDER_MODELS.get(provider.lower())
     if not provider_config:
         return None, f"Unsupported provider: {provider}", None
-
-    if model not in provider_config["models"]:
-        return None, f"Unknown model '{model}' for provider '{provider}'", None
 
     litellm_model = provider_config["prefix"] + model
 
@@ -153,6 +141,10 @@ def get_llm_response(
         return None, f"Invalid API key for {provider}", None
     except RateLimitError:
         return None, f"Rate limit exceeded for {provider}", None
+    except APIConnectionError:
+        return None, f"Could not connect to {provider}. Check the base URL and network.", None
+    except InternalServerError as e:
+        return None, f"Error from {provider}: {e.message}", None
     except APIError as e:
         return None, f"Error from {provider}: {e.message}", None
     except Exception as e:
@@ -180,8 +172,8 @@ class GPTIntegrationEndpoint(BaseAPIView):
         )
         if not text and error:
             return Response(
-                {"error": "An internal error has occurred."},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                {"error": error},
+                status=status.HTTP_502_BAD_GATEWAY,
             )
 
         workspace = Workspace.objects.get(slug=slug)
@@ -219,8 +211,8 @@ class WorkspaceGPTIntegrationEndpoint(BaseAPIView):
         )
         if not text and error:
             return Response(
-                {"error": "An internal error has occurred."},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                {"error": error},
+                status=status.HTTP_502_BAD_GATEWAY,
             )
 
         response_data = {
@@ -259,8 +251,8 @@ class GrammarCorrectionEndpoint(BaseAPIView):
         )
         if not text and error:
             return Response(
-                {"error": "An internal error has occurred."},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                {"error": error},
+                status=status.HTTP_502_BAD_GATEWAY,
             )
 
         response_data = {

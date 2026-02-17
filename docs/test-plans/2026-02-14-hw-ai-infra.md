@@ -38,6 +38,8 @@
 
 ## Phase 3: MCP sidecar container
 
+> **Deferred.** The upstream `plane-mcp-server` package (v0.2.3) requires OAuth via `PlaneOAuthProvider`, which is a Plane Cloud feature not available in our fork. The `plane-mcp` service has been removed from both docker-compose files and the `mcp/` Dockerfile has been deleted. Steps 3.1–3.6 and AC6.x are not testable until we build or find an MCP server that authenticates via API key.
+
 | Step | Action                                                                                                                                                           | Expected                                                                                                                                                              |
 | ---- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | 3.1  | Run `docker compose -f docker-compose-local.yml up -d`. Then run `docker compose -f docker-compose-local.yml ps`.                                                | The `plane-mcp` service is listed and running.                                                                                                                        |
@@ -177,7 +179,7 @@
 | AC1.5  | `test_llm_backend.py::test_reasoning_content_returned_when_present` + `test_llm_endpoint.py::test_endpoint_returns_reasoning_content_when_present` | —                                       |
 | AC1.6  | `test_llm_backend.py::test_authentication_error_handling`                                                                                          | —                                       |
 | AC1.7  | `test_llm_backend.py::test_api_error_handling`                                                                                                     | 1.7                                     |
-| AC1.8  | `test_llm_backend.py::test_unknown_model_error`                                                                                                    | —                                       |
+| AC1.8  | ~~`test_llm_backend.py::test_unknown_model_error`~~ Removed — replaced by `test_unknown_model_passed_through` (freeform model names)               | —                                       |
 | AC2.1  | `test_llm_backend.py::test_anthropic_models_present`                                                                                               | —                                       |
 | AC2.2  | `test_llm_backend.py::test_openai_models_present`                                                                                                  | —                                       |
 | AC2.3  | `test_llm_backend.py::test_gemini_models_present`                                                                                                  | —                                       |

@@ -54,7 +54,7 @@ class TestProviderModels:
     def test_provider_prefixes(self):
         """Provider prefixes are correctly configured."""
         assert PROVIDER_MODELS["anthropic"]["prefix"] == "anthropic/"
-        assert PROVIDER_MODELS["openai"]["prefix"] == ""
+        assert PROVIDER_MODELS["openai"]["prefix"] == "openai/"
         assert PROVIDER_MODELS["gemini"]["prefix"] == "gemini/"
 
 
@@ -86,8 +86,8 @@ class TestGetLlmResponse:
         assert call_kwargs["model"] == "anthropic/claude-opus-4-6"
 
     @patch("plane.app.views.external.base.litellm.completion")
-    def test_openai_model_no_prefix(self, mock_completion):
-        """OpenAI model name passes through with no prefix."""
+    def test_openai_model_prefix(self, mock_completion):
+        """OpenAI model name is prefixed with 'openai/' for LiteLLM routing."""
         mock_response = MagicMock()
         mock_response.choices[0].message.content = "OpenAI response"
         mock_response.choices[0].message.reasoning_content = None
@@ -103,9 +103,8 @@ class TestGetLlmResponse:
 
         assert text == "OpenAI response"
         assert error is None
-        # Verify the model has no prefix
         call_kwargs = mock_completion.call_args[1]
-        assert call_kwargs["model"] == "gpt-4.1"
+        assert call_kwargs["model"] == "openai/gpt-4.1"
 
     @patch("plane.app.views.external.base.litellm.completion")
     def test_gemini_model_prefix(self, mock_completion):
@@ -271,19 +270,26 @@ class TestGetLlmResponse:
         assert error == "Unsupported provider: invalid_provider"
         assert reasoning is None
 
-    def test_unknown_model_error(self):
-        """Model not in PROVIDER_MODELS[provider]['models'] returns error identifying invalid model."""
+    @patch("plane.app.views.external.base.litellm.completion")
+    def test_unknown_model_passed_through(self, mock_completion):
+        """Freeform model names are passed through to LiteLLM without rejection."""
+        mock_response = MagicMock()
+        mock_response.choices[0].message.content = "Response"
+        mock_response.choices[0].message.reasoning_content = None
+        mock_completion.return_value = mock_response
+
         text, error, reasoning = get_llm_response(
             task="Test task",
             prompt="Test prompt",
             api_key="test-key",
-            model="unknown-model",
+            model="custom-model-v3",
             provider="openai",
         )
 
-        assert text is None
-        assert "Unknown model 'unknown-model' for provider 'openai'" in error
-        assert reasoning is None
+        assert text == "Response"
+        assert error is None
+        mock_completion.assert_called_once()
+        assert mock_completion.call_args[1]["model"] == "openai/custom-model-v3"
 
     @patch("plane.app.views.external.base.litellm.completion")
     def test_messages_format(self, mock_completion):
