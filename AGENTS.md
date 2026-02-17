@@ -138,9 +138,11 @@ Key concepts:
 - **Mention trigger** — `@agent-name` in issue comments auto-creates a run and sends a webhook.
 - **Celery beat** — `detect_stale_agent_runs` (every minute), `cleanup_ephemeral_activities` (every hour).
 
-### MCP sidecar
+### MCP sidecar (deferred)
 
 A Docker service (`plane-mcp`) running `plane-mcp-server` on port 8001. Provides Model Context Protocol access to Plane data for external AI agents. Configured via `MCP_API_KEY` and `MCP_WORKSPACE_SLUG` environment variables.
+
+> **Note:** The upstream `plane-mcp-server` package requires OAuth (`PlaneOAuthProvider`), which is a Plane Cloud feature not present in our fork. The MCP sidecar has been removed from docker-compose and will be revisited when we have an API-key-authenticated MCP server.
 
 ## Quick reference
 
