@@ -23,40 +23,30 @@ export type TAgentRunPanelProps = {
   issueId: string;
 };
 
-/**
- * Helper to get the background color for a run status badge.
- */
 function getStatusBadgeClass(status: TAgentRun["status"]): string {
   switch (status) {
     case "in_progress":
-      return "bg-green-500/10 text-green-500 border-green-500/20";
-    case "created":
-      return "bg-gray-500/10 text-gray-500 border-gray-500/20";
+      return "bg-success-subtle text-success-primary border-success-strong";
     case "stale":
-      return "bg-yellow-500/10 text-yellow-500 border-yellow-500/20";
+      return "bg-warning-subtle text-warning-primary border-warning-strong";
     case "failed":
-      return "bg-red-500/10 text-red-500 border-red-500/20";
+      return "bg-danger-subtle text-danger-primary border-danger-strong";
     case "completed":
-      return "bg-blue-500/10 text-blue-500 border-blue-500/20";
+      return "bg-accent-subtle text-accent-primary border-accent-strong";
+    case "created":
     case "stopped":
-      return "bg-gray-500/10 text-gray-500 border-gray-500/20";
     default:
-      return "bg-gray-500/10 text-gray-500 border-gray-500/20";
+      return "bg-layer-2 text-secondary border-subtle";
   }
 }
 
-/**
- * Single run activity timeline with activities lazy-loaded on expand.
- */
 const AgentRunItem = observer(function AgentRunItem({ run, workspaceSlug }: { run: TAgentRun; workspaceSlug: string }) {
   const { agentRunStore } = useRootStore();
 
-  // Get activities for this run from the store
   const activities = agentRunStore.getActivitiesByRunId(run.id);
 
   const handleDisclosureOpen = (isOpen: boolean) => {
     if (isOpen && activities.length === 0) {
-      // Fetch activities when expanding if not already loaded
       void agentRunStore.fetchActivitiesForRun(workspaceSlug, run.id).catch((error) => {
         console.error("Failed to fetch activities for run:", error);
       });
@@ -73,7 +63,7 @@ const AgentRunItem = observer(function AgentRunItem({ run, workspaceSlug }: { ru
   };
 
   return (
-    <Disclosure as="div" className="border border-custom-border-200 rounded-lg overflow-hidden">
+    <Disclosure as="div" className="border border-subtle rounded-lg overflow-hidden">
       {({ open }) => (
         <>
           <Disclosure.Button
@@ -82,51 +72,42 @@ const AgentRunItem = observer(function AgentRunItem({ run, workspaceSlug }: { ru
             }}
             className={cn(
               "w-full flex items-center justify-between px-4 py-3",
-              "hover:bg-custom-background-90 transition-colors",
-              open && "bg-custom-background-90"
+              "hover:bg-layer-1 transition-colors",
+              open && "bg-layer-1"
             )}
           >
             <div className="flex items-center gap-3 flex-1 min-w-0">
-              <div className={cn("px-2 py-1 text-xs font-medium rounded border", getStatusBadgeClass(run.status))}>
-                {run.status}
+              <div className={cn("px-2 py-0.5 text-11 font-medium rounded border", getStatusBadgeClass(run.status))}>
+                {run.status.replace("_", " ")}
               </div>
-              <span className="text-sm font-medium text-custom-text-100 truncate">Agent Run</span>
-              <span className="text-xs text-custom-text-400">{formatDate(run.created_at)}</span>
+              <span className="text-13 font-medium text-primary truncate">Agent Run</span>
+              <span className="text-11 text-tertiary">{formatDate(run.created_at)}</span>
             </div>
             <ChevronDown
               size={16}
-              className={cn("flex-shrink-0 text-custom-text-400 transition-transform", open && "rotate-180")}
+              className={cn("flex-shrink-0 text-tertiary transition-transform", open && "rotate-180")}
             />
           </Disclosure.Button>
 
-          <Disclosure.Panel className="border-t border-custom-border-200 px-4 py-3 space-y-3 bg-custom-background-90">
+          <Disclosure.Panel className="border-t border-subtle px-4 py-3 space-y-3 bg-surface-1">
             {agentRunStore.loader && activities.length === 0 ? (
-              <div className="text-sm text-custom-text-400">Loading activities...</div>
+              <div className="text-13 text-tertiary">Loading activities...</div>
             ) : activities.length === 0 ? (
-              <div className="text-sm text-custom-text-400">No activities yet</div>
+              <div className="text-13 text-tertiary">No activities yet</div>
             ) : (
-              <div className="space-y-3">
+              <div className="space-y-2.5">
                 {activities.map((activity) => (
-                  <div key={activity.id} className="space-y-1">
-                    {activity.activity_type !== "elicitation" && (
-                      <div className="text-xs text-custom-text-400">
-                        {activity.activity_type.charAt(0).toUpperCase() + activity.activity_type.slice(1)}
-                      </div>
+                  <div key={activity.id}>
+                    {activity.activity_type === "thought" && <ThoughtRenderer activity={activity} />}
+                    {activity.activity_type === "action" && <ActionRenderer activity={activity} />}
+                    {activity.activity_type === "error" && <ErrorRenderer activity={activity} />}
+                    {activity.activity_type === "response" && <ResponseRenderer activity={activity} />}
+                    {activity.activity_type === "elicitation" && (
+                      <ElicitationCard
+                        activity={activity}
+                        onSubmit={(response) => agentRunStore.postElicitationResponse(workspaceSlug, run.id, response)}
+                      />
                     )}
-                    <div className="text-sm">
-                      {activity.activity_type === "thought" && <ThoughtRenderer activity={activity} />}
-                      {activity.activity_type === "action" && <ActionRenderer activity={activity} />}
-                      {activity.activity_type === "error" && <ErrorRenderer activity={activity} />}
-                      {activity.activity_type === "response" && <ResponseRenderer activity={activity} />}
-                      {activity.activity_type === "elicitation" && (
-                        <ElicitationCard
-                          activity={activity}
-                          onSubmit={(response) =>
-                            agentRunStore.postElicitationResponse(workspaceSlug, run.id, response)
-                          }
-                        />
-                      )}
-                    </div>
                   </div>
                 ))}
               </div>
@@ -138,31 +119,24 @@ const AgentRunItem = observer(function AgentRunItem({ run, workspaceSlug }: { ru
   );
 });
 
-/**
- * AgentRunPanel: Displays all active agent runs for an issue as collapsible panels.
- * Fetches runs on mount and renders each as a disclosure component.
- */
 export const AgentRunPanel = observer(function AgentRunPanel({ workspaceSlug, issueId }: TAgentRunPanelProps) {
   const { agentRunStore } = useRootStore();
 
-  // Get runs for this issue from the store
   const runs = agentRunStore.getRunsByIssueId(issueId);
 
   useEffect(() => {
-    // Fetch runs for this issue on mount
     agentRunStore.fetchRunsForIssue(workspaceSlug, issueId).catch((error) => {
       console.error("Failed to fetch agent runs:", error);
     });
   }, [workspaceSlug, issueId, agentRunStore]);
 
-  // Don't render anything if there are no runs
   if (runs.length === 0) {
     return null;
   }
 
   return (
     <div className="space-y-2">
-      <h3 className="text-sm font-semibold text-custom-text-100">Agent Activity</h3>
+      <h3 className="text-13 font-semibold text-primary">Agent Activity</h3>
       <div className="space-y-2">
         {runs.map((run) => (
           <AgentRunItem key={run.id} run={run} workspaceSlug={workspaceSlug} />

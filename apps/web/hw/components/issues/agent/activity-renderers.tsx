@@ -5,6 +5,7 @@
  */
 
 import { useState } from "react";
+import { AlertTriangle } from "lucide-react";
 // plane imports
 import { cn } from "@plane/utils";
 // types
@@ -15,8 +16,8 @@ interface IActivityRendererProps {
 }
 
 /**
- * ThoughtRenderer: Renders thought activities as muted text with optional expand toggle.
- * Thoughts are typically internal reasoning steps and should be displayed in a collapsed/muted state.
+ * ThoughtRenderer: Renders thought activities as muted italic text with optional expand toggle.
+ * Thoughts are internal reasoning steps — visually subdued relative to other activity types.
  */
 export function ThoughtRenderer({ activity }: IActivityRendererProps) {
   const [isExpanded, setIsExpanded] = useState(false);
@@ -26,54 +27,51 @@ export function ThoughtRenderer({ activity }: IActivityRendererProps) {
   const displayText = isExpanded || !shouldTruncate ? activity.content : `${activity.content.slice(0, maxLength)}...`;
 
   return (
-    <div className="flex items-start gap-2">
-      <div className="flex-1">
-        <p className="text-sm text-custom-text-400 italic">{displayText}</p>
-        {shouldTruncate && (
-          <button
-            onClick={() => setIsExpanded(!isExpanded)}
-            className="text-xs text-custom-primary-100 hover:underline mt-1"
-          >
-            {isExpanded ? "Show less" : "Show more"}
-          </button>
-        )}
-      </div>
+    <div className="pl-3">
+      <p className="text-13 text-tertiary italic">{displayText}</p>
+      {shouldTruncate && (
+        <button onClick={() => setIsExpanded(!isExpanded)} className="text-11 text-accent-primary hover:underline mt-1">
+          {isExpanded ? "Show less" : "Show more"}
+        </button>
+      )}
     </div>
   );
 }
 
 /**
- * ActionRenderer: Renders action activities as status pills.
- * Actions represent agent operations and should be visually distinct.
+ * ActionRenderer: Renders action activities as pill-shaped status chips.
+ * Mirrors the label-activity-chip pattern used in the issue activity timeline.
  */
 export function ActionRenderer({ activity }: IActivityRendererProps) {
   return (
-    <div className="inline-flex">
-      <span
-        className={cn("px-3 py-1 text-sm font-medium rounded-full", "bg-custom-primary-100/20 text-custom-primary-100")}
-      >
-        {activity.content}
-      </span>
-    </div>
+    <span
+      className={cn(
+        "inline-flex items-center gap-1.5 rounded-full",
+        "border border-strong px-2.5 py-0.5",
+        "text-11 font-medium text-primary bg-layer-1"
+      )}
+    >
+      {activity.content}
+    </span>
   );
 }
 
 /**
- * ErrorRenderer: Renders error activities as red alert banners.
- * Errors should be prominently displayed to alert the user.
+ * ErrorRenderer: Renders error activities as red alert banners with an icon.
+ * Errors are visually prominent to ensure they are not missed.
  */
 export function ErrorRenderer({ activity }: IActivityRendererProps) {
   return (
-    <div className={cn("px-4 py-3 rounded-lg", "bg-red-500/10 border border-red-500/20", "text-red-500 text-sm")}>
-      {activity.content}
+    <div className="flex items-start gap-2 rounded-lg border border-danger-subtle bg-danger-subtle px-3 py-2.5">
+      <AlertTriangle size={14} className="mt-0.5 flex-shrink-0 text-danger-primary" />
+      <p className="text-13 text-danger-primary">{activity.content}</p>
     </div>
   );
 }
 
 /**
- * ResponseRenderer: Renders response activities as normal text.
- * Responses typically show agent's outputs and should render as plain text.
+ * ResponseRenderer: Renders response activities as standard body text.
  */
 export function ResponseRenderer({ activity }: IActivityRendererProps) {
-  return <p className="text-sm text-custom-text-200">{activity.content}</p>;
+  return <p className="pl-3 text-13 text-secondary">{activity.content}</p>;
 }

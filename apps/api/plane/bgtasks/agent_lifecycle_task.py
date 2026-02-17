@@ -68,7 +68,7 @@ def cleanup_ephemeral_activities():
     """
     try:
         cutoff = timezone.now() - timedelta(hours=24)
-        deleted_count, _ = AgentRunActivity.objects.filter(
+        deleted_count = AgentRunActivity.objects.filter(
             is_ephemeral=True,
             run__status__in=TERMINAL_STATUSES,
             run__completed_at__isnull=False,
