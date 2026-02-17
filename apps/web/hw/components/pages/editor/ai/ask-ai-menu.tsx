@@ -19,14 +19,27 @@ type Props = {
   handleInsertText: (insertOnNextLine: boolean) => void;
   handleRegenerate: () => Promise<void>;
   isRegenerating: boolean;
+  onSubmit: (query: string) => Promise<void>;
   response: string | undefined;
   workspaceSlug: string;
 };
 
-export function AskPiMenu(props: Props) {
-  const { handleInsertText, handleRegenerate, isRegenerating, response, workspaceSlug } = props;
+export function AskAIMenu(props: Props) {
+  const { handleInsertText, handleRegenerate, isRegenerating, onSubmit, response, workspaceSlug } = props;
   // states
   const [query, setQuery] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const handleSubmit = async () => {
+    const trimmed = query.trim();
+    if (!trimmed || isSubmitting) return;
+    setIsSubmitting(true);
+    try {
+      await onSubmit(trimmed);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
   // store hooks
   const { getWorkspaceBySlug } = useWorkspace();
   // derived values
@@ -107,11 +120,27 @@ export function AskPiMenu(props: Props) {
             className="w-full bg-transparent border-none outline-none placeholder:text-placeholder text-13"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                handleSubmit();
+              }
+            }}
             placeholder="Tell AI what to do..."
           />
-          <span className="flex-shrink-0 size-4 grid place-items-center">
-            <CircleArrowUp className="size-4 text-secondary" />
-          </span>
+          <button
+            type="button"
+            className="flex-shrink-0 size-4 grid place-items-center"
+            onClick={handleSubmit}
+            disabled={isSubmitting || !query.trim()}
+          >
+            <CircleArrowUp
+              className={cn("size-4", {
+                "text-secondary": !query.trim() || isSubmitting,
+                "text-accent-primary": query.trim() && !isSubmitting,
+              })}
+            />
+          </button>
         </div>
       </div>
     </>

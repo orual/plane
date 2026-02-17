@@ -92,7 +92,7 @@ export function GptAssistantPopover(props: Props) {
     const error = err?.data?.error;
     const errorMessage =
       err?.status === 429
-        ? error || "You have reached the maximum number of requests of 50 requests per month per user."
+        ? error || "Rate limit exceeded. Please try again later."
         : error || "Some error occurred. Please try again.";
 
     setToast({

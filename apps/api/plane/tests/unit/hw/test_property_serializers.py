@@ -146,6 +146,29 @@ class TestIssuePropertyValueSerializer:
     @pytest.mark.django_db
     def test_text_value_valid(self, workspace, issue):
         """Text value validation accepts strings."""
+        from plane.db.models import Project, State, Issue
+
+        # Create project and issue first
+        project = Project.objects.create(
+            name="Test Project",
+            identifier="TP",
+            workspace=workspace,
+            created_by=create_user,
+        )
+        state = State.objects.create(
+            name="Todo",
+            project=project,
+            workspace=workspace,
+            group="backlog",
+        )
+        issue = Issue.objects.create(
+            name="Test Issue",
+            project=project,
+            workspace=workspace,
+            state=state,
+            created_by=create_user,
+        )
+
         prop_def = IssuePropertyDefinition.objects.create(
             workspace=workspace,
             name="Notes",
@@ -180,6 +203,29 @@ class TestIssuePropertyValueSerializer:
     @pytest.mark.django_db
     def test_number_value_valid(self, workspace, issue):
         """Number value validation accepts integers and floats."""
+        from plane.db.models import Project, State, Issue
+
+        # Create project and issue first
+        project = Project.objects.create(
+            name="Test Project",
+            identifier="TP",
+            workspace=workspace,
+            created_by=create_user,
+        )
+        state = State.objects.create(
+            name="Todo",
+            project=project,
+            workspace=workspace,
+            group="backlog",
+        )
+        issue = Issue.objects.create(
+            name="Test Issue",
+            project=project,
+            workspace=workspace,
+            state=state,
+            created_by=create_user,
+        )
+
         prop_def = IssuePropertyDefinition.objects.create(
             workspace=workspace,
             name="Count",
@@ -214,6 +260,29 @@ class TestIssuePropertyValueSerializer:
     @pytest.mark.django_db
     def test_select_value_valid(self, workspace, issue):
         """Select value validation accepts valid option."""
+        from plane.db.models import Project, State, Issue
+
+        # Create project and issue first
+        project = Project.objects.create(
+            name="Test Project",
+            identifier="TP",
+            workspace=workspace,
+            created_by=create_user,
+        )
+        state = State.objects.create(
+            name="Todo",
+            project=project,
+            workspace=workspace,
+            group="backlog",
+        )
+        issue = Issue.objects.create(
+            name="Test Issue",
+            project=project,
+            workspace=workspace,
+            state=state,
+            created_by=create_user,
+        )
+
         prop_def = IssuePropertyDefinition.objects.create(
             workspace=workspace,
             name="Status",
@@ -250,6 +319,29 @@ class TestIssuePropertyValueSerializer:
     @pytest.mark.django_db
     def test_multi_select_value_valid(self, workspace, issue):
         """Multi-select value validation accepts list of valid options."""
+        from plane.db.models import Project, State, Issue
+
+        # Create project and issue first
+        project = Project.objects.create(
+            name="Test Project",
+            identifier="TP",
+            workspace=workspace,
+            created_by=create_user,
+        )
+        state = State.objects.create(
+            name="Todo",
+            project=project,
+            workspace=workspace,
+            group="backlog",
+        )
+        issue = Issue.objects.create(
+            name="Test Issue",
+            project=project,
+            workspace=workspace,
+            state=state,
+            created_by=create_user,
+        )
+
         prop_def = IssuePropertyDefinition.objects.create(
             workspace=workspace,
             name="Tags",
@@ -286,6 +378,29 @@ class TestIssuePropertyValueSerializer:
     @pytest.mark.django_db
     def test_boolean_value_valid(self, workspace, issue):
         """Boolean value validation accepts true/false."""
+        from plane.db.models import Project, State, Issue
+
+        # Create project and issue first
+        project = Project.objects.create(
+            name="Test Project",
+            identifier="TP",
+            workspace=workspace,
+            created_by=create_user,
+        )
+        state = State.objects.create(
+            name="Todo",
+            project=project,
+            workspace=workspace,
+            group="backlog",
+        )
+        issue = Issue.objects.create(
+            name="Test Issue",
+            project=project,
+            workspace=workspace,
+            state=state,
+            created_by=create_user,
+        )
+
         prop_def = IssuePropertyDefinition.objects.create(
             workspace=workspace,
             name="Active",

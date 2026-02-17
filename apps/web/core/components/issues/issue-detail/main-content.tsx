@@ -36,6 +36,8 @@ import { IssueActivity } from "./issue-activity";
 import { IssueParentDetail } from "./parent";
 import { IssueReaction } from "./reactions";
 import type { TIssueOperations } from "./root";
+// hw web components
+import { AgentRunPanel } from "@/plane-web/components/issues/agent";
 // services init
 const workItemVersionService = new WorkItemVersionService();
 
@@ -204,6 +206,8 @@ export const IssueMainContent = observer(function IssueMainContent(props: Props)
           disabled={!isEditable || isArchived}
         />
       )}
+
+      <AgentRunPanel workspaceSlug={workspaceSlug} issueId={issueId} />
 
       <IssueActivity workspaceSlug={workspaceSlug} projectId={projectId} issueId={issueId} disabled={isArchived} />
     </>

@@ -36,6 +36,15 @@ app.conf.beat_schedule = {
         "task": "plane.license.bgtasks.tracer.instance_traces",
         "schedule": crontab(hour="*/6", minute=0),  # Every 6 hours
     },
+    # Agent lifecycle management
+    "check-every-minute-for-stale-agent-runs": {
+        "task": "plane.bgtasks.agent_lifecycle_task.detect_stale_agent_runs",
+        "schedule": crontab(minute="*/1"),  # Every minute
+    },
+    "check-every-hour-for-ephemeral-activity-cleanup": {
+        "task": "plane.bgtasks.agent_lifecycle_task.cleanup_ephemeral_activities",
+        "schedule": crontab(minute=0),  # Every hour at :00
+    },
     # Occurs once every day
     "check-every-day-to-delete-hard-delete": {
         "task": "plane.bgtasks.deletion_task.hard_delete",

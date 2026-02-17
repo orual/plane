@@ -4,8 +4,10 @@
 
 from .issue_type import urlpatterns as issue_type_urls
 from .issue_property import urlpatterns as issue_property_urls
+from .agent import urlpatterns as agent_urls
 
 urlpatterns = [
     *issue_type_urls,
     *issue_property_urls,
+    *agent_urls,
 ]

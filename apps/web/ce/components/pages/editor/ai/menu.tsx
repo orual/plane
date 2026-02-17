@@ -16,11 +16,11 @@ import { Tooltip } from "@plane/propel/tooltip";
 import { cn } from "@plane/utils";
 import { RichTextEditor } from "@/components/editor/rich-text";
 // plane web constants
-import { AI_EDITOR_TASKS, LOADING_TEXTS } from "@/constants/ai";
+import { AI_ASSISTANT_NAME, AI_EDITOR_TASKS, LOADING_TEXTS } from "@/constants/ai";
 // plane web services
 import type { TTaskPayload } from "@/services/ai.service";
 import { AIService } from "@/services/ai.service";
-import { AskPiMenu } from "./ask-pi-menu";
+import { AskAIMenu } from "./ask-ai-menu";
 const aiService = new AIService();
 
 type Props = {
@@ -39,7 +39,7 @@ const MENU_ITEMS: {
   {
     key: AI_EDITOR_TASKS.ASK_ANYTHING,
     icon: Sparkles,
-    label: "Ask Pi",
+    label: `Ask ${AI_ASSISTANT_NAME}`,
   },
 ];
 
@@ -195,10 +195,11 @@ export function EditorAIMenu(props: Props) {
           })}
         >
           {activeTask === AI_EDITOR_TASKS.ASK_ANYTHING ? (
-            <AskPiMenu
+            <AskAIMenu
               handleInsertText={handleInsertText}
               handleRegenerate={handleRegenerate}
               isRegenerating={isRegenerating}
+              onSubmit={async () => {}}
               response={response}
               workspaceSlug={workspaceSlug}
             />
@@ -265,7 +266,7 @@ export function EditorAIMenu(props: Props) {
                   </div>
                 ) : (
                   <p className="text-13 text-secondary">
-                    {activeTask ? LOADING_TEXTS[activeTask] : "Pi is writing"}...
+                    {activeTask ? LOADING_TEXTS[activeTask] : `${AI_ASSISTANT_NAME} is writing`}...
                   </p>
                 )}
               </div>

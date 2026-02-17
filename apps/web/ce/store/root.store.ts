@@ -12,11 +12,14 @@ import { IssueTypeStore } from "@/plane-web/store/issue-type.store";
 import type { IIssueTypeStore } from "@/plane-web/store/issue-type.store";
 import { IssuePropertyStore } from "@/plane-web/store/issue-property.store";
 import type { IIssuePropertyStore } from "@/plane-web/store/issue-property.store";
+import { AgentRunStore } from "@/plane-web/store/agent/agent-run.store";
+import type { IAgentRunStore } from "@/plane-web/store/agent/agent-run.store";
 
 export class RootStore extends CoreRootStore {
   timelineStore: ITimelineStore;
   issueTypeStore: IIssueTypeStore;
   issuePropertyStore: IIssuePropertyStore;
+  agentRunStore: IAgentRunStore;
 
   constructor() {
     super();
@@ -24,5 +27,6 @@ export class RootStore extends CoreRootStore {
     this.timelineStore = new TimeLineStore(this);
     this.issueTypeStore = new IssueTypeStore(this);
     this.issuePropertyStore = new IssuePropertyStore(this);
+    this.agentRunStore = new AgentRunStore(this);
   }
 }

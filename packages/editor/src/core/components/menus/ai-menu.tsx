@@ -75,14 +75,18 @@ export function AIFeaturesMenu(props: Props) {
       return;
     };
 
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") hidePopup();
+    };
+
     document.addEventListener("click", handleClickAIHandle);
     document.addEventListener("contextmenu", handleClickAIHandle);
-    document.addEventListener("keydown", hidePopup);
+    document.addEventListener("keydown", handleKeyDown);
 
     return () => {
       document.removeEventListener("click", handleClickAIHandle);
       document.removeEventListener("contextmenu", handleClickAIHandle);
-      document.removeEventListener("keydown", hidePopup);
+      document.removeEventListener("keydown", handleKeyDown);
     };
   }, [hidePopup, isPopupVisible]);
 

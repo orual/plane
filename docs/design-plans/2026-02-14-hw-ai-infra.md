@@ -38,13 +38,13 @@ This design covers three independently-shippable stages of AI infrastructure for
 ### hw-ai-infra.AC1: LLM backend dispatches correctly to each provider
 
 - **hw-ai-infra.AC1.1 Success:** Anthropic models return valid completions via LiteLLM with `anthropic/` prefix routing
-- **hw-ai-infra.AC1.2 Success:** OpenAI models return valid completions via LiteLLM with bare model names
+- **hw-ai-infra.AC1.2 Success:** OpenAI models return valid completions via LiteLLM with `openai/` prefix routing
 - **hw-ai-infra.AC1.3 Success:** Gemini models return valid completions via LiteLLM with `gemini/` prefix routing
 - **hw-ai-infra.AC1.4 Success:** Ollama endpoint works when `LLM_BASE_URL` is set, routing through OpenAI-compatible API
 - **hw-ai-infra.AC1.5 Success:** Anthropic extended thinking models return `reasoning_content` in the response
 - **hw-ai-infra.AC1.6 Failure:** Invalid API key returns a clear error message, not a raw stack trace
 - **hw-ai-infra.AC1.7 Failure:** Unreachable provider returns a user-friendly error after retries
-- **hw-ai-infra.AC1.8 Edge:** Unknown model name returns an error identifying the invalid model
+- **hw-ai-infra.AC1.8 Edge:** ~~Unknown model name returns an error identifying the invalid model~~ Removed — model names are freeform to support custom providers (z.ai, Ollama, etc.). Unknown models are passed through to LiteLLM, which returns provider-specific errors if the model doesn't exist.
 
 ### hw-ai-infra.AC2: Model lists are current
 

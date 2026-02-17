@@ -109,7 +109,7 @@ The API is organized into Django apps under `apps/api/plane/`:
 - `plane.space` — public/space API endpoints (`/api/public/`).
 - `plane.authentication` — auth backends and views.
 - `plane.bgtasks` — Celery background tasks.
-- `plane.hw` — hardware/enterprise edition features (dependency services, extended models).
+- `plane.hw` — hardware/enterprise edition features (dependency services, agent infrastructure, extended models).
 - `plane.license` — instance licensing.
 - `plane.utils` — utility functions.
 
@@ -117,8 +117,9 @@ The API is organized into Django apps under `apps/api/plane/`:
 
 The web app uses an overlay pattern for enterprise features:
 
-- `apps/web/hw/` — full feature implementations (dependency visualization, date propagation preview, conflict detection).
+- `apps/web/hw/` — full feature implementations (dependency visualization, date propagation preview, conflict detection, agent run UI).
 - `apps/web/ce/` — community edition stubs that satisfy the same TypeScript interfaces with no-op or safe-default implementations.
+  Agent components: `AgentRunPanel`, `RunStatusBadge` have CE stubs in `apps/web/ce/components/issues/agent/`.
 - `apps/web/core/` — shared code that imports from the `@/plane-web/` alias, which resolves to either `hw/` or `ce/` at build time.
 
 When working on HW features, always maintain the CE stub in parallel. Both must satisfy the same interface contract.
@@ -128,6 +129,32 @@ When working on HW features, always maintain the CE stub in parallel. Both must 
 - MobX stores live in `packages/shared-state` with reactive patterns.
 - SWR handles data fetching and caching.
 - Service classes in `packages/services` encapsulate API calls.
+
+### LLM integration
+
+LLM features use LiteLLM for multi-provider dispatch. Configuration:
+
+- `LLM_API_KEY`, `LLM_PROVIDER` (`anthropic` | `openai` | `gemini`), `LLM_MODEL`, `LLM_BASE_URL` — set via admin settings or environment.
+- Provider/model allowlists are in `apps/api/plane/app/views/external/base.py` (`PROVIDER_MODELS`).
+- Endpoints: `/api/.../ai-assistant/` (project-scoped), `/api/.../ai-assistant/` (workspace-scoped), `/api/.../rephrase-grammar/` (workspace-scoped grammar correction).
+
+### Agent infrastructure (HW)
+
+Agents are external AI services that interact with Plane via API tokens and webhooks. The domain lives in `plane.hw.models.agent` and `plane.hw.views.agent`. See `apps/api/plane/hw/models/AGENTS.md` for contracts.
+
+Key concepts:
+
+- **AgentProfile** — registered agent with webhook URL and bot user (one-to-one with `User` where `bot_type=AGENT`).
+- **AgentRun** — lifecycle-tracked execution scoped to workspace/project/issue.
+- **AgentRunActivity** — thought/action/response/elicitation/error entries within a run.
+- **Mention trigger** — `@agent-name` in issue comments auto-creates a run and sends a webhook.
+- **Celery beat** — `detect_stale_agent_runs` (every minute), `cleanup_ephemeral_activities` (every hour).
+
+### MCP sidecar (deferred)
+
+A Docker service (`plane-mcp`) running `plane-mcp-server` on port 8001. Provides Model Context Protocol access to Plane data for external AI agents. Configured via `MCP_API_KEY` and `MCP_WORKSPACE_SLUG` environment variables.
+
+> **Note:** The upstream `plane-mcp-server` package requires OAuth (`PlaneOAuthProvider`), which is a Plane Cloud feature not present in our fork. The MCP sidecar has been removed from docker-compose and will be revisited when we have an API-key-authenticated MCP server.
 
 ## Quick reference
 

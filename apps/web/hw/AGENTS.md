@@ -1,6 +1,6 @@
 # HW web overlay (hardware/enterprise features)
 
-Last verified: 2026-02-16 <!-- cpm-critical-path -->
+Last verified: 2026-02-16
 
 ## Purpose
 
@@ -132,3 +132,48 @@ When adding a new HW feature:
 - `components/gantt-chart/layers/` -- additional gantt layers (slack extension
   bars, phantom anchors for external issues)
 - `components/relations/` -- relation UI components (conflict badge, activity)
+
+## Agent UI components
+
+### Contracts
+
+- **Exposes** (via HW/CE overlay, imported by `core/` through
+  `@/plane-web/` alias):
+  - `AgentRunPanel` -- displays agent run activities for an issue,
+    with expandable run cards and auto-refresh.
+  - `RunStatusBadge` -- colored status badge for agent run states.
+  - `ElicitationCard` -- renders elicitation prompts with response
+    input (HW-only, no CE stub needed).
+- **Exposes** (via `IAgentRunStore` on root MobX store):
+  - `fetchRunsForIssue(workspaceSlug, issueId)` -- fetches and caches
+    runs filtered by issue.
+  - `fetchActivitiesForRun(workspaceSlug, runId)` -- fetches activity
+    stream for a run.
+  - `postElicitationResponse(workspaceSlug, runId, content)` -- posts
+    a response activity.
+  - `getRunsByIssueId(issueId)`, `getActivitiesByRunId(runId)`,
+    `hasActiveRuns(issueId)` -- computed helpers.
+- **Guarantees**:
+  - CE stubs for `AgentRunPanel` and `RunStatusBadge` exist in
+    `apps/web/ce/components/issues/agent/` and render `null`.
+  - `AgentRunStore` is registered on `rootStore.agentRun` in HW
+    `root.store.ts`. CE `root.store.ts` sets `agentRun: undefined`.
+  - Loader state uses a reference-counted `loaderCount` (not boolean)
+    to support concurrent fetches.
+- **Expects**: `rootStore` passed to constructor. Workspace slug
+  available from router context.
+
+### Types
+
+- `TAgentRun`, `TAgentRunActivity`, `TCreateActivityPayload`,
+  `TAgentRunStatus`, `TAgentActivityType` -- defined in
+  `types/agent.ts`.
+
+### Key files
+
+- `services/agent.service.ts` -- API service layer for agent endpoints
+- `store/agent/agent-run.store.ts` -- MobX store implementation
+- `store/agent/index.ts` -- store barrel export
+- `types/agent.ts` -- TypeScript type definitions
+- `components/issues/agent/` -- React UI components (panel, badge,
+  elicitation card, activity renderers)
