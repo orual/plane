@@ -1,6 +1,6 @@
-from uuid import uuid4
-from plane.hw.agent_tools.registry import ToolRegistry, ToolContext
-from plane.hw.agent_tools.tools import issues, comments, projects, cycles, modules, users, labels, states
+from uuid import uuid4  # noqa: F401
+from plane.hw.agent_tools.registry import ToolRegistry, ToolContext  # noqa: F401
+from plane.hw.agent_tools.tools import issues, comments, projects, cycles, modules, users, labels, states  # noqa: F401
 from plane.db.models import User, Workspace, Project, Issue, IssueComment, Cycle, Module, WorkspaceMember, ProjectMember, Label, State
 from plane.app.permissions.base import ROLE
 
@@ -120,7 +120,7 @@ class TestMvpTools:
         """Test that after importing all tool modules, ~18 tools are registered."""
         from plane.hw.agent_tools.registry import ToolRegistry
         tools = ToolRegistry.list_tools()
-        assert len(tools) >= 18
+        assert len(tools) == 18  # Exact count - see phase 02.md for exact 18 tools
 
         # Check that specific tools are registered
         tool_names = [tool.name for tool in tools]
@@ -170,7 +170,7 @@ class TestMvpTools:
         issue_data = result["result"]
 
         # Verify issue was created
-        issue = Issue.objects.get(id=uuid4(issue_data["id"]))
+        issue = Issue.objects.get(id=UUID(issue_data["id"]))
         assert issue.name == "New Test Issue"
         assert issue.description_html == "<p>New issue description</p>"
         assert issue.priority == "high"
@@ -234,7 +234,7 @@ class TestMvpTools:
         comment_data = result["result"]
 
         # Verify comment was created
-        comment = IssueComment.objects.get(id=uuid4(comment_data["id"]))
+        comment = IssueComment.objects.get(id=UUID(comment_data["id"]))
         assert comment.comment_html == "<p>This is a test comment</p>"
         assert comment.issue == self.issue
         assert comment.actor == self.user
@@ -342,6 +342,7 @@ class TestMvpTools:
         assert self.state.name in state_names
 
 
+@pytest.mark.django_db
 class TestToolPermissionOverride:
     """Test that workspace admin bypasses project checks."""
 
@@ -392,6 +393,6 @@ class TestToolPermissionOverride:
 
         # Verify issue was created despite no project membership
         from plane.db.models import Issue
-        issue = Issue.objects.get(id=uuid4(issue_data["id"]))
+        issue = Issue.objects.get(id=UUID(issue_data["id"]))
         assert issue.name == "Admin Created Issue"
         assert issue.project == self.project

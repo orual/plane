@@ -1,7 +1,7 @@
-from uuid import uuid4
+from uuid import uuid4  # noqa: F401
 from plane.hw.agent_tools.registry import (
-    ToolRegistry, ToolParam, ToolDefinition, ToolContext, ToolError
-)
+    ToolRegistry, ToolParam, ToolContext, ToolError
+)  # noqa: F401
 from plane.hw.agent_tools.permissions import check_workspace_member, check_project_member
 from plane.db.models import User, Workspace, Project
 from plane.db.models.workspace import WorkspaceMember
@@ -174,10 +174,10 @@ class TestDocAndTypeGeneration:
 
     def test_generate_docs_with_real_tools(self):
         """Test that generate_docs() produces valid markdown with all tools."""
-        from plane.hw.agent_tools.registry import ToolRegistry, default_registry
+        from plane.hw.agent_tools.registry import ToolRegistry, default_registry  # noqa: F401
 
         # Import all real tool modules to trigger registration
-        from plane.hw.agent_tools.tools import issues, comments, projects, cycles, modules, users, labels, states
+        from plane.hw.agent_tools.tools import issues, comments, projects, cycles, modules, users, labels, states  # noqa: F401
 
         # Generate docs from default registry
         docs = default_registry.generate_docs()
@@ -208,10 +208,10 @@ class TestDocAndTypeGeneration:
 
     def test_generate_types_with_real_tools(self):
         """Test that generate_types() produces valid TypeScript declarations."""
-        from plane.hw.agent_tools.registry import ToolRegistry, default_registry
+        from plane.hw.agent_tools.registry import ToolRegistry, default_registry  # noqa: F401
 
         # Import all real tool modules to trigger registration
-        from plane.hw.agent_tools.tools import issues, comments, projects, cycles, modules, users, labels, states
+        from plane.hw.agent_tools.tools import issues, comments, projects, cycles, modules, users, labels, states  # noqa: F401
 
         # Generate types
         types = default_registry.generate_types()
@@ -264,7 +264,6 @@ class TestDocAndTypeGeneration:
                 assert f"declare function {tool_func}" in types
 
 
-@pytest.mark.django_db
 @pytest.mark.django_db
 class TestPermissionHelpers:
     """Test permission enforcement helpers."""

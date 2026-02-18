@@ -1,7 +1,9 @@
 from plane.hw.agent_tools.registry import ToolError
 
-# Import role constants from existing codebase
+# Import role constants and models from existing codebase
 from plane.app.permissions.base import ROLE
+from plane.db.models.workspace import WorkspaceMember
+from plane.db.models.project import ProjectMember
 
 
 def check_workspace_member(context, min_role: int = ROLE.GUEST) -> None:
@@ -14,7 +16,7 @@ def check_workspace_member(context, min_role: int = ROLE.GUEST) -> None:
     Raises:
         ToolError: If user is not a workspace member or role is insufficient
     """
-    from plane.db.models.workspace import WorkspaceMember
+    # WorkspaceMember already imported at module level
 
     # Check if user is an active workspace member with sufficient role
     try:
@@ -44,7 +46,7 @@ def check_project_member(context, project_id, min_role: int = ROLE.GUEST) -> Non
     Raises:
         ToolError: If user is not a project member or role is insufficient
     """
-    from plane.db.models.project import ProjectMember
+    # ProjectMember already imported at module level
 
     # Check if user is a workspace admin - they bypass project checks
     try:

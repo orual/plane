@@ -127,7 +127,6 @@ class ToolRegistry:
 
         for tool in sorted(self._tools.values(), key=lambda t: t.name):
             # Build parameters object type
-            params_obj = []
             required_params = []
             optional_params = []
 
@@ -141,7 +140,8 @@ class ToolRegistry:
             all_params = required_params + optional_params
             params_str = ", ".join(all_params) if all_params else "void"
 
-            types.append(f"declare function {tool.name}({params_str}): Promise<{self._map_type_to_ts(tool.return_type)}>;\n")
+            types.append(f"declare function {tool.name}({params_str}): "
+               f"Promise<{self._map_type_to_ts(tool.return_type)}>;\n")
 
         return "\n".join(types)
 
