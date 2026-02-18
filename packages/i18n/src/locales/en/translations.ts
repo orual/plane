@@ -1603,6 +1603,17 @@ export default {
           delete: "Delete agent",
         },
       },
+      agent_chat: {
+        title: "Agent Chat",
+        new_conversation: "New conversation",
+        placeholder: "Send a message...",
+        thinking: "Agent is thinking...",
+        send: "Send",
+        copy_code: "Copy code",
+        copied: "Copied!",
+        reconnecting: "Reconnecting...",
+        connection_lost: "Connection lost. Retrying...",
+      },
       api_tokens: {
         title: "Personal Access Tokens",
         add_token: "Add personal access token",
