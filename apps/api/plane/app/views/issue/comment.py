@@ -26,11 +26,12 @@ from plane.utils.host import base_host
 from plane.utils.exception_logger import log_exception
 from plane.bgtasks.webhook_task import model_activity
 from plane.bgtasks.agent_webhook_task import agent_webhook_send_task
-from plane.hw.models import AgentProfile, AgentRun, AgentRunStatus
+from plane.bgtasks.builtin_agent_task import builtin_agent_execute_task
+from plane.hw.models import AgentProfile, AgentRun, AgentRunStatus, AgentType
 
 
 def _detect_agent_mentions(comment_text, workspace_slug, project_id, issue_id, current_site):
-    """Parse @agent-name mentions from comment text and trigger webhooks."""
+    """Parse @agent-name mentions from comment text and trigger webhooks or builtin agent tasks."""
     mentions = re.findall(r"@([\w-]+)", comment_text)
     if not mentions:
         return
@@ -51,19 +52,26 @@ def _detect_agent_mentions(comment_text, workspace_slug, project_id, issue_id, c
             trigger_metadata={"trigger": "mention", "comment_text": comment_text},
         )
 
-        agent_webhook_send_task.delay(
-            agent_profile_id=str(agent.id),
-            run_id=str(run.id),
-            event_type="issue_comment.mention",
-            event_data={
-                "workspace_slug": workspace_slug,
-                "project_id": str(project_id),
-                "issue_id": str(issue_id),
-                "comment_text": comment_text,
-                "mentioned_agent": agent.display_name,
-            },
-            current_site=current_site,
-        )
+        if agent.agent_type == AgentType.EXTERNAL:
+            agent_webhook_send_task.delay(
+                agent_profile_id=str(agent.id),
+                run_id=str(run.id),
+                event_type="issue_comment.mention",
+                event_data={
+                    "workspace_slug": workspace_slug,
+                    "project_id": str(project_id),
+                    "issue_id": str(issue_id),
+                    "comment_text": comment_text,
+                    "mentioned_agent": agent.display_name,
+                },
+                current_site=current_site,
+            )
+        elif agent.agent_type == AgentType.BUILTIN:
+            builtin_agent_execute_task.delay(
+                run_id=str(run.id),
+                trigger_type="mention",
+                user_message=comment_text,
+            )
 
 
 class IssueCommentViewSet(BaseViewSet):
