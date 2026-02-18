@@ -18,48 +18,16 @@ from rest_framework.response import Response
 from plane.app.permissions import ROLE, allow_permission
 from plane.app.serializers import ProjectLiteSerializer, WorkspaceLiteSerializer
 from plane.db.models import Project, Workspace
-from plane.license.utils.instance_value import get_configuration_value
 from plane.utils.exception_logger import log_exception
 
+from plane.utils.llm_config import get_llm_config, PROVIDER_MODELS
 from ..base import BaseAPIView
 
-
-PROVIDER_MODELS = {
-    "anthropic": {
-        "prefix": "anthropic/",
-        "default": "claude-sonnet-4-5-20250929",
-        "models": [
-            "claude-opus-4-6",
-            "claude-sonnet-4-5-20250929",
-            "claude-haiku-4-5-20251001",
-        ],
-    },
-    "openai": {
-        "prefix": "openai/",
-        "default": "gpt-4.1",
-        "models": [
-            "gpt-5.2",
-            "gpt-5.2-pro",
-            "gpt-4.1",
-            "o4-mini",
-        ],
-    },
-    "gemini": {
-        "prefix": "gemini/",
-        "default": "gemini-2.5-flash",
-        "models": [
-            "gemini-3-pro",
-            "gemini-3-flash",
-            "gemini-2.5-pro",
-            "gemini-2.5-flash",
-        ],
-    },
-}
 
 DEFAULT_PROVIDER = "anthropic"
 
 
-def get_llm_config() -> Tuple[str | None, str | None, str | None, str | None]:
+def get_llm_response(
     """Helper to get LLM configuration values.
 
     Returns (api_key, model, provider, base_url).
