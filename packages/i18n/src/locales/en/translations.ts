@@ -1587,6 +1587,22 @@ export default {
           },
         },
       },
+      agents: {
+        title: "Agents",
+        description: "Manage AI agents that can interact with your workspace through mentions and the chat panel.",
+        add_agent: "Add agent",
+        external: "External",
+        builtin: "Built-in",
+        active: "Active",
+        inactive: "Inactive",
+        api_token_warning: "This API token will only be shown once. Copy it now.",
+        detail: {
+          runs: "Recent runs",
+          configuration: "Configuration",
+          deactivate: "Deactivate agent",
+          delete: "Delete agent",
+        },
+      },
       api_tokens: {
         title: "Personal Access Tokens",
         add_token: "Add personal access token",
