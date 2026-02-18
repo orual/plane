@@ -45,7 +45,7 @@ This phase implements and tests:
 - ✓ Code highlighting via lowlight at `packages/editor/src/core/extensions/code/lowlight-plugin.ts` — uses highlight.js, available for reuse
 - ✗ No `AgentConversation` model exists yet — Phase 1 deliverable (conversation models, serializers, migrations)
 - ✗ No conversation API endpoints exist yet — Phase 4 deliverable (create conversation, send message, list messages)
-- ✗ No SSE/EventSource infrastructure exists yet — Phase 5 deliverable (django-eventstream, SSE views, event emission)
+- ✗ No SSE/EventSource infrastructure exists yet — Phase 5 deliverable (Redis pub/sub SSE views, event emission)
 - ✗ No `AgentConversationStore` exists — must be created
 - ✗ No `AgentConversationService` exists — must be created
 
@@ -441,7 +441,7 @@ Behaviour:
 
 The hook uses `useEffect` for lifecycle management and accesses the store via `useContext` or direct MobX store import.
 
-**SSE endpoint URL verification:** The URL `/api/workspaces/{slug}/agent-conversations/{id}/events/` depends on Phase 5's implementation. Verify the exact SSE endpoint URL from Phase 5's URL configuration before implementing — `django-eventstream` uses specific ASGI route patterns that may differ from standard DRF URL patterns. Reference the Phase 5 implementation plan for the correct channel path.
+**SSE endpoint URL verification:** The URL `/api/workspaces/{slug}/agent-conversations/{id}/events/` depends on Phase 5's implementation. Phase 5 uses raw Redis pub/sub with async `StreamingHttpResponse` (not django-eventstream). The SSE endpoints are standard Django URL routes. Reference the Phase 5 implementation plan for the correct endpoint paths.
 
 **Graceful degradation:** If the SSE endpoint is not yet available (Phase 5 not complete) or returns 404, log the error and fall back to polling with `setInterval` every 3 seconds.
 
