@@ -24,7 +24,6 @@ from plane.hw.agent_tools.prompts import (
 from plane.hw.agent_tools.registry import ToolContext, ToolRegistry
 from plane.hw.agent_tools.sandbox import SandboxExecutor
 from plane.hw.models import (
-    AgentConversation,
     AgentConversationMessage,
     AgentConversationMessageRole,
     AgentRun,
@@ -32,6 +31,7 @@ from plane.hw.models import (
     AgentRunStatus,
     AgentActivityType,
 )
+from plane.hw.services.agent_events import emit_activity_event, emit_run_status_event
 from plane.utils.exception_logger import log_exception
 from plane.utils.llm_config import get_llm_config
 
@@ -113,19 +113,22 @@ def builtin_agent_execute_task(
         if not api_key or not model or not provider:
             error_msg = "LLM configuration missing"
             logger.error(error_msg)
-            AgentRunActivity.objects.create(
+            activity = AgentRunActivity.objects.create(
                 run=run,
                 activity_type=AgentActivityType.ERROR,
                 content=error_msg,
             )
+            emit_activity_event(activity)
             run.status = AgentRunStatus.FAILED
             run.completed_at = timezone.now()
             run.save()
+            emit_run_status_event(run)
             return
 
         # Transition status to IN_PROGRESS
         run.status = AgentRunStatus.IN_PROGRESS
         run.save()
+        emit_run_status_event(run)
 
         # Build prompt
         tool_registry = ToolRegistry()
@@ -149,23 +152,26 @@ def builtin_agent_execute_task(
         except Exception as e:
             error_msg = f"LLM call failed: {str(e)}"
             logger.error(error_msg)
-            AgentRunActivity.objects.create(
+            activity = AgentRunActivity.objects.create(
                 run=run,
                 activity_type=AgentActivityType.ERROR,
                 content=error_msg,
             )
+            emit_activity_event(activity)
             run.status = AgentRunStatus.FAILED
             run.completed_at = timezone.now()
             run.save()
+            emit_run_status_event(run)
             return
 
         # Create thought activity if reasoning present
         if llm_response.reasoning_content:
-            AgentRunActivity.objects.create(
+            activity = AgentRunActivity.objects.create(
                 run=run,
                 activity_type=AgentActivityType.THOUGHT,
                 content=llm_response.reasoning_content,
             )
+            emit_activity_event(activity)
             run.last_activity_at = timezone.now()
             run.save()
 
@@ -179,6 +185,7 @@ def builtin_agent_execute_task(
                 activity_type=AgentActivityType.RESPONSE,
                 content=llm_response.content,
             )
+            emit_activity_event(response_activity)
             run.last_activity_at = timezone.now()
 
             # Create assistant conversation message if conversation-scoped
@@ -207,14 +214,16 @@ def builtin_agent_execute_task(
             run.status = AgentRunStatus.COMPLETED
             run.completed_at = timezone.now()
             run.save()
+            emit_run_status_event(run)
             return
 
         # Create action activity for code
-        AgentRunActivity.objects.create(
+        activity = AgentRunActivity.objects.create(
             run=run,
             activity_type=AgentActivityType.ACTION,
             content=code_block,
         )
+        emit_activity_event(activity)
         run.last_activity_at = timezone.now()
         run.save()
 
@@ -231,38 +240,44 @@ def builtin_agent_execute_task(
         except Exception as e:
             error_msg = f"Sandbox initialization failed: {str(e)}"
             logger.error(error_msg)
-            AgentRunActivity.objects.create(
+            activity = AgentRunActivity.objects.create(
                 run=run,
                 activity_type=AgentActivityType.ERROR,
                 content=error_msg,
             )
+            emit_activity_event(activity)
             run.status = AgentRunStatus.FAILED
             run.completed_at = timezone.now()
             run.save()
+            emit_run_status_event(run)
             return
 
         # Handle sandbox result
         if sandbox_result.timed_out:
             error_msg = "Execution timed out (60 second limit exceeded)"
-            AgentRunActivity.objects.create(
+            activity = AgentRunActivity.objects.create(
                 run=run,
                 activity_type=AgentActivityType.ERROR,
                 content=error_msg,
             )
+            emit_activity_event(activity)
             run.status = AgentRunStatus.FAILED
             run.completed_at = timezone.now()
             run.save()
+            emit_run_status_event(run)
             return
 
         if sandbox_result.error:
-            AgentRunActivity.objects.create(
+            activity = AgentRunActivity.objects.create(
                 run=run,
                 activity_type=AgentActivityType.ERROR,
                 content=sandbox_result.error,
             )
+            emit_activity_event(activity)
             run.status = AgentRunStatus.FAILED
             run.completed_at = timezone.now()
             run.save()
+            emit_run_status_event(run)
             return
 
         # Success: create response activity with sandbox output
@@ -271,6 +286,7 @@ def builtin_agent_execute_task(
             activity_type=AgentActivityType.RESPONSE,
             content=sandbox_result.output,
         )
+        emit_activity_event(response_activity)
         run.last_activity_at = timezone.now()
 
         # Create assistant conversation message if conversation-scoped
@@ -300,6 +316,7 @@ def builtin_agent_execute_task(
         run.status = AgentRunStatus.COMPLETED
         run.completed_at = timezone.now()
         run.save()
+        emit_run_status_event(run)
 
     except Exception as e:
         log_exception(e)
@@ -308,13 +325,15 @@ def builtin_agent_execute_task(
         # Try to update run with error activity
         try:
             run = AgentRun.objects.get(id=run_id)
-            AgentRunActivity.objects.create(
+            activity = AgentRunActivity.objects.create(
                 run=run,
                 activity_type=AgentActivityType.ERROR,
                 content=f"Unexpected error: {str(e)}",
             )
+            emit_activity_event(activity)
             run.status = AgentRunStatus.FAILED
             run.completed_at = timezone.now()
             run.save()
+            emit_run_status_event(run)
         except Exception as e2:
             logger.error(f"Failed to create error activity: {e2}")
