@@ -61,6 +61,7 @@ export const RichTextEditor = forwardRef(function RichTextEditor(
   });
   // use editor mention
   const { fetchMentions } = useEditorMention({
+    enableAdvancedMentions: true,
     searchEntity: editable ? async (payload) => await props.searchMentionCallback(payload) : async () => ({}),
   });
   // editor config

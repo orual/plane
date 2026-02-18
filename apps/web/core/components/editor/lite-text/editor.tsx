@@ -102,6 +102,7 @@ export const LiteTextEditor = React.forwardRef(function LiteTextEditor(
   });
   // use editor mention
   const { fetchMentions } = useEditorMention({
+    enableAdvancedMentions: true,
     searchEntity: async (payload) =>
       await workspaceService.searchEntity(workspaceSlug, {
         ...payload,
