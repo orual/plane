@@ -19,6 +19,8 @@ from .agent import (
     AgentRunSerializer,
     AgentRunCreateSerializer,
     AgentRunActivitySerializer,
+    AgentConversationSerializer,
+    AgentConversationMessageSerializer,
 )
 
 __all__ = [
@@ -34,4 +36,6 @@ __all__ = [
     "AgentRunSerializer",
     "AgentRunCreateSerializer",
     "AgentRunActivitySerializer",
+    "AgentConversationSerializer",
+    "AgentConversationMessageSerializer",
 ]
