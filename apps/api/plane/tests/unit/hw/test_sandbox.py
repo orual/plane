@@ -290,4 +290,247 @@ def test_code_validation(test_input, expected):
             constraints.validate_code_size(test_input)
 
 
+@pytest.mark.django_db
+@pytest.mark.unit
+class TestSandboxIntegration:
+    """Integration tests for SandboxExecutor with real tool registry and ORM.
+
+    These tests mock subprocess.Popen (no real Deno) but use the real
+    ToolRegistry, real tool handlers, and real database via Django ORM to
+    verify the full IPC loop → registry → ORM pipeline.
+    """
+
+    def setup_method(self):
+        """Set up test fixtures with real database models."""
+        from uuid import uuid4
+
+        from plane.app.permissions.base import ROLE
+        from plane.db.models import (
+            Project, ProjectMember, State, User, Workspace, WorkspaceMember,
+        )
+        from plane.hw.agent_tools.registry import ToolContext, ToolDefinition, ToolParam, ToolRegistry
+        from plane.hw.agent_tools.tools.issues import list_issues
+        from plane.hw.models.agent import AgentProfile, AgentRun, AgentType
+
+        self.user = User.objects.create_user(
+            username="testuser",
+            email="test@example.com",
+            password="testpass123",
+            display_name="Test User",
+        )
+
+        self.workspace = Workspace.objects.create(
+            name="Test Workspace",
+            slug=f"test-ws-{uuid4().hex[:8]}",
+            owner=self.user,
+        )
+
+        WorkspaceMember.objects.create(
+            workspace=self.workspace,
+            member=self.user,
+            role=ROLE.ADMIN,
+        )
+
+        self.project = Project.objects.create(
+            name="Test Project",
+            identifier="TEST",
+            workspace=self.workspace,
+            created_by=self.user,
+        )
+
+        ProjectMember.objects.create(
+            project=self.project,
+            member=self.user,
+            role=ROLE.MEMBER,
+        )
+
+        self.state = State.objects.create(
+            project=self.project,
+            name="To Do",
+            color="#3b82f6",
+            group="backlog",
+            workspace=self.workspace,
+        )
+
+        self.agent_profile = AgentProfile.objects.create(
+            agent_type=AgentType.BUILTIN,
+            workspace=self.workspace,
+        )
+
+        self.agent_run = AgentRun.objects.create(
+            agent=self.agent_profile,
+            workspace=self.workspace,
+            project=self.project,
+        )
+
+        self.context = ToolContext(
+            user=self.user,
+            workspace=self.workspace,
+            run=self.agent_run,
+            project_id=self.project.id,
+        )
+
+        self.registry = ToolRegistry()
+        self.registry._tools["issues.list"] = ToolDefinition(
+            name="issues.list",
+            description="List issues in a project",
+            params=[
+                ToolParam(name="project_id", type="string", description="Project ID", required=True),
+            ],
+            return_type="List of issue objects",
+            handler=list_issues,
+            requires_project=True,
+        )
+
+        self.constraints = SandboxConstraints(
+            max_code_size=10000,
+            max_tool_calls=10,
+            max_output_size=100000,
+            timeout_seconds=5,
+            max_memory_mb=512,
+        )
+
+    def _make_mock_process(self, stdout_lines):
+        """Create a mock subprocess with the given stdout lines.
+
+        Args:
+            stdout_lines: List of strings the mock readline() will yield,
+                          should end with '' (EOF).
+
+        Returns:
+            (mock_popen_cls, mock_process, written_messages) tuple.
+            written_messages is a list that captures stdin.write() calls.
+        """
+        mock_process = MagicMock()
+        mock_process.poll.return_value = None
+        mock_process.stdout.readline.side_effect = stdout_lines
+        mock_process.wait.return_value = 0
+
+        written = []
+        mock_process.stdin.write = lambda msg: written.append(msg)
+        mock_process.stdin.flush = MagicMock()
+
+        return mock_process, written
+
+    def test_tool_call_executes_against_real_orm(self):
+        """Full pipeline: sandbox emits tool_call → registry dispatches → ORM query → result sent back."""
+        from plane.db.models import Issue
+
+        Issue.objects.create(
+            project=self.project,
+            name="Integration Test Issue",
+            state=self.state,
+            created_by=self.user,
+            updated_by=self.user,
+        )
+
+        executor = SandboxExecutor(self.registry, self.context, self.constraints)
+
+        project_id_str = str(self.project.id)
+        tool_call_json = (
+            f'{{"type": "tool_call", "id": "call_1", '
+            f'"name": "issues.list", "params": {{"project_id": "{project_id_str}"}}}}\n'
+        )
+        mock_process, written = self._make_mock_process([tool_call_json, ''])
+
+        with patch('subprocess.Popen', return_value=mock_process):
+            result = executor.execute("callTool('issues.list', {})")
+
+        assert result.error is None
+        assert len(result.tool_calls) == 1
+        assert result.tool_calls[0]["name"] == "issues.list"
+
+        tool_result = result.tool_calls[0]["result"]
+        assert "result" in tool_result
+        issue_names = [item["name"] for item in tool_result["result"]]
+        assert "Integration Test Issue" in issue_names
+
+    def test_tool_result_serialized_back_to_sandbox(self):
+        """Verify the JSON line written to stdin is a valid tool_result."""
+        from plane.db.models import Issue
+
+        Issue.objects.create(
+            project=self.project,
+            name="Serialization Test",
+            state=self.state,
+            created_by=self.user,
+            updated_by=self.user,
+        )
+
+        executor = SandboxExecutor(self.registry, self.context, self.constraints)
+
+        project_id_str = str(self.project.id)
+        tool_call_json = (
+            f'{{"type": "tool_call", "id": "call_abc", '
+            f'"name": "issues.list", "params": {{"project_id": "{project_id_str}"}}}}\n'
+        )
+        mock_process, written = self._make_mock_process([tool_call_json, ''])
+
+        with patch('subprocess.Popen', return_value=mock_process):
+            executor.execute("callTool('issues.list', {})")
+
+        assert len(written) == 1
+        response = json.loads(written[0].strip())
+        assert response["type"] == "tool_result"
+        assert response["id"] == "call_abc"
+        assert "result" in response
+
+    def test_unknown_tool_returns_result_with_error_key(self):
+        """Unknown tool names go through the success path but with an error in the result dict.
+
+        The registry returns {"error": "Unknown tool: ..."} as a result (not an exception),
+        so the sandbox receives a tool_result message whose result contains the error.
+        """
+        executor = SandboxExecutor(self.registry, self.context, self.constraints)
+
+        tool_call_json = (
+            '{"type": "tool_call", "id": "call_err", '
+            '"name": "nonexistent.tool", "params": {}}\n'
+        )
+        mock_process, written = self._make_mock_process([tool_call_json, ''])
+
+        with patch('subprocess.Popen', return_value=mock_process):
+            result = executor.execute("callTool('nonexistent.tool', {})")
+
+        assert result.error is None
+        assert len(result.tool_calls) == 1
+        assert result.tool_calls[0]["name"] == "nonexistent.tool"
+
+        # Registry returns {"error": ...} as a normal result, not an exception
+        assert len(written) == 1
+        response = json.loads(written[0].strip())
+        assert response["type"] == "tool_result"
+        assert response["id"] == "call_err"
+        assert "error" in response["result"]
+
+    def test_tool_call_limit_kills_process(self):
+        """Exceeding max_tool_calls kills the process and returns an error."""
+        low_constraints = SandboxConstraints(
+            max_code_size=10000,
+            max_tool_calls=1,
+            max_output_size=100000,
+            timeout_seconds=5,
+            max_memory_mb=512,
+        )
+        executor = SandboxExecutor(self.registry, self.context, low_constraints)
+
+        project_id_str = str(self.project.id)
+        call_1 = (
+            f'{{"type": "tool_call", "id": "call_1", '
+            f'"name": "issues.list", "params": {{"project_id": "{project_id_str}"}}}}\n'
+        )
+        call_2 = (
+            f'{{"type": "tool_call", "id": "call_2", '
+            f'"name": "issues.list", "params": {{"project_id": "{project_id_str}"}}}}\n'
+        )
+
+        mock_process, written = self._make_mock_process([call_1, call_2, ''])
+        mock_process.kill = MagicMock()
+
+        with patch('subprocess.Popen', return_value=mock_process):
+            result = executor.execute("callTool multiple times")
+
+        assert result.error == "Too many tool calls"
+        # First call succeeds, second triggers the limit
+        assert len(result.tool_calls) == 1
 

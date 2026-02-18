@@ -81,81 +81,81 @@ class SandboxExecutor:
             )
 
         # Create temporary file for the combined runtime and code
-        with tempfile.TemporaryDirectory() as temp_dir:
-            # Read the runtime template
-            runtime_path = os.path.join(
-                os.path.dirname(__file__),
-                "sandbox_runtime",
-                "runtime.ts"
-            )
-            with open(runtime_path, "r") as f:
-                runtime_code = f.read()
-
-            # Combine runtime and user code
-            combined_code = f"{runtime_code}\n\n// User code:\n{code}"
-
-            # Write to temp file
-            temp_file = os.path.join(temp_dir, "user_code.ts")
-            with open(temp_file, "w") as f:
-                f.write(combined_code)
-
-            # Build Deno command with restrictive permissions
-            cmd = [
-                "deno",
-                "run",
-                "--no-prompt",
-                "--deny-net",
-                "--deny-env",
-                "--deny-write",
-                "--deny-run",
-                "--deny-ffi",
-                "--deny-sys",
-                f"--allow-read={temp_dir}",
-                f"--v8-flags=--max-old-space-size={self.constraints.max_memory_mb}",
-                temp_file
-            ]
-
-            # Start the subprocess
-            process = subprocess.Popen(
-                cmd,
-                stdin=subprocess.PIPE,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-                text=True
-            )
-
-            # Set up timeout handler
-            timeout_timer = None
-            if self.constraints.timeout_seconds > 0:
-                timeout_timer = threading.Timer(
-                    self.constraints.timeout_seconds,
-                    self._kill_process,
-                    args=[process]
+        try:
+            with tempfile.TemporaryDirectory() as temp_dir:
+                # Read the runtime template
+                runtime_path = os.path.join(
+                    os.path.dirname(__file__),
+                    "sandbox_runtime",
+                    "runtime.ts"
                 )
-                timeout_timer.start()
+                with open(runtime_path, "r") as f:
+                    runtime_code = f.read()
 
-            try:
-                # IPC loop
-                result = self._ipc_loop(process)
+                # Combine runtime and user code
+                combined_code = f"{runtime_code}\n\n// User code:\n{code}"
 
-                if timeout_timer and timeout_timer.is_alive():
-                    timeout_timer.cancel()
+                # Write to temp file
+                temp_file = os.path.join(temp_dir, "user_code.ts")
+                with open(temp_file, "w") as f:
+                    f.write(combined_code)
 
-                return result
+                # Build Deno command with restrictive permissions
+                cmd = [
+                    "deno",
+                    "run",
+                    "--no-prompt",
+                    "--deny-net",
+                    "--deny-env",
+                    "--deny-write",
+                    "--deny-run",
+                    "--deny-ffi",
+                    "--deny-sys",
+                    f"--allow-read={temp_dir}",
+                    f"--v8-flags=--max-old-space-size={self.constraints.max_memory_mb}",
+                    temp_file
+                ]
 
-            except Exception as e:
-                # Clean up timer if there's an exception
-                if timeout_timer and timeout_timer.is_alive():
-                    timeout_timer.cancel()
-
-                # Ensure process is killed
-                self._kill_process(process)
-
-                return SandboxResult(
-                    output="",
-                    tool_calls=[],
-                    error=f"Executor error: {str(e)}"
+                # Start the subprocess
+                process = subprocess.Popen(
+                    cmd,
+                    stdin=subprocess.PIPE,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE,
+                    text=True
                 )
+
+                # Set up timeout handler
+                timeout_timer = None
+                if self.constraints.timeout_seconds > 0:
+                    timeout_timer = threading.Timer(
+                        self.constraints.timeout_seconds,
+                        self._kill_process,
+                        args=[process]
+                    )
+                    timeout_timer.start()
+
+                try:
+                    result = self._ipc_loop(process)
+
+                    if timeout_timer and timeout_timer.is_alive():
+                        timeout_timer.cancel()
+
+                    return result
+
+                except Exception as e:
+                    if timeout_timer and timeout_timer.is_alive():
+                        timeout_timer.cancel()
+
+                    self._kill_process(process)
+                    raise
+
+        except Exception as e:
+            return SandboxResult(
+                output="",
+                tool_calls=[],
+                error=f"Executor error: {str(e)}"
+            )
 
     def _kill_process(self, process: subprocess.Popen) -> None:
         """Kill the subprocess and wait for it to terminate."""
