@@ -247,3 +247,18 @@ class AgentRunActivityFactory(factory.django.DjangoModelFactory):
     is_ephemeral = False
     created_at = factory.LazyFunction(timezone.now)
     updated_at = factory.LazyFunction(timezone.now)
+
+
+class AgentConversationFactory(factory.django.DjangoModelFactory):
+    """Factory for creating AgentConversation instances"""
+
+    class Meta:
+        model = "hw.AgentConversation"
+
+    id = factory.LazyFunction(uuid4)
+    workspace = factory.SubFactory(WorkspaceFactory)
+    user = factory.SubFactory(UserFactory)
+    title = factory.Faker("sentence")
+    is_active = True
+    created_at = factory.LazyFunction(timezone.now)
+    updated_at = factory.LazyFunction(timezone.now)
