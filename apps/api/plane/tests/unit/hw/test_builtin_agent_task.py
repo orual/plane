@@ -2,32 +2,33 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 # See the LICENSE file for details.
 
-import pytest
-from unittest.mock import MagicMock, patch
 from datetime import timedelta
+from unittest.mock import MagicMock, patch
+
+import pytest
 from django.utils import timezone
 
-from plane.db.models import IssueComment, Issue, Project, ProjectMember, State, User, WorkspaceMember
+from plane.bgtasks.agent_lifecycle_task import detect_stale_agent_runs
+from plane.bgtasks.builtin_agent_task import builtin_agent_execute_task
+from plane.db.models import Issue, IssueComment, Project, ProjectMember, State, User, WorkspaceMember
 from plane.hw.models import (
-    AgentProfile,
-    AgentRun,
-    AgentRunActivity,
-    AgentRunStatus,
     AgentActivityType,
     AgentConversation,
     AgentConversationMessage,
     AgentConversationMessageRole,
+    AgentProfile,
+    AgentRun,
+    AgentRunActivity,
+    AgentRunStatus,
     AgentType,
 )
-from plane.bgtasks.builtin_agent_task import builtin_agent_execute_task
-from plane.bgtasks.agent_lifecycle_task import detect_stale_agent_runs
 from plane.tests.factories import (
-    UserFactory,
-    WorkspaceFactory,
-    ProjectFactory,
-    IssueFactory,
     AgentProfileFactory,
     AgentRunFactory,
+    IssueFactory,
+    ProjectFactory,
+    UserFactory,
+    WorkspaceFactory,
 )
 
 
@@ -94,8 +95,9 @@ def project_with_issue(workspace, create_user):
 class TestBuiltinAgentTaskActivityCreation:
     """Test AC4.2: Activity creation order and types."""
 
-    @pytest.mark.django_db
-    def test_activity_creation_with_reasoning_content(self, workspace, create_user, builtin_agent_profile, project_with_issue):
+    def test_activity_creation_with_reasoning_content(
+        self, workspace, create_user, builtin_agent_profile, project_with_issue
+    ):
         """AC4.2: Activities created in order: thought (reasoning) → action (code) → response."""
         proj, issue = project_with_issue
 
@@ -126,10 +128,11 @@ output("The issue has been fixed");
         mock_sandbox_result.error = None
         mock_sandbox_result.output = "The issue has been fixed"
 
-        with patch("plane.bgtasks.builtin_agent_task.AgentLLMClient") as mock_llm_client_class, \
-             patch("plane.bgtasks.builtin_agent_task.SandboxExecutor") as mock_sandbox_class, \
-             patch("plane.bgtasks.builtin_agent_task.get_llm_config") as mock_get_config:
-
+        with (
+            patch("plane.bgtasks.builtin_agent_task.AgentLLMClient") as mock_llm_client_class,
+            patch("plane.bgtasks.builtin_agent_task.SandboxExecutor") as mock_sandbox_class,
+            patch("plane.bgtasks.builtin_agent_task.get_llm_config") as mock_get_config,
+        ):
             # Setup LLM config mock
             mock_get_config.return_value = ("test-key", "test-model", "anthropic", "")
 
@@ -164,7 +167,9 @@ output("The issue has been fixed");
         assert response_activity.content == "The issue has been fixed"
 
     @pytest.mark.django_db
-    def test_activity_creation_without_reasoning(self, workspace, create_user, builtin_agent_profile, project_with_issue):
+    def test_activity_creation_without_reasoning(
+        self, workspace, create_user, builtin_agent_profile, project_with_issue
+    ):
         """AC4.2: Without reasoning content, skip thought activity."""
         proj, issue = project_with_issue
 
@@ -189,10 +194,11 @@ output("Done");
         mock_sandbox_result.error = None
         mock_sandbox_result.output = "Done"
 
-        with patch("plane.bgtasks.builtin_agent_task.AgentLLMClient") as mock_llm_client_class, \
-             patch("plane.bgtasks.builtin_agent_task.SandboxExecutor") as mock_sandbox_class, \
-             patch("plane.bgtasks.builtin_agent_task.get_llm_config") as mock_get_config:
-
+        with (
+            patch("plane.bgtasks.builtin_agent_task.AgentLLMClient") as mock_llm_client_class,
+            patch("plane.bgtasks.builtin_agent_task.SandboxExecutor") as mock_sandbox_class,
+            patch("plane.bgtasks.builtin_agent_task.get_llm_config") as mock_get_config,
+        ):
             mock_get_config.return_value = ("test-key", "test-model", "anthropic", "")
             mock_llm_client = MagicMock()
             mock_llm_client.call.return_value = mock_llm_response
@@ -216,7 +222,9 @@ class TestBuiltinAgentTaskIssueCommentCreation:
     """Test AC4.3: IssueComment auto-creation for issue-scoped runs."""
 
     @pytest.mark.django_db
-    def test_issue_comment_auto_created_for_issue_scoped_run(self, workspace, create_user, builtin_agent_profile, project_with_issue):
+    def test_issue_comment_auto_created_for_issue_scoped_run(
+        self, workspace, create_user, builtin_agent_profile, project_with_issue
+    ):
         """AC4.3: Response activity auto-creates IssueComment when run.issue_id is set."""
         proj, issue = project_with_issue
 
@@ -234,9 +242,10 @@ class TestBuiltinAgentTaskIssueCommentCreation:
         mock_llm_response.reasoning_content = None
         mock_llm_response.content = response_text
 
-        with patch("plane.bgtasks.builtin_agent_task.AgentLLMClient") as mock_llm_client_class, \
-             patch("plane.bgtasks.builtin_agent_task.get_llm_config") as mock_get_config:
-
+        with (
+            patch("plane.bgtasks.builtin_agent_task.AgentLLMClient") as mock_llm_client_class,
+            patch("plane.bgtasks.builtin_agent_task.get_llm_config") as mock_get_config,
+        ):
             mock_get_config.return_value = ("test-key", "test-model", "anthropic", "")
             mock_llm_client = MagicMock()
             mock_llm_response_obj = MagicMock()
@@ -272,9 +281,10 @@ class TestBuiltinAgentTaskIssueCommentCreation:
         mock_llm_response.reasoning_content = None
         mock_llm_response.content = response_text
 
-        with patch("plane.bgtasks.builtin_agent_task.AgentLLMClient") as mock_llm_client_class, \
-             patch("plane.bgtasks.builtin_agent_task.get_llm_config") as mock_get_config:
-
+        with (
+            patch("plane.bgtasks.builtin_agent_task.AgentLLMClient") as mock_llm_client_class,
+            patch("plane.bgtasks.builtin_agent_task.get_llm_config") as mock_get_config,
+        ):
             mock_get_config.return_value = ("test-key", "test-model", "anthropic", "")
             mock_llm_client = MagicMock()
             mock_llm_response_obj = MagicMock()
@@ -294,7 +304,9 @@ class TestBuiltinAgentTaskSandboxTimeout:
     """Test AC4.7: Sandbox timeout handling."""
 
     @pytest.mark.django_db
-    def test_sandbox_timeout_marks_run_failed_and_creates_error_activity(self, workspace, create_user, builtin_agent_profile):
+    def test_sandbox_timeout_marks_run_failed_and_creates_error_activity(
+        self, workspace, create_user, builtin_agent_profile
+    ):
         """AC4.7: Sandbox timeout transitions run to failed and creates error activity."""
         run = AgentRun.objects.create(
             agent=builtin_agent_profile,
@@ -316,10 +328,11 @@ while(true) { }
         mock_sandbox_result.error = None
         mock_sandbox_result.output = None
 
-        with patch("plane.bgtasks.builtin_agent_task.AgentLLMClient") as mock_llm_client_class, \
-             patch("plane.bgtasks.builtin_agent_task.SandboxExecutor") as mock_sandbox_class, \
-             patch("plane.bgtasks.builtin_agent_task.get_llm_config") as mock_get_config:
-
+        with (
+            patch("plane.bgtasks.builtin_agent_task.AgentLLMClient") as mock_llm_client_class,
+            patch("plane.bgtasks.builtin_agent_task.SandboxExecutor") as mock_sandbox_class,
+            patch("plane.bgtasks.builtin_agent_task.get_llm_config") as mock_get_config,
+        ):
             mock_get_config.return_value = ("test-key", "test-model", "anthropic", "")
 
             mock_llm_client = MagicMock()
@@ -341,10 +354,7 @@ while(true) { }
         assert run.completed_at is not None
 
         # Verify error activity was created
-        error_activities = AgentRunActivity.objects.filter(
-            run=run,
-            activity_type=AgentActivityType.ERROR
-        )
+        error_activities = AgentRunActivity.objects.filter(run=run, activity_type=AgentActivityType.ERROR)
         assert error_activities.count() == 1
         assert "timed out" in error_activities.first().content.lower()
 
@@ -354,7 +364,9 @@ class TestBuiltinAgentTaskSandboxError:
     """Test sandbox error handling."""
 
     @pytest.mark.django_db
-    def test_sandbox_error_marks_run_failed_and_creates_error_activity(self, workspace, create_user, builtin_agent_profile):
+    def test_sandbox_error_marks_run_failed_and_creates_error_activity(
+        self, workspace, create_user, builtin_agent_profile
+    ):
         """Sandbox error transitions run to failed and creates error activity."""
         run = AgentRun.objects.create(
             agent=builtin_agent_profile,
@@ -375,10 +387,11 @@ throw new Error("Invalid API call");
         mock_sandbox_result.error = "RuntimeError: undefined function"
         mock_sandbox_result.output = None
 
-        with patch("plane.bgtasks.builtin_agent_task.AgentLLMClient") as mock_llm_client_class, \
-             patch("plane.bgtasks.builtin_agent_task.SandboxExecutor") as mock_sandbox_class, \
-             patch("plane.bgtasks.builtin_agent_task.get_llm_config") as mock_get_config:
-
+        with (
+            patch("plane.bgtasks.builtin_agent_task.AgentLLMClient") as mock_llm_client_class,
+            patch("plane.bgtasks.builtin_agent_task.SandboxExecutor") as mock_sandbox_class,
+            patch("plane.bgtasks.builtin_agent_task.get_llm_config") as mock_get_config,
+        ):
             mock_get_config.return_value = ("test-key", "test-model", "anthropic", "")
 
             mock_llm_client = MagicMock()
@@ -400,10 +413,7 @@ throw new Error("Invalid API call");
         assert run.completed_at is not None
 
         # Verify error activity was created with the sandbox error
-        error_activities = AgentRunActivity.objects.filter(
-            run=run,
-            activity_type=AgentActivityType.ERROR
-        )
+        error_activities = AgentRunActivity.objects.filter(run=run, activity_type=AgentActivityType.ERROR)
         assert error_activities.count() == 1
         assert "undefined function" in error_activities.first().content
 
@@ -468,7 +478,9 @@ class TestBuiltinAgentTaskIntegration:
     """Test AC4.1: Full integration loop."""
 
     @pytest.mark.django_db
-    def test_full_execution_loop_with_code_and_sandbox(self, workspace, create_user, builtin_agent_profile, project_with_issue):
+    def test_full_execution_loop_with_code_and_sandbox(
+        self, workspace, create_user, builtin_agent_profile, project_with_issue
+    ):
         """AC4.1: LLM response → sandbox execution → activity creation → run completion."""
         proj, issue = project_with_issue
 
@@ -500,10 +512,11 @@ output(result.message);
         mock_sandbox_result.error = None
         mock_sandbox_result.output = "Issue updated successfully"
 
-        with patch("plane.bgtasks.builtin_agent_task.AgentLLMClient") as mock_llm_client_class, \
-             patch("plane.bgtasks.builtin_agent_task.SandboxExecutor") as mock_sandbox_class, \
-             patch("plane.bgtasks.builtin_agent_task.get_llm_config") as mock_get_config:
-
+        with (
+            patch("plane.bgtasks.builtin_agent_task.AgentLLMClient") as mock_llm_client_class,
+            patch("plane.bgtasks.builtin_agent_task.SandboxExecutor") as mock_sandbox_class,
+            patch("plane.bgtasks.builtin_agent_task.get_llm_config") as mock_get_config,
+        ):
             mock_get_config.return_value = ("test-key", "test-model", "anthropic", "")
 
             mock_llm_client = MagicMock()
@@ -546,9 +559,10 @@ output(result.message);
         mock_llm_response.reasoning_content = None
         mock_llm_response.content = response_text
 
-        with patch("plane.bgtasks.builtin_agent_task.AgentLLMClient") as mock_llm_client_class, \
-             patch("plane.bgtasks.builtin_agent_task.get_llm_config") as mock_get_config:
-
+        with (
+            patch("plane.bgtasks.builtin_agent_task.AgentLLMClient") as mock_llm_client_class,
+            patch("plane.bgtasks.builtin_agent_task.get_llm_config") as mock_get_config,
+        ):
             mock_get_config.return_value = ("test-key", "test-model", "anthropic", "")
 
             mock_llm_client = MagicMock()
@@ -588,10 +602,7 @@ output(result.message);
         assert run.status == AgentRunStatus.FAILED
 
         # Verify error activity
-        error_activities = AgentRunActivity.objects.filter(
-            run=run,
-            activity_type=AgentActivityType.ERROR
-        )
+        error_activities = AgentRunActivity.objects.filter(run=run, activity_type=AgentActivityType.ERROR)
         assert error_activities.count() == 1
         assert "configuration missing" in error_activities.first().content.lower()
 
@@ -616,8 +627,10 @@ output(result.message);
         mock_llm_response.reasoning_content = None
         mock_llm_response.content = response_text
 
-        with patch("plane.bgtasks.builtin_agent_task.AgentLLMClient") as mock_llm_client_class, \
-             patch("plane.bgtasks.builtin_agent_task.get_llm_config") as mock_get_config:
+        with (
+            patch("plane.bgtasks.builtin_agent_task.AgentLLMClient") as mock_llm_client_class,
+            patch("plane.bgtasks.builtin_agent_task.get_llm_config") as mock_get_config,
+        ):
 
             mock_get_config.return_value = ("test-key", "test-model", "anthropic", "")
 

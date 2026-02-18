@@ -152,6 +152,7 @@ class AgentConversationMessageSerializer(BaseSerializer):
         read_only_fields = [
             "id",
             "conversation_id",
+            "role",
             "run_id",
             "created_at",
             "updated_at",
