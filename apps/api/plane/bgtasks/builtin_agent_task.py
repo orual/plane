@@ -81,9 +81,8 @@ def _create_html_for_content(content: str) -> str:
     return f"<p>{escaped}</p>"
 
 
-@shared_task(bind=True)
+@shared_task
 def builtin_agent_execute_task(
-    self,
     run_id: str,
     trigger_type: str,
     user_message: str,
