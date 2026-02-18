@@ -16,6 +16,8 @@ import { AgentRunStore } from "@/plane-web/store/agent/agent-run.store";
 import type { IAgentRunStore } from "@/plane-web/store/agent/agent-run.store";
 import { AgentProfileStore } from "@/plane-web/store/agent/agent-profile.store";
 import type { IAgentProfileStore } from "@/plane-web/store/agent/agent-profile.store";
+import { AgentConversationStore } from "@/plane-web/store/agent/agent-conversation.store";
+import type { IAgentConversationStore } from "@/plane-web/store/agent/agent-conversation.store";
 
 export class RootStore extends CoreRootStore {
   timelineStore: ITimelineStore;
@@ -23,6 +25,7 @@ export class RootStore extends CoreRootStore {
   issuePropertyStore: IIssuePropertyStore;
   agentRunStore: IAgentRunStore;
   agentProfileStore: IAgentProfileStore;
+  agentConversationStore: IAgentConversationStore;
 
   constructor() {
     super();
@@ -32,5 +35,6 @@ export class RootStore extends CoreRootStore {
     this.issuePropertyStore = new IssuePropertyStore(this);
     this.agentRunStore = new AgentRunStore(this);
     this.agentProfileStore = new AgentProfileStore(this);
+    this.agentConversationStore = new AgentConversationStore(this);
   }
 }
