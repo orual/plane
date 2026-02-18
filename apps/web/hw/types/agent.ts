@@ -66,3 +66,35 @@ export type TCreateAgentProfilePayload = {
 export type TAgentProfileCreateResponse = TAgentProfile & {
   api_token: string;
 };
+
+// ============================================================
+// Agent conversation types
+// ============================================================
+
+export type TAgentConversation = {
+  id: string;
+  workspace_id: string;
+  user_id: string;
+  title: string;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+};
+
+export type TAgentConversationMessage = {
+  id: string;
+  conversation_id: string;
+  role: "user" | "assistant";
+  content: string;
+  run_id: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type TCreateConversationPayload = {
+  title?: string;
+};
+
+export type TCreateMessagePayload = {
+  content: string;
+};
