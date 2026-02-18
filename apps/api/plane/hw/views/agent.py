@@ -31,6 +31,7 @@ from plane.hw.serializers import (
     AgentRunCreateSerializer,
     AgentRunActivitySerializer,
 )
+from plane.hw.services.agent_events import emit_activity_event
 
 
 class AgentProfileViewSet(BaseViewSet):
@@ -382,6 +383,9 @@ class AgentRunActivityViewSet(BaseViewSet):
                     external_source="agent",
                     external_id=f"{run.id}:{activity.id}",
                 )
+
+            # Emit SSE event for the created activity
+            emit_activity_event(activity)
 
             response_serializer = AgentRunActivitySerializer(activity)
             return Response(response_serializer.data, status=status.HTTP_201_CREATED)
