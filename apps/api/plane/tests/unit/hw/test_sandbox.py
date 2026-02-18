@@ -24,6 +24,7 @@ from plane.hw.agent_tools.ipc import (
 from plane.hw.agent_tools.sandbox import SandboxExecutor, SandboxResult
 
 
+@pytest.mark.unit
 class TestIPCCore:
     """Test IPC protocol core functionality."""
 
@@ -85,6 +86,7 @@ class TestIPCCore:
             validate_tool_call({"type": "tool_call", "id": "call_1", "name": "test"})
 
 
+@pytest.mark.unit
 class TestSandboxConstraints:
     """Test sandbox constraint validation."""
 
@@ -122,6 +124,7 @@ class TestSandboxConstraints:
             self.constraints.check_output_size(1048577)
 
 
+@pytest.mark.unit
 class TestSandboxExecutorUnit:
     """Unit tests for SandboxExecutor (mock tests)."""
 
@@ -222,7 +225,7 @@ class TestSandboxExecutorUnit:
         mock_process.poll.return_value = None
         mock_process.stdout.readline.side_effect = [
             '{"type": "tool_call", "id": "call_1", "name": "test", "params": {}}\n',
-            '{"type": "tool_result", "id": "call_1", "result": "success"}\n'
+            ''
         ]
         mock_process.stdin.write = MagicMock()
         mock_process.stdin.flush = MagicMock()
@@ -259,64 +262,23 @@ class TestSandboxExecutorUnit:
         assert result.timed_out is False
 
 
-class TestSandboxExecutorUnit:
-    """Unit tests for SandboxExecutor (without Deno)."""
+@pytest.mark.unit
+@pytest.mark.parametrize("test_input,expected", [
+    ("console.log('test')", True),
+    ("", True),
+    ("callTool('test', {})", True),
+    ("x" * 1000, True),  # Valid size
+    ("x" * 1001, False),  # Invalid size
+])
+def test_code_validation(test_input, expected):
+    """Parametrized test for code validation."""
+    constraints = SandboxConstraints(max_code_size=1000)
 
-    def setup_method(self):
-        """Set up test fixtures."""
-        self.tool_registry = Mock()
-        self.tool_registry.execute.return_value = {"result": "data"}
-        self.context = {"workspace_id": 1, "project_id": 1}
-
-        self.constraints = SandboxConstraints(
-            max_code_size=1000,
-            max_tool_calls=5,
-            max_output_size=10000,
-            timeout_seconds=1,  # Short timeout for testing
-            max_memory_mb=256
-        )
-
-    def test_result_dataclass(self):
-        """Test SandboxResult dataclass."""
-        result = SandboxResult(
-            output="test output",
-            tool_calls=[{"name": "test", "result": "success"}],
-            error="test error",
-            timed_out=True
-        )
-
-        assert result.output == "test output"
-        assert len(result.tool_calls) == 1
-        assert result.error == "test error"
-        assert result.timed_out is True
-
-    def test_executor_initialization(self):
-        """Test SandboxExecutor initialization."""
-        executor = SandboxExecutor(self.tool_registry, self.context, self.constraints)
-
-        assert executor.tool_registry == self.tool_registry
-        assert executor.context == self.context
-        assert executor.constraints == self.constraints
-
-    def test_executor_initialization_with_defaults(self):
-        """Test SandboxExecutor initialization with default constraints."""
-        executor = SandboxExecutor(self.tool_registry, self.context)
-
-        assert executor.tool_registry == self.tool_registry
-        assert executor.context == self.context
-        assert isinstance(executor.constraints, SandboxConstraints)
-
-    def test_code_size_error_handling(self):
-        """Test handling of code size errors."""
-        executor = SandboxExecutor(self.tool_registry, self.context, self.constraints)
-        large_code = "x" * 1001
-
-        result = executor.execute(large_code)
-
-        assert result.error is not None
-        assert "exceeds maximum allowed" in result.error
-        assert result.output == ""
-        assert len(result.tool_calls) == 0
+    if expected:
+        constraints.validate_code_size(test_input)  # Should not raise
+    else:
+        with pytest.raises(ValueError):
+            constraints.validate_code_size(test_input)
 
 
 class TestSandboxIntegration:
@@ -334,23 +296,5 @@ class TestSandboxIntegration:
         from plane.hw.agent_tools.tools.issues import IssuesTools
 
         # This test would require actual database setup
-        # For now, just test the tool exists
+        # For now, just test that the tool exists
         assert hasattr(IssuesTools, 'list')
-
-
-@pytest.mark.parametrize("test_input,expected", [
-    ("console.log('test')", True),
-    ("", True),
-    ("callTool('test', {})", True),
-    ("x".repeat(1000), True),  # Valid size
-    ("x".repeat(1001), False),  # Invalid size
-])
-def test_code_validation(test_input, expected):
-    """Parametrized test for code validation."""
-    constraints = SandboxConstraints(max_code_size=1000)
-
-    if expected:
-        constraints.validate_code_size(test_input)  # Should not raise
-    else:
-        with pytest.raises(ValueError):
-            constraints.validate_code_size(test_input)
