@@ -672,7 +672,6 @@ class TestAgentRunWithConversation:
     @pytest.mark.django_db
     def test_agent_run_without_conversation(self):
         """Verify AgentRun can be created without a conversation FK."""
-        user = UserFactory()
         workspace = WorkspaceFactory()
         agent = AgentProfileFactory(workspace=workspace)
 

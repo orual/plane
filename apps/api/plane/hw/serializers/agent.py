@@ -28,6 +28,7 @@ class AgentProfileSerializer(BaseSerializer):
             "id",
             "user_id",
             "workspace_id",
+            "agent_type",
             "created_at",
             "updated_at",
         ]

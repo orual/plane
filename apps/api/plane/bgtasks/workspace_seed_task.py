@@ -42,12 +42,12 @@ from plane.db.models import (
     User,
     BotTypeEnum,
 )
-from plane.hw.models import AgentProfile
+from plane.hw.models import AgentProfile, AgentType
 
 logger = logging.getLogger("plane.worker")
 
 
-def _seed_builtin_agent(workspace: Workspace, bot_user: User) -> None:
+def _seed_builtin_agent(workspace: Workspace, _bot_user: User) -> None:
     """Seeds a built-in agent profile for a workspace.
 
     Creates a bot user with bot_type=BotTypeEnum.AGENT and an associated
@@ -59,10 +59,7 @@ def _seed_builtin_agent(workspace: Workspace, bot_user: User) -> None:
         bot_user: The bot user that created this workspace (unused for this)
     """
     # Check if built-in agent already exists for this workspace (idempotent)
-    existing_agent = AgentProfile.objects.filter(
-        workspace=workspace,
-        agent_type="builtin"
-    ).first()
+    existing_agent = AgentProfile.objects.filter(workspace=workspace, agent_type=AgentType.BUILTIN).first()
 
     if existing_agent:
         logger.info(f"Task: workspace_seed_task -> Built-in agent already exists for workspace {workspace.id}")
@@ -91,7 +88,7 @@ def _seed_builtin_agent(workspace: Workspace, bot_user: User) -> None:
     AgentProfile.objects.create(
         user=builtin_user,
         workspace=workspace,
-        agent_type="builtin",
+        agent_type=AgentType.BUILTIN,
         display_name="Plane Agent",
         description="Built-in AI assistant for workspace collaboration",
         is_active=True,

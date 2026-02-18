@@ -159,7 +159,7 @@ now`.
 - `../serializers/agent.py` -- DRF serializers (separate create/update serializers,
   including conversation serializers)
 - `../views/agent.py` -- ViewSets (AgentProfileViewSet, AgentRunViewSet,
-  AgentRunActivityViewSet, AgentConversationViewSet, AgentConversationMessageViewSet)
+  AgentRunActivityViewSet) -- _Note: AgentConversationViewSets are planned_
 - `../urls/agent.py` -- URL routing
 - `../../bgtasks/agent_webhook_task.py` -- webhook delivery
 - `../../bgtasks/agent_lifecycle_task.py` -- stale detection, ephemeral cleanup

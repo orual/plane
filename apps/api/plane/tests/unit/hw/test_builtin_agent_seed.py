@@ -3,12 +3,11 @@
 # See the LICENSE file for details.
 
 import pytest
-import uuid
 
-from plane.bgtasks.workspace_seed_task import workspace_seed
+from plane.bgtasks.workspace_seed_task import _seed_builtin_agent
 from plane.hw.models import AgentProfile, AgentType
 from plane.db.models import BotTypeEnum
-from plane.tests.factories import WorkspaceFactory
+from plane.tests.factories import WorkspaceFactory, UserFactory
 
 
 @pytest.mark.unit
@@ -20,8 +19,27 @@ class TestBuiltinAgentSeed:
         """Verify agent-ux.AC1.4: After workspace_seed runs, a built-in AgentProfile exists."""
         workspace = WorkspaceFactory()
 
-        # Call workspace_seed directly (not via .delay() since mock_celery_tasks is autouse)
-        workspace_seed(workspace.id)
+        # Create a bot user (normally done by workspace_seed)
+        bot_user = UserFactory(
+            username=f"bot_user_{workspace.id}",
+            display_name="Plane",
+            is_bot=True,
+            bot_type=BotTypeEnum.WORKSPACE_SEED,
+            email=f"bot_user_{workspace.id}@plane.so",
+        )
+
+        # Add bot user to workspace as member
+        from plane.db.models import WorkspaceMember
+
+        WorkspaceMember.objects.create(
+            workspace=workspace,
+            member=bot_user,
+            role=20,
+            company_role="",
+        )
+
+        # Call _seed_builtin_agent directly
+        _seed_builtin_agent(workspace, bot_user)
 
         # Verify built-in agent profile exists
         builtin_agent = AgentProfile.objects.filter(
@@ -44,6 +62,7 @@ class TestBuiltinAgentSeed:
 
         # Verify user is workspace member with admin role
         from plane.db.models import WorkspaceMember
+
         membership = WorkspaceMember.objects.get(
             workspace=workspace,
             member=builtin_user,
@@ -56,8 +75,27 @@ class TestBuiltinAgentSeed:
         """Verify idempotency: Running seed twice does not create duplicates."""
         workspace = WorkspaceFactory()
 
+        # Create a bot user (normally done by workspace_seed)
+        bot_user = UserFactory(
+            username=f"bot_user_{workspace.id}",
+            display_name="Plane",
+            is_bot=True,
+            bot_type=BotTypeEnum.WORKSPACE_SEED,
+            email=f"bot_user_{workspace.id}@plane.so",
+        )
+
+        # Add bot user to workspace as member
+        from plane.db.models import WorkspaceMember
+
+        WorkspaceMember.objects.create(
+            workspace=workspace,
+            member=bot_user,
+            role=20,
+            company_role="",
+        )
+
         # Run seed first time
-        workspace_seed(workspace.id)
+        _seed_builtin_agent(workspace, bot_user)
 
         # Verify built-in agent was created
         builtin_agent = AgentProfile.objects.filter(
@@ -67,7 +105,7 @@ class TestBuiltinAgentSeed:
         assert builtin_agent is not None
 
         # Run seed second time
-        workspace_seed(workspace.id)
+        _seed_builtin_agent(workspace, bot_user)
 
         # Verify still only one built-in agent exists
         builtin_agents = AgentProfile.objects.filter(
@@ -87,6 +125,7 @@ class TestBuiltinAgentSeed:
 
         # Create an external agent first
         from plane.tests.factories import UserFactory
+
         external_user = UserFactory()
         external_agent = AgentProfile.objects.create(
             user=external_user,
@@ -96,8 +135,27 @@ class TestBuiltinAgentSeed:
             is_active=True,
         )
 
+        # Create a bot user (normally done by workspace_seed)
+        bot_user = UserFactory(
+            username=f"bot_user_{workspace.id}",
+            display_name="Plane",
+            is_bot=True,
+            bot_type=BotTypeEnum.WORKSPACE_SEED,
+            email=f"bot_user_{workspace.id}@plane.so",
+        )
+
+        # Add bot user to workspace as member
+        from plane.db.models import WorkspaceMember
+
+        WorkspaceMember.objects.create(
+            workspace=workspace,
+            member=bot_user,
+            role=20,
+            company_role="",
+        )
+
         # Run workspace seed
-        workspace_seed(workspace.id)
+        _seed_builtin_agent(workspace, bot_user)
 
         # Verify external agent still exists
         existing_external = AgentProfile.objects.filter(
@@ -122,9 +180,28 @@ class TestBuiltinAgentSeed:
         """Verify idempotency even with concurrent calls (simulated)."""
         workspace = WorkspaceFactory()
 
+        # Create a bot user (normally done by workspace_seed)
+        bot_user = UserFactory(
+            username=f"bot_user_{workspace.id}",
+            display_name="Plane",
+            is_bot=True,
+            bot_type=BotTypeEnum.WORKSPACE_SEED,
+            email=f"bot_user_{workspace.id}@plane.so",
+        )
+
+        # Add bot user to workspace as member
+        from plane.db.models import WorkspaceMember
+
+        WorkspaceMember.objects.create(
+            workspace=workspace,
+            member=bot_user,
+            role=20,
+            company_role="",
+        )
+
         # Run seed multiple times in quick succession
         for _ in range(3):
-            workspace_seed(workspace.id)
+            _seed_builtin_agent(workspace, bot_user)
 
         # Verify only one built-in agent exists
         builtin_agents = AgentProfile.objects.filter(
@@ -144,9 +221,41 @@ class TestBuiltinAgentSeed:
         workspace1 = WorkspaceFactory()
         workspace2 = WorkspaceFactory()
 
+        # Create bot users for both workspaces (normally done by workspace_seed)
+        bot_user1 = UserFactory(
+            username=f"bot_user_{workspace1.id}",
+            display_name="Plane",
+            is_bot=True,
+            bot_type=BotTypeEnum.WORKSPACE_SEED,
+            email=f"bot_user_{workspace1.id}@plane.so",
+        )
+        bot_user2 = UserFactory(
+            username=f"bot_user_{workspace2.id}",
+            display_name="Plane",
+            is_bot=True,
+            bot_type=BotTypeEnum.WORKSPACE_SEED,
+            email=f"bot_user_{workspace2.id}@plane.so",
+        )
+
+        # Add bot users to workspaces as members
+        from plane.db.models import WorkspaceMember
+
+        WorkspaceMember.objects.create(
+            workspace=workspace1,
+            member=bot_user1,
+            role=20,
+            company_role="",
+        )
+        WorkspaceMember.objects.create(
+            workspace=workspace2,
+            member=bot_user2,
+            role=20,
+            company_role="",
+        )
+
         # Seed both workspaces
-        workspace_seed(workspace1.id)
-        workspace_seed(workspace2.id)
+        _seed_builtin_agent(workspace1, bot_user1)
+        _seed_builtin_agent(workspace2, bot_user2)
 
         # Verify separate built-in agents exist
         builtin_agent1 = AgentProfile.objects.filter(
