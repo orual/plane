@@ -75,4 +75,4 @@ nh3==0.2.18
 # http client (used by upload proxy)
 requests==2.32.4
 # sse streaming
-django-eventstream==6.0.0
+django-eventstream==5.3.3
