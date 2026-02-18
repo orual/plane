@@ -1,81 +1,100 @@
 """
-IPC protocol implementation for sandbox communication.
+IPC protocol types and message handling for sandbox communication.
 
-This module handles the newline-delimited JSON protocol between the sandbox
-(TypeScript runtime) and the host (Python executor).
+This module defines the JSON Lines protocol for communication between
+the sandbox (TypeScript runtime) and the host (Python executor).
 """
 
 import json
 from dataclasses import dataclass
-from typing import Any, Dict
+from typing import Dict, Any
 
 
 @dataclass
-class ToolCallMessage:
-    """Message from sandbox to host requesting tool execution."""
+class SandboxMessage:
+    """Base class for all messages from sandbox to host."""
     type: str
-    id: str
-    name: str
-    params: Dict[str, Any]
 
 
 @dataclass
-class OutputMessage:
-    """Message from sandbox to host with output content."""
-    type: str
-    content: str
+class ToolCallMessage(SandboxMessage):
+    """Message from sandbox requesting execution of a tool."""
+    type: str = "tool_call"
+    id: str = ""
+    name: str = ""
+    params: Dict[str, Any] = None
 
 
 @dataclass
-class ErrorMessage:
-    """Message from sandbox to host with error information."""
-    type: str
-    message: str
+class OutputMessage(SandboxMessage):
+    """Message from sandbox with output content."""
+    type: str = "output"
+    content: str = ""
 
 
 @dataclass
-class ToolResultMessage:
-    """Message from host to sandbox with tool execution result."""
-    type: str
-    id: str
-    result: Any
+class ErrorMessage(SandboxMessage):
+    """Message from sandbox with an error."""
+    type: str = "error"
+    message: str = ""
 
 
 @dataclass
-class ToolErrorMessage:
-    """Message from host to sandbox with tool execution error."""
+class HostMessage:
+    """Base class for all messages from host to sandbox."""
     type: str
-    id: str
-    error: str
+
+
+@dataclass
+class ToolResultMessage(HostMessage):
+    """Message from host with tool execution result."""
+    type: str = "tool_result"
+    id: str = ""
+    result: Any = None
+
+
+@dataclass
+class ToolErrorMessage(HostMessage):
+    """Message from host with tool execution error."""
+    type: str = "tool_error"
+    id: str = ""
+    error: str = ""
 
 
 def parse_sandbox_message(line: str) -> Dict[str, Any]:
     """
-    Parse a JSON line from the sandbox.
+    Parse a JSON line from the sandbox. Returns the parsed dict with validated `type` field. Raises `ValueError` for invalid JSON or missing `type`.
 
     Args:
-        line: A single line containing a JSON message
+        line: Raw JSON string from sandbox (may include newline)
 
     Returns:
-        The parsed message dictionary
+        Parsed dictionary with validated 'type' field
 
     Raises:
-        ValueError: If JSON is invalid or required fields are missing
+        ValueError: If JSON is invalid or missing 'type' field
     """
+    line = line.strip()
+    if not line:
+        raise ValueError("Empty message")
+
     try:
-        data = json.loads(line.strip())
+        data = json.loads(line)
     except json.JSONDecodeError as e:
-        raise ValueError(f"Invalid JSON in sandbox message: {e}") from e
+        raise ValueError(f"Invalid JSON: {e}")
+
+    if not isinstance(data, dict):
+        raise ValueError("Message must be a JSON object")
 
     if "type" not in data:
-        raise ValueError("Sandbox message missing required 'type' field")
+        raise ValueError("Message missing required 'type' field")
 
     return data
 
 
 def serialize_host_message(msg: Dict[str, Any]) -> str:
     """
-    Serialize a host message to a JSON line.
+    Serialize a host message to a JSON line (with newline terminator).
 
     Args:
         msg: Message dictionary to serialize
@@ -83,12 +102,18 @@ def serialize_host_message(msg: Dict[str, Any]) -> str:
     Returns:
         JSON string with newline terminator
     """
+    if not isinstance(msg, dict):
+        raise ValueError("Message must be a dictionary")
+
+    if "type" not in msg:
+        raise ValueError("Message missing required 'type' field")
+
     return json.dumps(msg) + "\n"
 
 
 def validate_tool_call(msg: Dict[str, Any]) -> bool:
     """
-    Validate a tool_call message has required fields.
+    Validate a tool_call message has `id`, `name`, and `params` fields.
 
     Args:
         msg: Parsed message dictionary
@@ -97,18 +122,18 @@ def validate_tool_call(msg: Dict[str, Any]) -> bool:
         True if valid
 
     Raises:
-        ValueError: If required fields are missing
+        ValueError: If message is invalid
     """
     if msg.get("type") != "tool_call":
-        raise ValueError(f"Expected tool_call message, got {msg.get('type')}")
+        raise ValueError("Message type is not 'tool_call'")
 
-    if "id" not in msg:
-        raise ValueError("Tool call message missing required 'id' field")
+    if "id" not in msg or not isinstance(msg["id"], str):
+        raise ValueError("Tool call message missing or invalid 'id' field")
 
-    if "name" not in msg:
-        raise ValueError("Tool call message missing required 'name' field")
+    if "name" not in msg or not isinstance(msg["name"], str):
+        raise ValueError("Tool call message missing or invalid 'name' field")
 
-    if "params" not in msg:
-        raise ValueError("Tool call message missing required 'params' field")
+    if "params" not in msg or not isinstance(msg["params"], dict):
+        raise ValueError("Tool call message missing or invalid 'params' field")
 
     return True
