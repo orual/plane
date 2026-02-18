@@ -16,6 +16,7 @@ import type {
   TAgentProfileCreateResponse,
   TCreateAgentProfilePayload,
 } from "@/plane-web/types/agent";
+import type { TAgentSearchResponse } from "@plane/types";
 
 export class AgentService extends APIService {
   constructor() {
@@ -109,6 +110,20 @@ export class AgentService extends APIService {
   async postActivity(workspaceSlug: string, runId: string, data: TCreateActivityPayload): Promise<TAgentRunActivity> {
     return this.post(`/api/workspaces/${workspaceSlug}/agent-runs/${runId}/activities/`, data)
       .then((response) => response?.data)
+      .catch((error) => {
+        throw error?.response?.data;
+      });
+  }
+
+  // ============================================================
+  // Agent search for mention autocomplete
+  // ============================================================
+
+  async searchAgents(workspaceSlug: string, query: string): Promise<TAgentSearchResponse[]> {
+    return this.get(
+      `/api/workspaces/${workspaceSlug}/search/?search=${encodeURIComponent(query)}&query_type=agent_mention&count=5`
+    )
+      .then((response) => response?.data?.agent_mention ?? [])
       .catch((error) => {
         throw error?.response?.data;
       });
