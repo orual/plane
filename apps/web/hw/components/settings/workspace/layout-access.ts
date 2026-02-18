@@ -11,6 +11,7 @@ import { EUserWorkspaceRoles } from "@plane/types";
 export const EXTENDED_WORKSPACE_SETTINGS_ACCESS: Record<string, EUserWorkspaceRoles[]> = {
   ...BASE_WORKSPACE_SETTINGS_ACCESS,
   "/settings/issue-types": [EUserWorkspaceRoles.ADMIN, EUserWorkspaceRoles.MEMBER, EUserWorkspaceRoles.GUEST],
+  "/settings/agents": [EUserWorkspaceRoles.ADMIN],
 };
 
 // Re-export with the same name for drop-in compatibility

@@ -25,9 +25,9 @@ import { useUserPermissions } from "@/hooks/store/user";
 // local imports
 import { WORKSPACE_SETTINGS_ICONS } from "./item-icon";
 
-// Extended type to include workspace_issue_types key
+// Extended type to include workspace_issue_types and agents keys
 type TExtendedWorkspaceSettingsItem = Omit<TWorkspaceSettingsItem, "key"> & {
-  key: TWorkspaceSettingsItem["key"] | "workspace_issue_types";
+  key: TWorkspaceSettingsItem["key"] | "workspace_issue_types" | "agents";
 };
 
 // Extended workspace settings with issue types
@@ -39,8 +39,20 @@ const EXTENDED_WORKSPACE_SETTINGS_ITEM: TExtendedWorkspaceSettingsItem = {
   highlight: (pathname: string, baseUrl: string) => pathname === `${baseUrl}/settings/issue-types/`,
 };
 
+const AGENTS_SETTINGS_ITEM: TExtendedWorkspaceSettingsItem = {
+  key: "agents",
+  i18n_label: "workspace_settings.settings.agents.title",
+  href: "/settings/agents",
+  access: [EUserWorkspaceRoles.ADMIN],
+  highlight: (pathname: string, baseUrl: string) => new RegExp(`^${baseUrl}/settings/agents/`).test(pathname),
+};
+
 const EXTENDED_GROUPED_WORKSPACE_SETTINGS: Record<WORKSPACE_SETTINGS_CATEGORY, TExtendedWorkspaceSettingsItem[]> = {
   ...GROUPED_WORKSPACE_SETTINGS,
+  [WORKSPACE_SETTINGS_CATEGORY.DEVELOPER]: [
+    ...(GROUPED_WORKSPACE_SETTINGS[WORKSPACE_SETTINGS_CATEGORY.DEVELOPER] || []),
+    AGENTS_SETTINGS_ITEM,
+  ],
   [WORKSPACE_SETTINGS_CATEGORY.FEATURES]: [
     ...(GROUPED_WORKSPACE_SETTINGS[WORKSPACE_SETTINGS_CATEGORY.FEATURES] || []),
     EXTENDED_WORKSPACE_SETTINGS_ITEM,

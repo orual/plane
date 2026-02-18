@@ -5,12 +5,12 @@
  */
 
 import type { LucideIcon } from "lucide-react";
-import { ArrowUpToLine, Building, CreditCard, LayoutList, Users, Webhook } from "lucide-react";
+import { ArrowUpToLine, Bot, Building, CreditCard, LayoutList, Users, Webhook } from "lucide-react";
 // plane imports
 import type { ISvgIcons } from "@plane/propel/icons";
 import type { TWorkspaceSettingsTabs } from "@plane/types";
 
-type WorkspaceSettingsIconKey = TWorkspaceSettingsTabs | "workspace_issue_types";
+type WorkspaceSettingsIconKey = TWorkspaceSettingsTabs | "workspace_issue_types" | "agents";
 
 export const WORKSPACE_SETTINGS_ICONS: Record<WorkspaceSettingsIconKey, LucideIcon | React.FC<ISvgIcons>> = {
   general: Building,
@@ -19,4 +19,5 @@ export const WORKSPACE_SETTINGS_ICONS: Record<WorkspaceSettingsIconKey, LucideIc
   "billing-and-plans": CreditCard,
   webhooks: Webhook,
   workspace_issue_types: LayoutList,
+  agents: Bot,
 };
