@@ -26,6 +26,11 @@ class AgentActivityType(models.TextChoices):
     ERROR = "error", "Error"
 
 
+class AgentType(models.TextChoices):
+    EXTERNAL = "external"
+    BUILTIN = "builtin"
+
+
 VALID_STATUS_TRANSITIONS = {
     AgentRunStatus.CREATED: {AgentRunStatus.IN_PROGRESS, AgentRunStatus.FAILED, AgentRunStatus.STOPPED},
     AgentRunStatus.IN_PROGRESS: {
@@ -58,6 +63,11 @@ class AgentProfile(BaseModel):
     is_active = models.BooleanField(default=True)
     display_name = models.CharField(max_length=255)
     description = models.TextField(blank=True, default="")
+    agent_type = models.CharField(
+        max_length=20,
+        choices=AgentType.choices,
+        default=AgentType.EXTERNAL,
+    )
 
     class Meta:
         db_table = "hw_agent_profiles"
@@ -101,6 +111,13 @@ class AgentRun(BaseModel):
     last_activity_at = models.DateTimeField(default=timezone.now)
     completed_at = models.DateTimeField(null=True, blank=True)
     trigger_metadata = models.JSONField(default=dict)
+    conversation = models.ForeignKey(
+        "hw.AgentConversation",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="runs",
+    )
 
     class Meta:
         db_table = "hw_agent_runs"
@@ -162,3 +179,51 @@ class AgentRunActivity(BaseModel):
         if self.activity_type in (AgentActivityType.THOUGHT, AgentActivityType.ACTION):
             self.is_ephemeral = True
         super().save(*args, **kwargs)
+
+
+class AgentConversation(BaseModel):
+    workspace = models.ForeignKey(
+        "db.Workspace",
+        on_delete=models.CASCADE,
+        related_name="agent_conversations",
+    )
+    user = models.ForeignKey(
+        "db.User",
+        on_delete=models.CASCADE,
+        related_name="agent_conversations",
+    )
+    title = models.CharField(max_length=255, blank=True, default="")
+    is_active = models.BooleanField(default=True)
+
+    class Meta:
+        db_table = "hw_agent_conversations"
+        ordering = ["-created_at"]
+
+
+class AgentConversationMessageRole(models.TextChoices):
+    USER = "user"
+    ASSISTANT = "assistant"
+
+
+class AgentConversationMessage(BaseModel):
+    conversation = models.ForeignKey(
+        AgentConversation,
+        on_delete=models.CASCADE,
+        related_name="messages",
+    )
+    role = models.CharField(
+        max_length=20,
+        choices=AgentConversationMessageRole.choices,
+    )
+    content = models.TextField()
+    run = models.ForeignKey(
+        AgentRun,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="conversation_messages",
+    )
+
+    class Meta:
+        db_table = "hw_agent_conversation_messages"
+        ordering = ["created_at"]

@@ -3,8 +3,12 @@ from .agent import (
     AgentProfile,
     AgentRun,
     AgentRunActivity,
+    AgentConversation,
+    AgentConversationMessage,
+    AgentConversationMessageRole,
     AgentRunStatus,
     AgentActivityType,
+    AgentType,
     VALID_STATUS_TRANSITIONS,
 )
 
@@ -14,7 +18,11 @@ __all__ = [
     "AgentProfile",
     "AgentRun",
     "AgentRunActivity",
+    "AgentConversation",
+    "AgentConversationMessage",
+    "AgentConversationMessageRole",
     "AgentRunStatus",
     "AgentActivityType",
+    "AgentType",
     "VALID_STATUS_TRANSITIONS",
 ]
