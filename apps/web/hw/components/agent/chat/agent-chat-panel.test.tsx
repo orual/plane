@@ -92,7 +92,7 @@ describe("AgentChatPanel", () => {
     });
 
     it("should manage activeConversationId state", () => {
-      const conversationState = { activeConversationId: "conv-1" };
+      const conversationState: { activeConversationId: string | null } = { activeConversationId: "conv-1" };
       expect(conversationState.activeConversationId).toBe("conv-1");
       conversationState.activeConversationId = null;
       expect(conversationState.activeConversationId).toBeNull();
