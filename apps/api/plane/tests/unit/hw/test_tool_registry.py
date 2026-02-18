@@ -169,6 +169,101 @@ class TestToolRegistry:
         assert tool is not None
 
 
+class TestDocAndTypeGeneration:
+    """Test documentation and TypeScript type generation for real tools."""
+
+    def test_generate_docs_with_real_tools(self):
+        """Test that generate_docs() produces valid markdown with all tools."""
+        from plane.hw.agent_tools.registry import ToolRegistry, default_registry
+
+        # Import all real tool modules to trigger registration
+        from plane.hw.agent_tools.tools import issues, comments, projects, cycles, modules, users, labels, states
+
+        # Generate docs from default registry
+        docs = default_registry.generate_docs()
+
+        # Check that it's valid markdown
+        assert "# Agent Tools Reference" in docs
+        assert "## issues.create" in docs
+        assert "## comments.create" in docs
+        assert "## projects.list" in docs
+        assert "## cycles.list" in docs
+        assert "## modules.list" in docs
+        assert "## users.list" in docs
+        assert "## labels.list" in docs
+        assert "## states.list" in docs
+
+        # Check that each tool has proper parameter tables
+        assert "| Name | Type | Required | Description |" in docs
+
+        # Check specific parameter details
+        assert "| project_id | string | Yes | Project ID |" in docs
+        assert "| name | string | Yes | Issue name |" in docs
+        assert "| comment_html | string | Yes | Comment content in HTML |" in docs
+        assert "| query | string | Yes | Search query text |" in docs
+
+        # Check return types are documented
+        assert "Issue object with full detail" in docs
+        assert "Created comment object" in docs
+
+    def test_generate_types_with_real_tools(self):
+        """Test that generate_types() produces valid TypeScript declarations."""
+        from plane.hw.agent_tools.registry import ToolRegistry, default_registry
+
+        # Import all real tool modules to trigger registration
+        from plane.hw.agent_tools.tools import issues, comments, projects, cycles, modules, users, labels, states
+
+        # Generate types
+        types = default_registry.generate_types()
+
+        # Check that it contains TypeScript function declarations
+        assert "declare function issues.create" in types
+        assert "declare function issues.list" in types
+        assert "declare function comments.create" in types
+        assert "declare function projects.list" in types
+        assert "declare function cycles.list" in types
+        assert "declare function modules.list" in types
+        assert "declare function users.list" in types
+        assert "declare function labels.list" in types
+        assert "declare function states.list" in types
+
+        # Check parameter type mapping
+        assert "project_id: string" in types
+        assert "name: string" in types
+        assert "priority?: string" in types  # priority is defined as string in tool
+        assert "assignee_ids?: Array<string>" in types  # array type
+        assert "query: string" in types
+
+        # Check return types
+        assert "Promise<any>" in types
+
+        # Check that all tools are represented
+        tool_functions = [
+            "issues.create", "issues.get", "issues.list", "issues.update", "issues.search",
+            "comments.create", "comments.list",
+            "projects.create", "projects.get", "projects.list",
+            "cycles.create", "cycles.get", "cycles.list", "cycles.add_issues",
+            "modules.create", "modules.get", "modules.list", "modules.add_issues",
+            "users.create", "users.get", "users.list", "users.search",
+            "labels.create", "labels.get", "labels.list",
+            "states.create", "states.get", "states.list"
+        ]
+
+        for tool_func in tool_functions:
+            # Tools that don't exist yet won't be in types, but existing ones should be
+            if tool_func in [
+                "issues.create", "issues.get", "issues.list", "issues.update", "issues.search",
+                "comments.create", "comments.list",
+                "projects.get", "projects.list",
+                "cycles.get", "cycles.list", "cycles.add_issues",
+                "modules.get", "modules.list", "modules.add_issues",
+                "users.list", "users.search",
+                "labels.list",
+                "states.list"
+            ]:
+                assert f"declare function {tool_func}" in types
+
+
 @pytest.mark.django_db
 @pytest.mark.django_db
 class TestPermissionHelpers:
