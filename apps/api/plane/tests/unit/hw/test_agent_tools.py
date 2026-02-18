@@ -1,7 +1,10 @@
-from uuid import uuid4  # noqa: F401
+from uuid import UUID  # noqa: F401
 from plane.hw.agent_tools.registry import ToolRegistry, ToolContext  # noqa: F401
 from plane.hw.agent_tools.tools import issues, comments, projects, cycles, modules, users, labels, states  # noqa: F401
-from plane.db.models import User, Workspace, Project, Issue, IssueComment, Cycle, Module, WorkspaceMember, ProjectMember, Label, State
+from plane.db.models import (
+    User, Workspace, Project, Issue, IssueComment, Cycle,
+    Module, WorkspaceMember, ProjectMember, Label, State
+)
 from plane.app.permissions.base import ROLE
 
 import pytest
@@ -118,7 +121,6 @@ class TestMvpTools:
 
     def test_registry_has_mvp_tools(self):
         """Test that after importing all tool modules, ~18 tools are registered."""
-        from plane.hw.agent_tools.registry import ToolRegistry
         tools = ToolRegistry.list_tools()
         assert len(tools) == 18  # Exact count - see phase 02.md for exact 18 tools
 
@@ -325,7 +327,7 @@ class TestMvpTools:
     def test_states_list_excludes_triage(self):
         """Test that states.list returns states for a project excluding triage."""
         # Create triage state
-        triage_state = State.objects.create(
+        _triage_state = State.objects.create(
             project=self.project,
             name="Triage",
             color="#6b7280",
