@@ -96,7 +96,6 @@ def emit_run_status_event(run: AgentRun) -> None:
         run: The AgentRun whose status changed
     """
     try:
-        # Prepare event payload with run status data
         event_payload = {
             "event_type": "run_status_changed",
             "data": {
@@ -108,7 +107,6 @@ def emit_run_status_event(run: AgentRun) -> None:
         }
         payload_json = json.dumps(event_payload)
 
-        # Get Redis instance
         r = redis_instance()
         if not r:
             logger.warning("Redis not configured, skipping run status event emission")
@@ -117,6 +115,11 @@ def emit_run_status_event(run: AgentRun) -> None:
         # Publish to run-level channel
         run_channel = f"agent-run-{run.id}"
         r.publish(run_channel, payload_json)
+
+        # Publish to conversation-level channel if applicable
+        if run.conversation_id:
+            conversation_channel = f"agent-conversation-{run.conversation_id}"
+            r.publish(conversation_channel, payload_json)
 
     except Exception as e:
         logger.exception(f"Failed to emit run status event for run {run.id}: {e}")

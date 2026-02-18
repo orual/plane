@@ -134,24 +134,44 @@ class TestEmitActivityEvent:
         emit_activity_event(activity)
 
     @patch("plane.hw.services.agent_events.redis_instance")
-    def test_emit_run_status_event(self, mock_redis):
-        """Test run status event emission."""
+    def test_emit_run_status_event_run_only(self, mock_redis):
+        """Test run status event publishes to run channel only (no conversation)."""
         run = AgentRunFactory(agent=self.agent, workspace=self.workspace)
 
-        # Set up mock Redis
         mock_redis_client = MagicMock()
         mock_redis.return_value = mock_redis_client
 
-        # Emit event
         emit_run_status_event(run)
 
-        # Verify publish was called
-        mock_redis_client.publish.assert_called()
+        mock_redis_client.publish.assert_called_once()
+        channel, payload_str = mock_redis_client.publish.call_args[0]
+        assert channel == f"agent-run-{run.id}"
 
-        # Check that it published to run channel
+        payload = json.loads(payload_str)
+        assert payload["event_type"] == "run_status_changed"
+        assert payload["data"]["run_id"] == str(run.id)
+
+    @patch("plane.hw.services.agent_events.redis_instance")
+    def test_emit_run_status_event_with_conversation(self, mock_redis):
+        """Test run status event publishes to both run and conversation channels."""
+        conversation = AgentConversationFactory(workspace=self.workspace, user=self.user)
+        run = AgentRunFactory(
+            agent=self.agent,
+            workspace=self.workspace,
+            conversation=conversation,
+        )
+
+        mock_redis_client = MagicMock()
+        mock_redis.return_value = mock_redis_client
+
+        emit_run_status_event(run)
+
         call_args = mock_redis_client.publish.call_args_list
-        run_channel_calls = [call for call in call_args if f"agent-run-{run.id}" in str(call)]
-        assert len(run_channel_calls) > 0
+        assert len(call_args) == 2
+
+        channels = {call[0][0] for call in call_args}
+        assert f"agent-run-{run.id}" in channels
+        assert f"agent-conversation-{conversation.id}" in channels
 
     @patch("plane.hw.services.agent_events.redis_instance")
     def test_emit_run_status_event_redis_failure(self, mock_redis):
