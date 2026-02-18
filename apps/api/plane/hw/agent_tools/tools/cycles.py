@@ -1,7 +1,7 @@
 from uuid import UUID
 from plane.hw.agent_tools.registry import tool, ToolParam, ToolContext
 from plane.hw.agent_tools.permissions import check_project_member
-from plane.db.models import Cycle, CycleIssue, Project, User
+from plane.db.models import Cycle, CycleIssue  # noqa: F401
 from plane.app.permissions.base import ROLE
 
 
