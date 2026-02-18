@@ -7,10 +7,10 @@
 import { makeObservable, observable, action, runInAction } from "mobx";
 import { computedFn } from "mobx-utils";
 // service
-import { AgentService } from "@/plane-web/services/agent.service";
+import { AgentService } from "../../services/agent.service";
 // types
 import type { CoreRootStore } from "@/store/root.store";
-import type { TAgentProfile, TCreateAgentProfilePayload } from "@/plane-web/types/agent";
+import type { TAgentProfile, TCreateAgentProfilePayload } from "../../types/agent";
 
 export interface IAgentProfileStore {
   // observables
@@ -121,7 +121,6 @@ export class AgentProfileStore implements IAgentProfileStore {
    */
   createProfile = async (workspaceSlug: string, data: TCreateAgentProfilePayload) =>
     await this.agentService.createAgentProfile(workspaceSlug, data).then((response) => {
-       
       const { api_token: _apiToken, ...profileData } = response;
       const _token = _apiToken ?? null;
 
