@@ -5,12 +5,6 @@ This module tests the SandboxExecutor class and related IPC functionality.
 """
 
 import json
-import os
-import shutil
-import subprocess
-import tempfile
-import threading
-import time
 from unittest.mock import MagicMock, Mock, patch
 
 import pytest

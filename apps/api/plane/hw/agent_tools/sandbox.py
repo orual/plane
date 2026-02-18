@@ -5,9 +5,7 @@ This module provides the SandboxExecutor class that manages the full lifecycle
 of sandboxed code execution, including constraint enforcement and IPC communication.
 """
 
-import json
 import os
-import signal
 import subprocess
 import tempfile
 import threading
@@ -19,9 +17,6 @@ from plane.hw.agent_tools.constraints import SandboxConstraints
 from plane.hw.agent_tools.ipc import (
     parse_sandbox_message,
     serialize_host_message,
-    ToolCallMessage,
-    OutputMessage,
-    ErrorMessage,
     ToolResultMessage,
     ToolErrorMessage,
     validate_tool_call,
@@ -143,7 +138,7 @@ class SandboxExecutor:
 
                     return result
 
-                except Exception as e:
+                except Exception:
                     if timeout_timer and timeout_timer.is_alive():
                         timeout_timer.cancel()
 
