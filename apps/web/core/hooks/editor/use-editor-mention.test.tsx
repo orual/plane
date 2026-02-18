@@ -79,7 +79,7 @@ describe("useEditorMention - Integration flow", () => {
       const externalAgent = { id: "a2", display_name: "Service", agent_type: "external" as const };
 
       const builtinBadge = builtinAgent.agent_type === "builtin" ? "Built-in" : "External";
-      const externalBadge = externalAgent.agent_type === "builtin" ? "Built-in" : "External";
+      const externalBadge = externalAgent.agent_type === "external" ? "External" : "Built-in";
 
       expect(builtinBadge).toBe("Built-in");
       expect(externalBadge).toBe("External");
