@@ -12,12 +12,18 @@ import type { IProject } from "./project";
 import type { IUser } from "./users";
 import type { IWorkspace } from "./workspace";
 
-export type TSearchEntities = "user_mention" | "issue" | "project" | "cycle" | "module" | "page";
+export type TSearchEntities = "user_mention" | "issue" | "project" | "cycle" | "module" | "page" | "agent_mention";
 
 export type TUserSearchResponse = {
   member__avatar_url: IUser["avatar_url"];
   member__display_name: IUser["display_name"];
   member__id: IUser["id"];
+};
+
+export type TAgentSearchResponse = {
+  id: string;
+  display_name: string;
+  agent_type: "external" | "builtin";
 };
 
 export type TProjectSearchResponse = {
@@ -66,6 +72,7 @@ export type TPageSearchResponse = {
 };
 
 export type TSearchResponse = {
+  agent_mention?: TAgentSearchResponse[];
   cycle?: TCycleSearchResponse[];
   issue?: TIssueSearchResponse[];
   module?: TModuleSearchResponse[];
