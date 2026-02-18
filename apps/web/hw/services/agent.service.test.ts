@@ -120,4 +120,61 @@ describe("AgentService", () => {
       await expect(service.deleteAgentProfile("test-workspace", "agent-1")).rejects.toEqual(errorData);
     });
   });
+
+  describe("Agent search for mention autocomplete", () => {
+    it("should construct correct search agents endpoint with query parameters", async () => {
+      const mockAgents: any = [{ id: "agent-1", display_name: "My Agent", agent_type: "builtin" }];
+      const getSpy = vi.spyOn(service, "get" as any).mockResolvedValueOnce({
+        data: { agent_mention: mockAgents },
+      });
+
+      const result = await service.searchAgents("test-workspace", "My");
+
+      expect(getSpy).toHaveBeenCalledWith(
+        "/api/workspaces/test-workspace/search/?search=My&query_type=agent_mention&count=5"
+      );
+      expect(result).toEqual(mockAgents);
+    });
+
+    it("should encode search query correctly", async () => {
+      const getSpy = vi.spyOn(service, "get" as any).mockResolvedValueOnce({
+        data: { agent_mention: [] },
+      });
+
+      await service.searchAgents("test-workspace", "test agent");
+
+      expect(getSpy).toHaveBeenCalledWith(
+        "/api/workspaces/test-workspace/search/?search=test%20agent&query_type=agent_mention&count=5"
+      );
+    });
+
+    it("should return empty array when no agents found", async () => {
+      vi.spyOn(service, "get" as any).mockResolvedValueOnce({
+        data: { agent_mention: [] },
+      });
+
+      const result = await service.searchAgents("test-workspace", "nonexistent");
+
+      expect(result).toEqual([]);
+    });
+
+    it("should return empty array when agent_mention key missing from response", async () => {
+      vi.spyOn(service, "get" as any).mockResolvedValueOnce({
+        data: {},
+      });
+
+      const result = await service.searchAgents("test-workspace", "test");
+
+      expect(result).toEqual([]);
+    });
+
+    it("should throw error response data on search failure", async () => {
+      const errorData: any = { error: "Search failed" };
+      vi.spyOn(service, "get" as any).mockRejectedValueOnce({
+        response: { data: errorData },
+      });
+
+      await expect(service.searchAgents("test-workspace", "test")).rejects.toEqual(errorData);
+    });
+  });
 });
