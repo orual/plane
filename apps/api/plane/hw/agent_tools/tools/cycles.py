@@ -113,7 +113,13 @@ def get_cycle(params: dict, context: ToolContext) -> dict:
     params=[
         ToolParam(name="cycle_id", type="string", description="Cycle ID", required=True),
         ToolParam(name="project_id", type="string", description="Project ID", required=True),
-        ToolParam(name="issue_ids", type="array", description="Array of issue IDs to add", required=True, items_type="string"),
+        ToolParam(
+            name="issue_ids",
+            type="array",
+            description="Array of issue IDs to add",
+            required=True,
+            items_type="string"
+        ),
     ],
     return_type="List of added issue IDs",
     requires_project=True

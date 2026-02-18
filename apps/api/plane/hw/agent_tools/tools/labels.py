@@ -9,7 +9,12 @@ from plane.app.permissions.base import ROLE
     name="labels.list",
     description="List labels in workspace or project",
     params=[
-        ToolParam(name="project_id", type="string", description="Project ID (optional - if omitted, returns workspace labels only)", required=False),
+        ToolParam(
+            name="project_id",
+            type="string",
+            description="Project ID (optional - if omitted, returns workspace labels only)",
+            required=False
+        ),
     ],
     return_type="List of label objects",
     requires_project=False

@@ -1,7 +1,7 @@
 from uuid import UUID
 from plane.hw.agent_tools.registry import tool, ToolParam, ToolContext
 from plane.hw.agent_tools.permissions import check_project_member
-from plane.db.models import Module, ModuleIssue, Project, User
+from plane.db.models import Module, ModuleIssue, Project  # noqa: F401
 from plane.app.permissions.base import ROLE
 
 
@@ -115,7 +115,13 @@ def get_module(params: dict, context: ToolContext) -> dict:
     params=[
         ToolParam(name="module_id", type="string", description="Module ID", required=True),
         ToolParam(name="project_id", type="string", description="Project ID", required=True),
-        ToolParam(name="issue_ids", type="array", description="Array of issue IDs to add", required=True, items_type="string"),
+        ToolParam(
+            name="issue_ids",
+            type="array",
+            description="Array of issue IDs to add",
+            required=True,
+            items_type="string"
+        ),
     ],
     return_type="List of added issue IDs",
     requires_project=True

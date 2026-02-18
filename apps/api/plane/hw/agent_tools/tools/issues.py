@@ -2,7 +2,7 @@ from uuid import UUID
 from plane.hw.agent_tools.registry import tool, ToolParam, ToolContext
 from plane.hw.agent_tools.permissions import check_project_member
 from plane.utils.issue_search import search_issues
-from plane.db.models import Issue, IssueAssignee, IssueLabel, User
+from plane.db.models import Issue, IssueAssignee, IssueLabel  # noqa: F401
 from plane.app.permissions.base import ROLE
 
 
@@ -137,8 +137,16 @@ def get_issue(params: dict, context: ToolContext) -> dict:
         ToolParam(name="description_html", type="string", description="Issue description in HTML", required=False),
         ToolParam(name="priority", type="string", description="Issue priority", required=False),
         ToolParam(name="state_id", type="string", description="State ID", required=False),
-        ToolParam(name="assignee_ids", type="array", description="Array of assignee user IDs", required=False, items_type="string"),
-        ToolParam(name="label_ids", type="array", description="Array of label IDs", required=False, items_type="string"),
+        ToolParam(
+            name="assignee_ids", type="array",
+            description="Array of assignee user IDs",
+            required=False, items_type="string"
+        ),
+        ToolParam(
+            name="label_ids", type="array",
+            description="Array of label IDs",
+            required=False, items_type="string"
+        ),
     ],
     return_type="Created issue object",
     requires_project=True
@@ -193,8 +201,16 @@ def create_issue(params: dict, context: ToolContext) -> dict:
         ToolParam(name="description_html", type="string", description="Issue description in HTML", required=False),
         ToolParam(name="priority", type="string", description="Issue priority", required=False),
         ToolParam(name="state_id", type="string", description="State ID", required=False),
-        ToolParam(name="assignee_ids", type="array", description="Array of assignee user IDs", required=False, items_type="string"),
-        ToolParam(name="label_ids", type="array", description="Array of label IDs", required=False, items_type="string"),
+        ToolParam(
+            name="assignee_ids", type="array",
+            description="Array of assignee user IDs",
+            required=False, items_type="string"
+        ),
+        ToolParam(
+            name="label_ids", type="array",
+            description="Array of label IDs",
+            required=False, items_type="string"
+        ),
     ],
     return_type="Updated issue object",
     requires_project=True
@@ -263,7 +279,11 @@ def update_issue(params: dict, context: ToolContext) -> dict:
     description="Search issues by text",
     params=[
         ToolParam(name="query", type="string", description="Search query text", required=True),
-        ToolParam(name="project_id", type="string", description="Project ID to search within (optional)", required=False),
+        ToolParam(
+            name="project_id", type="string",
+            description="Project ID to search within (optional)",
+            required=False
+        ),
     ],
     return_type="List of matching issues",
     requires_project=False

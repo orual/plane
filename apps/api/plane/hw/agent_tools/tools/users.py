@@ -1,7 +1,7 @@
-from uuid import UUID
+# from uuid import UUID  # noqa: F401 - removed, unused
 from plane.hw.agent_tools.registry import tool, ToolParam, ToolContext
 from plane.hw.agent_tools.permissions import check_workspace_member
-from plane.db.models import User, WorkspaceMember
+from plane.db.models import WorkspaceMember  # noqa: F401
 from plane.app.permissions.base import ROLE
 
 
@@ -65,7 +65,7 @@ def search_users(params: dict, context: ToolContext) -> list:
     ).select_related("user")
 
     # Also search by email
-    from django.db.models import Q
+    # from django.db.models import Q  # noqa: F401 - removed, unused
     members = members.union(
         WorkspaceMember.objects.filter(
             workspace=context.workspace,
