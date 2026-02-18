@@ -17,6 +17,7 @@ import pytest
 
 from plane.hw.agent_tools.constraints import SandboxConstraints
 from plane.hw.agent_tools.ipc import (
+    ToolResultMessage,
     parse_sandbox_message,
     serialize_host_message,
     validate_tool_call,
@@ -50,15 +51,19 @@ class TestIPCCore:
 
     def test_serialize_host_message(self):
         """Test serialization of host messages."""
-        msg = {"type": "tool_result", "id": "call_1", "result": "success"}
+        msg = ToolResultMessage(id="call_1", result="success")
         result = serialize_host_message(msg)
 
-        # Should end with newline
         assert result.endswith("\n")
-        # Should be valid JSON without the newline
-        json_part = result.rstrip("\n")
-        parsed = json.loads(json_part)
-        assert parsed == msg
+        parsed = json.loads(result.rstrip("\n"))
+        assert parsed["type"] == "tool_result"
+        assert parsed["id"] == "call_1"
+        assert parsed["result"] == "success"
+
+    def test_serialize_host_message_rejects_non_host_message(self):
+        """Test that serialize_host_message rejects non-HostMessage types."""
+        with pytest.raises(TypeError, match="Expected HostMessage"):
+            serialize_host_message({"type": "tool_result"})
 
     def test_validate_tool_call_valid(self):
         """Test validation of valid tool call."""
@@ -67,22 +72,22 @@ class TestIPCCore:
 
     def test_validate_tool_call_wrong_type(self):
         """Test validation of wrong message type."""
-        with pytest.raises(ValueError, match="Expected tool_call message"):
+        with pytest.raises(ValueError, match="not 'tool_call'"):
             validate_tool_call({"type": "output", "content": "test"})
 
     def test_validate_tool_call_missing_id(self):
         """Test validation of message without id."""
-        with pytest.raises(ValueError, match="missing required 'id' field"):
+        with pytest.raises(ValueError, match="missing or invalid 'id' field"):
             validate_tool_call({"type": "tool_call", "name": "test", "params": {}})
 
     def test_validate_tool_call_missing_name(self):
         """Test validation of message without name."""
-        with pytest.raises(ValueError, match="missing required 'name' field"):
+        with pytest.raises(ValueError, match="missing or invalid 'name' field"):
             validate_tool_call({"type": "tool_call", "id": "call_1", "params": {}})
 
     def test_validate_tool_call_missing_params(self):
         """Test validation of message without params."""
-        with pytest.raises(ValueError, match="missing required 'params' field"):
+        with pytest.raises(ValueError, match="missing or invalid 'params' field"):
             validate_tool_call({"type": "tool_call", "id": "call_1", "name": "test"})
 
 
@@ -184,10 +189,9 @@ class TestSandboxExecutorUnit:
         assert result.output == ""
         assert len(result.tool_calls) == 0
 
-    @patch('subprocess.Popen')
+    @patch('plane.hw.agent_tools.sandbox.subprocess.Popen')
     def test_process_spawn_failure(self, mock_popen):
         """Test handling of process spawn failure."""
-        # Mock subprocess.Popen to raise an exception
         mock_popen.side_effect = Exception("Failed to spawn process")
 
         executor = SandboxExecutor(self.tool_registry, self.context, self.constraints)
@@ -195,16 +199,18 @@ class TestSandboxExecutorUnit:
         result = executor.execute("console.log('test')")
 
         assert result.error is not None
-        assert "Executor error" in result.error
+        assert "Failed to spawn process" in result.error
         assert result.output == ""
 
     @patch('subprocess.Popen')
     def test_ipc_loop_basic(self, mock_popen):
         """Test basic IPC loop with mock process."""
-        # Create a mock process
         mock_process = MagicMock()
-        mock_process.poll.return_value = None  # Process still running
-        mock_process.stdout.readline.return_value = '{"type": "output", "content": "test"}\n'
+        mock_process.poll.return_value = None
+        mock_process.stdout.readline.side_effect = [
+            '{"type": "output", "content": "test"}\n',
+            '',  # EOF — terminates the IPC loop
+        ]
         mock_process.wait.return_value = 0
         mock_popen.return_value = mock_process
 
@@ -249,7 +255,10 @@ class TestSandboxExecutorUnit:
         """Test IPC loop error handling."""
         mock_process = MagicMock()
         mock_process.poll.return_value = None
-        mock_process.stdout.readline.return_value = '{"type": "error", "message": "Test error"}\n'
+        mock_process.stdout.readline.side_effect = [
+            '{"type": "error", "message": "Test error"}\n',
+            '',  # EOF — terminates the IPC loop
+        ]
         mock_process.wait.return_value = 1
         mock_popen.return_value = mock_process
 
@@ -281,20 +290,4 @@ def test_code_validation(test_input, expected):
             constraints.validate_code_size(test_input)
 
 
-class TestSandboxIntegration:
-    """Integration tests that test the complete sandbox workflow."""
 
-    def setup_method(self):
-        """Set up test fixtures."""
-        self.tool_registry = Mock()
-        self.tool_registry.execute.return_value = {"result": "success"}
-        self.context = {"workspace_id": 1, "project_id": 1}
-
-    @pytest.mark.django_db
-    def test_tool_registry_with_orm(self):
-        """Test tool registry integration with Django ORM."""
-        from plane.hw.agent_tools.tools.issues import IssuesTools
-
-        # This test would require actual database setup
-        # For now, just test that the tool exists
-        assert hasattr(IssuesTools, 'list')

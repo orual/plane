@@ -5,9 +5,10 @@ This module defines the JSON Lines protocol for communication between
 the sandbox (TypeScript runtime) and the host (Python executor).
 """
 
+import dataclasses
 import json
 from dataclasses import dataclass
-from typing import Dict, Any
+from typing import Any, Dict
 
 
 @dataclass
@@ -92,23 +93,19 @@ def parse_sandbox_message(line: str) -> Dict[str, Any]:
     return data
 
 
-def serialize_host_message(msg: Dict[str, Any]) -> str:
-    """
-    Serialize a host message to a JSON line (with newline terminator).
+def serialize_host_message(msg: HostMessage) -> str:
+    """Serialize a host message to a JSON line (with newline terminator).
 
     Args:
-        msg: Message dictionary to serialize
+        msg: A HostMessage dataclass (ToolResultMessage or ToolErrorMessage).
 
     Returns:
-        JSON string with newline terminator
+        JSON string with newline terminator.
     """
-    if not isinstance(msg, dict):
-        raise ValueError("Message must be a dictionary")
+    if not isinstance(msg, HostMessage):
+        raise TypeError(f"Expected HostMessage, got {type(msg).__name__}")
 
-    if "type" not in msg:
-        raise ValueError("Message missing required 'type' field")
-
-    return json.dumps(msg) + "\n"
+    return json.dumps(dataclasses.asdict(msg)) + "\n"
 
 
 def validate_tool_call(msg: Dict[str, Any]) -> bool:
