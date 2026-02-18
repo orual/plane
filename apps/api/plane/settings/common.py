@@ -204,7 +204,7 @@ else:
     }
 
 # Django EventStream Configuration
-_parsed_redis = urlparse.urlparse(REDIS_URL) if REDIS_URL else None
+_parsed_redis = urlparse(REDIS_URL) if REDIS_URL else None
 EVENTSTREAM_STORAGE_CLASS = "django_eventstream.storage.DjangoModelStorage"
 EVENTSTREAM_CHANNELMANAGER_CLASS = "django_eventstream.channelmanager.DefaultChannelManager"
 

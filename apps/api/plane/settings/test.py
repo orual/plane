@@ -20,6 +20,10 @@ os.environ.setdefault("EMAIL_HOST", "localhost")
 WEB_URL = "http://localhost:3000"
 APP_BASE_URL = "http://localhost:3000"
 
+# Remove django_eventstream for tests (optional dependency)
+if "django_eventstream" in INSTALLED_APPS:  # noqa
+    INSTALLED_APPS.remove("django_eventstream")
+
 INSTALLED_APPS.append(  # noqa
     "plane.tests"
 )

@@ -28,51 +28,6 @@ DEFAULT_PROVIDER = "anthropic"
 
 
 def get_llm_response(
-    """Helper to get LLM configuration values.
-
-    Returns (api_key, model, provider, base_url).
-    """
-    api_key, provider_key, model, base_url = get_configuration_value(
-        [
-            {
-                "key": "LLM_API_KEY",
-                "default": os.environ.get("LLM_API_KEY", None),
-            },
-            {
-                "key": "LLM_PROVIDER",
-                "default": os.environ.get("LLM_PROVIDER", "openai"),
-            },
-            {
-                "key": "LLM_MODEL",
-                "default": os.environ.get("LLM_MODEL", None),
-            },
-            {
-                "key": "LLM_BASE_URL",
-                "default": os.environ.get("LLM_BASE_URL", ""),
-            },
-        ]
-    )
-
-    if not provider_key:
-        log_exception(ValueError("No LLM provider configured"))
-        return None, None, None, None
-
-    provider_config = PROVIDER_MODELS.get(provider_key.lower())
-    if not provider_config:
-        log_exception(ValueError(f"Unsupported provider: {provider_key}"))
-        return None, None, None, None
-
-    if not api_key:
-        log_exception(ValueError(f"Missing API key for provider: {provider_key}"))
-        return None, None, None, None
-
-    if not model:
-        model = provider_config["default"]
-
-    return api_key, model, provider_key, base_url or ""
-
-
-def get_llm_response(
     task: str,
     prompt: str,
     api_key: str,
