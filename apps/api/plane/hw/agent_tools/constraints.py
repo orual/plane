@@ -5,7 +5,6 @@ This module defines the limits and constraints for sandboxed code execution.
 """
 
 from dataclasses import dataclass
-from typing import NoReturn
 
 
 @dataclass

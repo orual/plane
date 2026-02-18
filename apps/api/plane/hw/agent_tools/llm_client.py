@@ -66,7 +66,9 @@ class AgentLLMClient:
             ]
         }
 
-    def _build_history_message(self, role: str, content: str, thinking_blocks: List[Dict] | None = None) -> Dict[str, Any]:
+    def _build_history_message(
+        self, role: str, content: str, thinking_blocks: List[Dict] | None = None
+    ) -> Dict[str, Any]:
         """Build message dict with optional thinking blocks.
 
         Args:

@@ -64,7 +64,10 @@ class ToolErrorMessage(HostMessage):
 
 def parse_sandbox_message(line: str) -> Dict[str, Any]:
     """
-    Parse a JSON line from the sandbox. Returns the parsed dict with validated `type` field. Raises `ValueError` for invalid JSON or missing `type`.
+    Parse a JSON line from the sandbox.
+
+    Returns the parsed dict with validated `type` field.
+    Raises `ValueError` for invalid JSON or missing `type`.
 
     Args:
         line: Raw JSON string from sandbox (may include newline)
