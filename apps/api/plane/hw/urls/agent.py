@@ -10,6 +10,8 @@ from plane.hw.views import (
     AgentRunActivityViewSet,
     AgentConversationViewSet,
     AgentConversationMessageViewSet,
+    AgentRunEventsView,
+    AgentConversationEventsView,
 )
 
 urlpatterns = [
@@ -57,5 +59,17 @@ urlpatterns = [
         "workspaces/<str:slug>/agent-conversations/<uuid:conversation_id>/messages/",
         AgentConversationMessageViewSet.as_view({"get": "list", "post": "create"}),
         name="agent-conversation-messages",
+    ),
+    # Agent run events (SSE streaming)
+    path(
+        "workspaces/<str:slug>/agent-runs/<uuid:run_id>/events/",
+        AgentRunEventsView.as_view(),
+        name="agent-run-events",
+    ),
+    # Agent conversation events (SSE streaming)
+    path(
+        "workspaces/<str:slug>/agent-conversations/<uuid:conversation_id>/events/",
+        AgentConversationEventsView.as_view(),
+        name="agent-conversation-events",
     ),
 ]
