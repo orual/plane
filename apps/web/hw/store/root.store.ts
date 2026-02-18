@@ -14,12 +14,15 @@ import { IssuePropertyStore } from "./issue-property.store";
 import type { IIssuePropertyStore } from "./issue-property.store";
 import { AgentRunStore } from "./agent/agent-run.store";
 import type { IAgentRunStore } from "./agent/agent-run.store";
+import { AgentProfileStore } from "./agent/agent-profile.store";
+import type { IAgentProfileStore } from "./agent/agent-profile.store";
 
 export class RootStore extends CoreRootStore {
   timelineStore: ITimelineStore;
   issueTypeStore: IIssueTypeStore;
   issuePropertyStore: IIssuePropertyStore;
   agentRunStore: IAgentRunStore;
+  agentProfileStore: IAgentProfileStore;
 
   constructor() {
     super();
@@ -28,5 +31,6 @@ export class RootStore extends CoreRootStore {
     this.issueTypeStore = new IssueTypeStore(this);
     this.issuePropertyStore = new IssuePropertyStore(this);
     this.agentRunStore = new AgentRunStore(this);
+    this.agentProfileStore = new AgentProfileStore(this);
   }
 }
