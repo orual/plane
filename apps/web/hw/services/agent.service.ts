@@ -8,11 +8,69 @@
 import { APIService } from "@/services/api.service";
 import { API_BASE_URL } from "@plane/constants";
 // types
-import type { TAgentRun, TAgentRunActivity, TCreateActivityPayload } from "@/plane-web/types/agent";
+import type {
+  TAgentRun,
+  TAgentRunActivity,
+  TCreateActivityPayload,
+  TAgentProfile,
+  TAgentProfileCreateResponse,
+  TCreateAgentProfilePayload,
+} from "@/plane-web/types/agent";
 
 export class AgentService extends APIService {
   constructor() {
     super(API_BASE_URL);
+  }
+
+  // ============================================================
+  // Agent profile endpoints
+  // ============================================================
+
+  async listAgentProfiles(workspaceSlug: string): Promise<TAgentProfile[]> {
+    return this.get(`/api/workspaces/${workspaceSlug}/agents/`)
+      .then((response) => response?.data)
+      .catch((error) => {
+        throw error?.response?.data;
+      });
+  }
+
+  async getAgentProfile(workspaceSlug: string, agentId: string): Promise<TAgentProfile> {
+    return this.get(`/api/workspaces/${workspaceSlug}/agents/${agentId}/`)
+      .then((response) => response?.data)
+      .catch((error) => {
+        throw error?.response?.data;
+      });
+  }
+
+  async createAgentProfile(
+    workspaceSlug: string,
+    data: TCreateAgentProfilePayload
+  ): Promise<TAgentProfileCreateResponse> {
+    return this.post(`/api/workspaces/${workspaceSlug}/agents/`, data)
+      .then((response) => response?.data)
+      .catch((error) => {
+        throw error?.response?.data;
+      });
+  }
+
+  async updateAgentProfile(
+    workspaceSlug: string,
+    agentId: string,
+    data: Partial<TAgentProfile>
+  ): Promise<TAgentProfile> {
+    return this.patch(`/api/workspaces/${workspaceSlug}/agents/${agentId}/`, data)
+      .then((response) => response?.data)
+      .catch((error) => {
+        throw error?.response?.data;
+      });
+  }
+
+  async deleteAgentProfile(workspaceSlug: string, agentId: string): Promise<void> {
+    return this.delete(`/api/workspaces/${workspaceSlug}/agents/${agentId}/`)
+      .then((response) => response?.data)
+      .catch((error) => {
+        throw error?.response?.data;
+      });
   }
 
   // ============================================================
