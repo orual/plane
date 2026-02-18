@@ -56,7 +56,6 @@ INSTALLED_APPS = [
     "plane.hw",
     # Third-party things
     "rest_framework",
-    "django_eventstream",
     "corsheaders",
     "django_celery_beat",
 ]
@@ -201,20 +200,6 @@ else:
             "LOCATION": REDIS_URL,
             "OPTIONS": {"CLIENT_CLASS": "django_redis.client.DefaultClient"},
         }
-    }
-
-# Django EventStream Configuration
-_parsed_redis = urlparse(REDIS_URL) if REDIS_URL else None
-EVENTSTREAM_STORAGE_CLASS = "django_eventstream.storage.DjangoModelStorage"
-EVENTSTREAM_CHANNELMANAGER_CLASS = "django_eventstream.channelmanager.DefaultChannelManager"
-
-if _parsed_redis:
-    EVENTSTREAM_REDIS = {
-        "host": _parsed_redis.hostname or "localhost",
-        "port": _parsed_redis.port or 6379,
-        "db": int(_parsed_redis.path.lstrip("/") or 0),
-        "password": _parsed_redis.password or None,
-        "ssl": REDIS_SSL,
     }
 
 # Password validations

@@ -3,12 +3,9 @@
 # See the LICENSE file for details.
 
 import os
-import re
 
-from channels.routing import ProtocolTypeRouter, URLRouter
+from channels.routing import ProtocolTypeRouter
 from django.core.asgi import get_asgi_application
-
-import django_eventstream.routing
 
 django_asgi_app = get_asgi_application()
 
@@ -18,9 +15,4 @@ os.environ.setdefault("DJANGO_SETTINGS_MODULE", "plane.settings.production")
 # is populated before importing code that may import ORM models.
 
 
-application = ProtocolTypeRouter({
-    "http": URLRouter([
-        *django_eventstream.routing.urlpatterns,
-        re_path(r"", django_asgi_app),
-    ]),
-})
+application = ProtocolTypeRouter({"http": get_asgi_application()})
