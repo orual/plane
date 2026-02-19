@@ -1,32 +1,40 @@
-FROM python:3.12.5-alpine AS backend
+# Stage to extract Deno binary
+FROM denoland/deno:bin-2.6.9 AS deno-bin
+
+FROM python:3.12.5-slim AS backend
 
 # set environment variables
 ENV PYTHONDONTWRITEBYTECODE 1
 ENV PYTHONUNBUFFERED 1
-ENV PIP_DISABLE_PIP_VERSION_CHECK=1 
+ENV PIP_DISABLE_PIP_VERSION_CHECK=1
 ENV INSTANCE_CHANGELOG_URL https://sites.plane.so/pages/691ef037bcfe416a902e48cb55f59891/
 
-RUN apk --no-cache add \
-    "bash~=5.2" \
-    "libpq" \
-    "libxslt" \
-    "nodejs-current" \
-    "xmlsec" \
-    "libffi-dev" \
-    "bash~=5.2" \
-    "g++" \
-    "gcc" \
-    "cargo" \
-    "git" \
-    "make" \
-    "postgresql-dev" \
-    "libc-dev" \
-    "linux-headers"
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    bash \
+    iproute2 \
+    procps \
+    libpq5 \
+    libxslt1.1 \
+    nodejs \
+    libxmlsec1 \
+    libffi-dev \
+    g++ \
+    gcc \
+    cargo \
+    git \
+    make \
+    libpq-dev \
+    libc-dev \
+    linux-headers-generic \
+    && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /code
 
 COPY requirements.txt ./requirements.txt
 ADD requirements ./requirements
+
+# Install Deno binary (glibc — works natively on Debian)
+COPY --from=deno-bin /deno /usr/local/bin/deno
 
 # Install the local development settings
 RUN pip install -r requirements/local.txt --compile --no-cache-dir
@@ -43,4 +51,3 @@ RUN chmod -R 777 /code
 EXPOSE 8000
 
 CMD [ "./bin/docker-entrypoint-api-local.sh" ]
-

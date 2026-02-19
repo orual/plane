@@ -1,6 +1,6 @@
 # HW agent infrastructure models
 
-Last verified: 2026-02-16
+Last verified: 2026-02-18
 
 ## Purpose
 
@@ -8,11 +8,15 @@ Provides the data model for external AI agents that interact with Plane
 through API tokens and webhooks. Agents register as bot users, execute
 lifecycle-tracked runs scoped to workspaces/projects/issues, and post
 activity streams that auto-create issue comments for response activities.
+Supports both external webhook-based agents and built-in agents via the new
+conversation grouping and agent type system.
 
 ## Contracts
 
 - **Exposes**: `AgentProfile`, `AgentRun`, `AgentRunActivity`,
-  `AgentRunStatus`, `AgentActivityType`, `VALID_STATUS_TRANSITIONS`
+  `AgentRunStatus`, `AgentActivityType`, `AgentType`, `AgentConversation`,
+  `AgentConversationMessage`, `AgentConversationMessageRole`,
+  `VALID_STATUS_TRANSITIONS`
 - **Guarantees**:
   - Status transitions are enforced in `AgentRun.save()` via
     `VALID_STATUS_TRANSITIONS`. Invalid transitions raise `ValueError`.
@@ -25,7 +29,28 @@ activity streams that auto-create issue comments for response activities.
   - `AgentProfile` has a unique constraint on `(workspace, display_name)`.
   - Each `AgentProfile` has exactly one `User` (`bot_type=AGENT`) and
     one `WorkspaceMember` (admin role) created atomically.
+  - `AgentProfile.agent_type` defaults to "external" for backward compatibility.
+  - `AgentConversationMessage` are ordered by `created_at` ascending.
+  - `AgentConversation` are ordered by `created_at` descending.
+  - Built-in agents are seeded automatically per workspace via `workspace_seed_task`.
 - **Expects**: Valid workspace, project, and issue foreign keys.
+
+## Agent types
+
+`AgentType` enum distinguishes between external and built-in agents:
+
+- `EXTERNAL` (default): Traditional webhook-based agents that register
+  external endpoints and respond to triggers like issue creation/updates.
+- `BUILTIN`: Built-in AI agents that are automatically seeded per workspace
+  and do not require webhook configuration.
+
+Built-in agents:
+
+- Cannot be deleted (automatically maintained per workspace)
+- Are automatically created with `agent_type="builtin"` on workspace seed
+- Have `is_active=True` by default
+- Have unique bot users with `bot_type=AGENT`
+- Cannot be created via the external agent API (admin-only)
 
 ## Status state machine
 
@@ -40,6 +65,25 @@ created --> in_progress --> completed
 failed       stopped (terminal)
 stopped
 ```
+
+## Conversation models
+
+`AgentConversation` groups messages into logical sessions:
+
+- Fields: `workspace` (FK), `user` (FK), `title` (optional), `is_active` (default True)
+- Ordering: by `created_at` descending (newest first)
+- Auto-seeded per workspace with the built-in agent
+- Each conversation can have multiple messages with different roles
+
+`AgentConversationMessage` represents individual conversation turns:
+
+- Fields: `conversation` (FK), `role` ("user" or "assistant"), `content` (text),
+  `run` (nullable FK to AgentRun), `created_at` (timestamp)
+- Role choices:
+  - `USER`: User-initiated messages (query, command, etc.)
+  - `ASSISTANT`: Agent responses (including issue updates, etc.)
+- Ordering: by `created_at` ascending (chronological)
+- `run` FK links to the AgentRun that generated this response (when applicable)
 
 ## API endpoints (plane.hw.views.agent)
 
@@ -68,6 +112,8 @@ stopped
 now`.
 - `cleanup_ephemeral_activities` -- Celery beat every hour. Deletes
   `is_ephemeral=True` activities from terminal runs older than 24 hours.
+- `workspace_seed_task` -- creates built-in agent profile for new workspaces
+  (idempotent). Executed once per workspace on initial creation.
 
 ## Mention trigger
 
@@ -79,7 +125,11 @@ now`.
 
 - **Uses**: `plane.db.models.BaseModel`, `plane.db.models.User`,
   `plane.db.models.Workspace`, `plane.db.models.IssueComment`,
-  `plane.db.models.APIToken`
+  `plane.db.models.APIToken`, `plane.db.models.BotTypeEnum`,
+  `plane.bgtasks.workspace_seed_task`
+- **Serializers**: `AgentProfileSerializer`, `AgentProfileCreateSerializer`,
+  `AgentRunSerializer`, `AgentRunActivitySerializer`,
+  `AgentConversationSerializer`, `AgentConversationMessageSerializer`
 - **Used by**: `plane.hw.views.agent`, `plane.hw.serializers.agent`,
   `plane.bgtasks.agent_webhook_task`, `plane.bgtasks.agent_lifecycle_task`,
   `plane.app.views.issue.comment` (mention detection)
@@ -96,12 +146,21 @@ now`.
   not by the serializer.
 - Ephemeral activities (`thought`, `action`) are always deleted after
   the run completes (24h grace period).
+- Built-in agents (`agent_type="builtin"`) cannot be deleted via API.
+- `AgentConversation` messages are always ordered chronologically within
+  each conversation.
+- External agents default to `agent_type="external"` when not specified,
+  maintaining backward compatibility with existing agent infrastructure.
 
 ## Key files
 
-- `agent.py` -- model definitions (AgentProfile, AgentRun, AgentRunActivity)
-- `../serializers/agent.py` -- DRF serializers (separate create/update serializers)
-- `../views/agent.py` -- ViewSets (AgentProfileViewSet, AgentRunViewSet, AgentRunActivityViewSet)
+- `agent.py` -- model definitions (AgentProfile, AgentRun, AgentRunActivity,
+  AgentConversation, AgentConversationMessage, AgentType, AgentConversationMessageRole)
+- `../serializers/agent.py` -- DRF serializers (separate create/update serializers,
+  including conversation serializers)
+- `../views/agent.py` -- ViewSets (AgentProfileViewSet, AgentRunViewSet,
+  AgentRunActivityViewSet) -- _Note: AgentConversationViewSets are planned_
 - `../urls/agent.py` -- URL routing
 - `../../bgtasks/agent_webhook_task.py` -- webhook delivery
 - `../../bgtasks/agent_lifecycle_task.py` -- stale detection, ephemeral cleanup
+- `../../bgtasks/workspace_seed_task.py` -- built-in agent seeding (idempotent)

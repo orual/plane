@@ -5,6 +5,8 @@
 from .issue_type import IssueTypeViewSet, ProjectIssueTypeViewSet
 from .issue_property import PropertyDefinitionViewSet, IssuePropertyValueViewSet
 from .agent import AgentProfileViewSet, AgentRunViewSet, AgentRunActivityViewSet
+from .agent_conversation import AgentConversationViewSet, AgentConversationMessageViewSet
+from .agent_events import AgentRunEventsView, AgentConversationEventsView
 from .proxy import proxy_minio_upload
 
 __all__ = [
@@ -15,5 +17,9 @@ __all__ = [
     "AgentProfileViewSet",
     "AgentRunViewSet",
     "AgentRunActivityViewSet",
+    "AgentConversationViewSet",
+    "AgentConversationMessageViewSet",
+    "AgentRunEventsView",
+    "AgentConversationEventsView",
     "proxy_minio_upload",
 ]

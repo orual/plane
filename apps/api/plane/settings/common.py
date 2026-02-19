@@ -292,6 +292,7 @@ CELERY_IMPORTS = (
     # agent tasks
     "plane.bgtasks.agent_webhook_task",
     "plane.bgtasks.agent_lifecycle_task",
+    "plane.bgtasks.builtin_agent_task",
 )
 
 FILE_SIZE_LIMIT = int(os.environ.get("FILE_SIZE_LIMIT", 5242880))

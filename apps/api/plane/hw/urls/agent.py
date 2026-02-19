@@ -8,6 +8,10 @@ from plane.hw.views import (
     AgentProfileViewSet,
     AgentRunViewSet,
     AgentRunActivityViewSet,
+    AgentConversationViewSet,
+    AgentConversationMessageViewSet,
+    AgentRunEventsView,
+    AgentConversationEventsView,
 )
 
 urlpatterns = [
@@ -38,5 +42,34 @@ urlpatterns = [
         "workspaces/<str:slug>/agent-runs/<uuid:run_id>/activities/",
         AgentRunActivityViewSet.as_view({"get": "list", "post": "create"}),
         name="agent-run-activities",
+    ),
+    # Agent conversations
+    path(
+        "workspaces/<str:slug>/agent-conversations/",
+        AgentConversationViewSet.as_view({"get": "list", "post": "create"}),
+        name="workspace-agent-conversations",
+    ),
+    path(
+        "workspaces/<str:slug>/agent-conversations/<uuid:pk>/",
+        AgentConversationViewSet.as_view({"get": "retrieve"}),
+        name="workspace-agent-conversation",
+    ),
+    # Agent conversation messages
+    path(
+        "workspaces/<str:slug>/agent-conversations/<uuid:conversation_id>/messages/",
+        AgentConversationMessageViewSet.as_view({"get": "list", "post": "create"}),
+        name="agent-conversation-messages",
+    ),
+    # Agent run events (SSE streaming)
+    path(
+        "workspaces/<str:slug>/agent-runs/<uuid:run_id>/events/",
+        AgentRunEventsView.as_view(),
+        name="agent-run-events",
+    ),
+    # Agent conversation events (SSE streaming)
+    path(
+        "workspaces/<str:slug>/agent-conversations/<uuid:conversation_id>/events/",
+        AgentConversationEventsView.as_view(),
+        name="agent-conversation-events",
     ),
 ]

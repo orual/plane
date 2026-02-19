@@ -5,8 +5,10 @@
  */
 
 import { useCallback, useMemo } from "react";
+// lucide icons
+import { Bot } from "lucide-react";
 // plane editor
-import type { TMentionSection } from "@plane/editor";
+import type { TMentionSection, TMentionSuggestion } from "@plane/editor";
 // plane types
 import type { TSearchEntities, TSearchResponse } from "@plane/types";
 
@@ -34,20 +36,60 @@ export type TAdditionalParseEditorContentReturnType =
     }
   | undefined;
 
-export const useAdditionalEditorMention = (_args: TUseAdditionalEditorMentionArgs) => {
+export const useAdditionalEditorMention = (args: TUseAdditionalEditorMentionArgs) => {
+  const { enableAdvancedMentions } = args;
+
   const updateAdditionalSections = useCallback(
-    (_args: TAdditionalEditorMentionHandlerArgs): TAdditionalEditorMentionHandlerReturnType => ({
-      sections: [],
-    }),
-    []
+    (args: TAdditionalEditorMentionHandlerArgs): TAdditionalEditorMentionHandlerReturnType => {
+      if (!enableAdvancedMentions) {
+        return { sections: [] };
+      }
+
+      const { response } = args;
+      const sections: TMentionSection[] = [];
+
+      // Process agent_mention results
+      if (response.agent_mention && response.agent_mention.length > 0) {
+        const items: TMentionSuggestion[] = response.agent_mention.map((agent) => ({
+          icon: <Bot className="h-4 w-4 flex-shrink-0" />,
+          id: agent.id,
+          entity_identifier: agent.id,
+          entity_name: "agent_mention",
+          title: agent.display_name,
+          subTitle: agent.agent_type === "builtin" ? "Built-in" : "External",
+        }));
+        sections.push({
+          key: "agents",
+          title: "Agents",
+          items,
+        });
+      }
+
+      return { sections };
+    },
+    [enableAdvancedMentions]
   );
 
   const parseAdditionalEditorContent = useCallback(
-    (_args: TAdditionalParseEditorContentArgs): TAdditionalParseEditorContentReturnType => undefined,
+    (args: TAdditionalParseEditorContentArgs): TAdditionalParseEditorContentReturnType => {
+      const { entityType, id } = args;
+
+      if (entityType === "agent_mention") {
+        return {
+          redirectionPath: "/settings/agents",
+          textContent: id,
+        };
+      }
+
+      return undefined;
+    },
     []
   );
 
-  const editorMentionTypes: TSearchEntities[] = useMemo(() => ["user_mention"], []);
+  const editorMentionTypes: TSearchEntities[] = useMemo(
+    () => (enableAdvancedMentions ? ["user_mention", "agent_mention"] : ["user_mention"]),
+    [enableAdvancedMentions]
+  );
 
   return {
     updateAdditionalSections,

@@ -3,4 +3,4 @@
 # See the LICENSE file for details.
 
 # Register test plugins that pytest won't auto-discover from non-standard filenames.
-pytest_plugins = ["plane.tests.conftest_external"]
+# This is now in the root conftest.py

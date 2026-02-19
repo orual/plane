@@ -34,6 +34,7 @@ class TestAgentProfileSerializer:
         assert "is_active" in serializer.data
         assert "display_name" in serializer.data
         assert "description" in serializer.data
+        assert "agent_type" in serializer.data
         assert "created_at" in serializer.data
         assert "updated_at" in serializer.data
 
@@ -130,6 +131,7 @@ class TestAgentProfileCreateSerializer:
             "webhook_url",
             "webhook_secret",
             "event_triggers",
+            "agent_type",
         }
         assert set(serializer.fields.keys()) == expected_fields
 

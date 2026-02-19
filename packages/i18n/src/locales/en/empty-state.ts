@@ -194,5 +194,10 @@ export default {
       description: "Automate notifications to external services when project events occur.",
       cta_primary: "Add webhook",
     },
+    agents: {
+      title: "No agents yet",
+      description: "Register external agents or configure the built-in agent to start automating your workflow.",
+      cta_primary: "Add your first agent",
+    },
   },
 } as const;

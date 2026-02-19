@@ -362,6 +362,20 @@ class SearchEndpoint(BaseAPIView):
 
                     response_data["user_mention"] = list(users[:count])
 
+                elif query_type == "agent_mention":
+                    from plane.hw.models.agent import AgentProfile
+
+                    agents = AgentProfile.objects.filter(
+                        workspace__slug=slug,
+                        is_active=True,
+                    )
+                    if query:
+                        agents = agents.filter(display_name__icontains=query)
+
+                    response_data["agent_mention"] = list(
+                        agents.values("id", "display_name", "agent_type")[:count]
+                    )
+
                 elif query_type == "project":
                     fields = ["name", "identifier"]
                     q = Q()
@@ -566,6 +580,20 @@ class SearchEndpoint(BaseAPIView):
                         .values("member__avatar_url", "member__display_name", "member__id")[:count]
                     )
                     response_data["user_mention"] = list(users)
+
+                elif query_type == "agent_mention":
+                    from plane.hw.models.agent import AgentProfile
+
+                    agents = AgentProfile.objects.filter(
+                        workspace__slug=slug,
+                        is_active=True,
+                    )
+                    if query:
+                        agents = agents.filter(display_name__icontains=query)
+
+                    response_data["agent_mention"] = list(
+                        agents.values("id", "display_name", "agent_type")[:count]
+                    )
 
                 elif query_type == "project":
                     fields = ["name", "identifier"]

@@ -1,6 +1,6 @@
 # HW web overlay (hardware/enterprise features)
 
-Last verified: 2026-02-16
+Last verified: 2026-02-18
 
 ## Purpose
 
@@ -156,8 +156,8 @@ When adding a new HW feature:
 - **Guarantees**:
   - CE stubs for `AgentRunPanel` and `RunStatusBadge` exist in
     `apps/web/ce/components/issues/agent/` and render `null`.
-  - `AgentRunStore` is registered on `rootStore.agentRun` in HW
-    `root.store.ts`. CE `root.store.ts` sets `agentRun: undefined`.
+  - `AgentRunStore` is registered on `rootStore.agentRunStore` in both
+    HW and CE `root.store.ts`.
   - Loader state uses a reference-counted `loaderCount` (not boolean)
     to support concurrent fetches.
 - **Expects**: `rootStore` passed to constructor. Workspace slug
@@ -177,3 +177,133 @@ When adding a new HW feature:
 - `types/agent.ts` -- TypeScript type definitions
 - `components/issues/agent/` -- React UI components (panel, badge,
   elicitation card, activity renderers)
+
+## Agent profile management
+
+### Contracts
+
+- **Exposes** (via `IAgentProfileStore` on root MobX store):
+  - `fetchProfiles(workspaceSlug)` -- fetches and caches all agent
+    profiles for a workspace.
+  - `fetchProfileById(workspaceSlug, profileId)` -- fetches a single
+    profile.
+  - `createProfile(workspaceSlug, data)` -- creates a new agent
+    profile; stores the one-time `apiToken` from the response.
+  - `updateProfile(workspaceSlug, profileId, data)` -- updates an
+    existing profile.
+  - `removeProfile(workspaceSlug, profileId)` -- deletes a profile.
+  - `getProfileById(profileId)` -- computed helper using
+    `computedFn`.
+  - `apiToken` -- observable; only populated after `createProfile`,
+    cleared by `clearApiToken()`.
+- **Exposes** (via HW/CE overlay components):
+  - `AgentsList` -- settings page listing all agent profiles.
+  - `CreateAgentModal` -- modal for creating a new agent.
+  - `AgentDetailRoot` -- detail view for a single agent profile.
+- **Guarantees**:
+  - CE stubs exist in `apps/web/ce/components/settings/agents/` and
+    render `null`.
+  - `AgentProfileStore` is registered on `rootStore.agentProfileStore`
+    in both HW and CE `root.store.ts`.
+  - Loader state uses reference-counted `loaderCount`.
+- **Expects**: Workspace admin permissions for agent CRUD operations.
+
+### Key files
+
+- `services/agent.service.ts` -- profile CRUD methods
+  (`listAgentProfiles`, `createAgentProfile`, etc.)
+- `store/agent/agent-profile.store.ts` -- MobX store
+- `components/settings/agents/` -- settings UI components (placeholder
+  stubs pending full implementation)
+
+## Agent mention autocomplete
+
+### Contracts
+
+- **Exposes** (via `useAdditionalEditorMention` hook):
+  - `updateAdditionalSections(response)` -- processes search response
+    `agent_mention` results into `TMentionSection[]` with Bot icon and
+    agent type badge ("Built-in" or "External").
+  - `parseAdditionalEditorContent(id, entityType)` -- resolves
+    `agent_mention` entities to redirection path and text content.
+  - `editorMentionTypes` -- computed array; includes `"agent_mention"`
+    when `enableAdvancedMentions` is true.
+- **Guarantees**:
+  - When `enableAdvancedMentions` is false, `updateAdditionalSections`
+    returns `{ sections: [] }` (no agent section in dropdown).
+  - CE hook at `apps/web/ce/hooks/use-additional-editor-mention.tsx`
+    always returns empty sections.
+  - Agent mention `entity_name` is `"agent_mention"` (matches
+    `TSearchEntities` union).
+- **Expects**: `enableAdvancedMentions` prop passed from editor
+  wrappers. Backend search endpoint returns `agent_mention` results
+  when `query_type` includes `"agent_mention"`.
+
+### Key files
+
+- `hooks/use-additional-editor-mention.tsx` -- HW hook implementation
+
+## Agent chat UI
+
+### Contracts
+
+- **Exposes** (via `IAgentConversationStore` on root MobX store):
+  - `fetchConversations(workspaceSlug)` -- fetches and caches
+    conversations for the workspace.
+  - `createConversation(workspaceSlug, data)` -- creates a conversation
+    and sets it as active.
+  - `fetchMessages(workspaceSlug, conversationId)` -- fetches messages
+    for a conversation.
+  - `sendMessage(workspaceSlug, conversationId, data)` -- sends a user
+    message and appends the response.
+  - `appendActivity(conversationId, activity)` -- converts an
+    `TAgentRunActivity` to a `TAgentConversationMessage` and appends
+    it (used by SSE hook).
+  - `openPanel()`, `closePanel()`, `togglePanel()` -- panel visibility.
+  - `setActiveConversation(id)` -- sets the active conversation.
+  - `activeConversation`, `activeMessages`, `hasActiveConversation` --
+    computed helpers.
+- **Exposes** (via HW/CE overlay components, injected into
+  `WorkspaceContentWrapper`):
+  - `AgentChatPanel` -- right sidebar chat panel with header,
+    conversation selector, message list, and input.
+  - `ChatTriggerButton` -- floating action button (bottom-right) to
+    toggle the chat panel.
+  - `ChatMessageList` -- renders messages with activity type renderers
+    (thought, action, response, elicitation, error).
+  - `ChatInput` -- textarea with Enter-to-send, Shift+Enter for
+    newline, auto-resize.
+  - `AgentCodeBlock` -- code display with language badge and copy
+    button.
+- **Exposes** (via `useChatSSE` hook):
+  - Manages EventSource connection for real-time activity streaming.
+  - Exponential backoff (max 30s) with 5 retries, then falls back to
+    3-second polling.
+  - Proper cleanup on unmount or conversation change.
+- **Guarantees**:
+  - CE stubs for `AgentChatPanel` and `ChatTriggerButton` exist in
+    `apps/web/ce/components/agent/chat/` and render `null`.
+  - `AgentConversationStore` is registered on
+    `rootStore.agentConversationStore` in both HW and CE
+    `root.store.ts`.
+  - Loader state uses reference-counted `loaderCount`.
+  - SSE errors never crash the UI; the hook degrades to polling.
+- **Expects**: `workspaceSlug` from router params. Backend conversation
+  endpoints at `/api/workspaces/{slug}/agent-conversations/`. SSE
+  endpoint at `/api/workspaces/{slug}/agent-conversations/{id}/events/`.
+
+### Types
+
+- `TAgentConversation`, `TAgentConversationMessage`,
+  `TCreateConversationPayload`, `TCreateMessagePayload` -- defined in
+  `types/agent.ts`.
+
+### Key files
+
+- `services/agent-conversation.service.ts` -- conversation API service
+- `store/agent/agent-conversation.store.ts` -- MobX store
+- `hooks/use-chat-sse.ts` -- SSE hook with backoff and polling fallback
+- `components/agent/chat/` -- chat UI components (panel, trigger,
+  message list, input, code block)
+- `components/workspace/content-wrapper.tsx` -- workspace layout
+  injection point for chat panel and trigger button

@@ -4,7 +4,7 @@
  * See the LICENSE file for details.
  */
 
-export const AI_ASSISTANT_NAME = "Kairos";
+export const AI_ASSISTANT_NAME = "Brigid";
 
 export enum AI_EDITOR_TASKS {
   ASK_ANYTHING = "ASK_ANYTHING",

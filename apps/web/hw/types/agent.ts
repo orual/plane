@@ -6,6 +6,7 @@
 
 export type TAgentRunStatus = "created" | "in_progress" | "completed" | "failed" | "stopped" | "stale";
 export type TAgentActivityType = "thought" | "action" | "response" | "elicitation" | "error";
+export type TAgentType = "external" | "builtin";
 
 export type TAgentRun = {
   id: string;
@@ -37,4 +38,63 @@ export type TCreateActivityPayload = {
   activity_type: TAgentActivityType;
   content: string;
   metadata?: Record<string, unknown>;
+};
+
+export type TAgentProfile = {
+  id: string;
+  user_id: string;
+  workspace_id: string;
+  agent_type: TAgentType;
+  webhook_url: string;
+  webhook_secret: string;
+  event_triggers: Record<string, unknown>;
+  is_active: boolean;
+  display_name: string;
+  description: string;
+  created_at: string;
+  updated_at: string;
+};
+
+export type TCreateAgentProfilePayload = {
+  display_name: string;
+  description: string;
+  webhook_url: string;
+  webhook_secret: string;
+  event_triggers?: Record<string, unknown>;
+};
+
+export type TAgentProfileCreateResponse = TAgentProfile & {
+  api_token: string;
+};
+
+// ============================================================
+// Agent conversation types
+// ============================================================
+
+export type TAgentConversation = {
+  id: string;
+  workspace_id: string;
+  user_id: string;
+  title: string;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+};
+
+export type TAgentConversationMessage = {
+  id: string;
+  conversation_id: string;
+  role: "user" | "assistant";
+  content: string;
+  run_id: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type TCreateConversationPayload = {
+  title?: string;
+};
+
+export type TCreateMessagePayload = {
+  content: string;
 };

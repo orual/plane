@@ -5,7 +5,7 @@
 from rest_framework import serializers
 
 from plane.app.serializers import BaseSerializer
-from plane.hw.models import AgentProfile, AgentRun, AgentRunActivity
+from plane.hw.models import AgentProfile, AgentRun, AgentRunActivity, AgentConversation, AgentConversationMessage
 
 
 class AgentProfileSerializer(BaseSerializer):
@@ -20,6 +20,7 @@ class AgentProfileSerializer(BaseSerializer):
             "is_active",
             "display_name",
             "description",
+            "agent_type",
             "created_at",
             "updated_at",
         ]
@@ -27,6 +28,7 @@ class AgentProfileSerializer(BaseSerializer):
             "id",
             "user_id",
             "workspace_id",
+            "agent_type",
             "created_at",
             "updated_at",
         ]
@@ -41,6 +43,7 @@ class AgentProfileCreateSerializer(BaseSerializer):
             "webhook_url",
             "webhook_secret",
             "event_triggers",
+            "agent_type",
         ]
 
 
@@ -58,6 +61,7 @@ class AgentRunSerializer(BaseSerializer):
             "last_activity_at",
             "completed_at",
             "trigger_metadata",
+            "conversation_id",
             "created_at",
             "updated_at",
         ]
@@ -69,6 +73,7 @@ class AgentRunSerializer(BaseSerializer):
             "issue_id",
             "last_activity_at",
             "completed_at",
+            "conversation_id",
             "created_at",
             "updated_at",
         ]
@@ -106,6 +111,49 @@ class AgentRunActivitySerializer(BaseSerializer):
             "id",
             "run_id",
             "is_ephemeral",
+            "created_at",
+            "updated_at",
+        ]
+
+
+class AgentConversationSerializer(BaseSerializer):
+    class Meta:
+        model = AgentConversation
+        fields = [
+            "id",
+            "workspace_id",
+            "user_id",
+            "title",
+            "is_active",
+            "created_at",
+            "updated_at",
+        ]
+        read_only_fields = [
+            "id",
+            "workspace_id",
+            "user_id",
+            "created_at",
+            "updated_at",
+        ]
+
+
+class AgentConversationMessageSerializer(BaseSerializer):
+    class Meta:
+        model = AgentConversationMessage
+        fields = [
+            "id",
+            "conversation_id",
+            "role",
+            "content",
+            "run_id",
+            "created_at",
+            "updated_at",
+        ]
+        read_only_fields = [
+            "id",
+            "conversation_id",
+            "role",
+            "run_id",
             "created_at",
             "updated_at",
         ]

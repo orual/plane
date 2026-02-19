@@ -42,8 +42,59 @@ from plane.db.models import (
     User,
     BotTypeEnum,
 )
+from plane.hw.models import AgentProfile, AgentType
 
 logger = logging.getLogger("plane.worker")
+
+
+def _seed_builtin_agent(workspace: Workspace, _bot_user: User) -> None:
+    """Seeds a built-in agent profile for a workspace.
+
+    Creates a bot user with bot_type=BotTypeEnum.AGENT and an associated
+    AgentProfile with agent_type=BUILTIN. This is idempotent - calling
+    it multiple times on the same workspace will not create duplicates.
+
+    Args:
+        workspace: The workspace to seed the built-in agent for
+        bot_user: The bot user that created this workspace (unused for this)
+    """
+    # Check if built-in agent already exists for this workspace (idempotent)
+    existing_agent = AgentProfile.objects.filter(workspace=workspace, agent_type=AgentType.BUILTIN).first()
+
+    if existing_agent:
+        logger.info(f"Task: workspace_seed_task -> Built-in agent already exists for workspace {workspace.id}")
+        return
+
+    # Create a bot user for the built-in agent
+    builtin_user = User.objects.create(
+        username=f"builtin_agent_{workspace.id}",
+        display_name="Plane Agent",
+        is_bot=True,
+        bot_type=BotTypeEnum.AGENT,
+        email=f"builtin_agent_{workspace.id}@plane.so",
+        password=make_password(uuid.uuid4().hex),
+        is_password_autoset=True,
+    )
+
+    # Add built-in agent user to workspace as member (admin role)
+    WorkspaceMember.objects.create(
+        workspace=workspace,
+        member=builtin_user,
+        role=20,  # Admin role
+        company_role="",
+    )
+
+    # Create the built-in agent profile
+    AgentProfile.objects.create(
+        user=builtin_user,
+        workspace=workspace,
+        agent_type=AgentType.BUILTIN,
+        display_name="Plane Agent",
+        description="Built-in AI assistant for workspace collaboration",
+        is_active=True,
+    )
+
+    logger.info(f"Task: workspace_seed_task -> Built-in agent seeded for workspace {workspace.id}")
 
 
 def read_seed_file(filename):
@@ -562,6 +613,9 @@ def workspace_seed(workspace_id: uuid.UUID) -> None:
 
         # create project pages
         create_pages(workspace, project_map, bot_user)
+
+        # Seed built-in agent profile for this workspace
+        _seed_builtin_agent(workspace, bot_user)
 
         logger.info(f"Task: workspace_seed_task -> Workspace {workspace_id} seeded successfully")
         return
