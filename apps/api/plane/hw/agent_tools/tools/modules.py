@@ -1,6 +1,7 @@
 from uuid import UUID
 from plane.hw.agent_tools.registry import tool, ToolParam, ToolContext
 from plane.hw.agent_tools.permissions import check_project_member
+from plane.hw.agent_tools.tools.resolve import resolve_project_id
 from plane.db.models import Module, ModuleIssue, Project  # noqa: F401
 from plane.app.permissions.base import ROLE
 
@@ -9,32 +10,35 @@ from plane.app.permissions.base import ROLE
     name="modules.list",
     description="List modules in a project",
     params=[
-        ToolParam(name="project_id", type="string", description="Project ID", required=True),
+        ToolParam(
+            name="project_id", type="string",
+            description="Project UUID or identifier (e.g. 'TP')", required=True,
+        ),
     ],
-    return_type="List of module objects",
+    return_type="Array of {id, name, status, start_date, target_date, lead, project_id}",
     requires_project=True
 )
 def list_modules(params: dict, context: ToolContext) -> list:
     """List modules in a project."""
-    project_id = UUID(params["project_id"])
+    project_id = resolve_project_id(params["project_id"], context.workspace)
 
     # Check permissions
-    check_project_member(context, project_id, min_role=ROLE.GUEST)
+    check_project_member(context, project_id, min_role=ROLE.GUEST.value)
 
     # Get modules
     modules = Module.objects.filter(
         project_id=project_id,
         workspace=context.workspace,
         archived_at__isnull=True
-    ).select_related("project", "owned_by").order_by("start_date")
+    ).select_related("project", "lead").order_by("start_date")
 
     result = []
     for module in modules:
-        owned_by = None
-        if module.owned_by:
-            owned_by = {
-                "id": str(module.owned_by.id),
-                "display_name": module.owned_by.display_name
+        lead = None
+        if module.lead:
+            lead = {
+                "id": str(module.lead.id),
+                "display_name": module.lead.display_name
             }
 
         result.append({
@@ -43,7 +47,7 @@ def list_modules(params: dict, context: ToolContext) -> list:
             "status": module.status,
             "start_date": module.start_date.isoformat() if module.start_date else None,
             "target_date": module.target_date.isoformat() if module.target_date else None,
-            "owned_by": owned_by,
+            "lead": lead,
             "project_id": str(module.project_id)
         })
 
@@ -55,18 +59,21 @@ def list_modules(params: dict, context: ToolContext) -> list:
     description="Get a single module by ID",
     params=[
         ToolParam(name="module_id", type="string", description="Module ID", required=True),
-        ToolParam(name="project_id", type="string", description="Project ID", required=True),
+        ToolParam(
+            name="project_id", type="string",
+            description="Project UUID or identifier (e.g. 'TP')", required=True,
+        ),
     ],
-    return_type="Module object with full detail",
+    return_type="{id, name, status, start_date, target_date, lead, project_id, issues: Array of {id, name, sequence_id}}",
     requires_project=True
 )
 def get_module(params: dict, context: ToolContext) -> dict:
     """Get a single module by ID."""
     module_id = UUID(params["module_id"])
-    project_id = UUID(params["project_id"])
+    project_id = resolve_project_id(params["project_id"], context.workspace)
 
     # Check permissions
-    check_project_member(context, project_id, min_role=ROLE.GUEST)
+    check_project_member(context, project_id, min_role=ROLE.GUEST.value)
 
     # Get module
     module = Module.objects.get(
@@ -90,11 +97,11 @@ def get_module(params: dict, context: ToolContext) -> dict:
         for module_issue in module_issues
     ]
 
-    owned_by = None
-    if module.owned_by:
-        owned_by = {
-            "id": str(module.owned_by.id),
-            "display_name": module.owned_by.display_name
+    lead = None
+    if module.lead:
+        lead = {
+            "id": str(module.lead.id),
+            "display_name": module.lead.display_name
         }
 
     return {
@@ -103,7 +110,7 @@ def get_module(params: dict, context: ToolContext) -> dict:
         "status": module.status,
         "start_date": module.start_date.isoformat() if module.start_date else None,
         "target_date": module.target_date.isoformat() if module.target_date else None,
-        "owned_by": owned_by,
+        "lead": lead,
         "project_id": str(module.project_id),
         "issues": issues
     }
@@ -114,7 +121,10 @@ def get_module(params: dict, context: ToolContext) -> dict:
     description="Add issues to a module",
     params=[
         ToolParam(name="module_id", type="string", description="Module ID", required=True),
-        ToolParam(name="project_id", type="string", description="Project ID", required=True),
+        ToolParam(
+            name="project_id", type="string",
+            description="Project UUID or identifier (e.g. 'TP')", required=True,
+        ),
         ToolParam(
             name="issue_ids",
             type="array",
@@ -129,10 +139,10 @@ def get_module(params: dict, context: ToolContext) -> dict:
 def add_issues_to_module(params: dict, context: ToolContext) -> list:
     """Add issues to a module."""
     module_id = UUID(params["module_id"])
-    project_id = UUID(params["project_id"])
+    project_id = resolve_project_id(params["project_id"], context.workspace)
 
     # Check permissions (must be member or higher)
-    check_project_member(context, project_id, min_role=ROLE.MEMBER)
+    check_project_member(context, project_id, min_role=ROLE.MEMBER.value)
 
     # Use bulk_create with ignore_conflicts to handle duplicates
     module_issues_to_create = []
@@ -140,9 +150,10 @@ def add_issues_to_module(params: dict, context: ToolContext) -> list:
         module_issues_to_create.append(ModuleIssue(
             module_id=module_id,
             issue_id=UUID(issue_id),
+            project_id=project_id,
             workspace=context.workspace,
-            created_by=context.user,
-            updated_by=context.user
+            created_by=context.actor,
+            updated_by=context.actor
         ))
 
     # Bulk create, ignoring conflicts for duplicates

@@ -8,6 +8,8 @@ import { useState } from "react";
 import { AlertTriangle } from "lucide-react";
 // plane imports
 import { cn } from "@plane/utils";
+// components
+import { MarkdownRenderer } from "@/components/ui/markdown-to-component";
 // types
 import type { TAgentRunActivity } from "@/plane-web/types/agent";
 
@@ -73,5 +75,9 @@ export function ErrorRenderer({ activity }: IActivityRendererProps) {
  * ResponseRenderer: Renders response activities as standard body text.
  */
 export function ResponseRenderer({ activity }: IActivityRendererProps) {
-  return <p className="pl-3 text-13 text-secondary">{activity.content}</p>;
+  return (
+    <div className="pl-3 text-13 text-secondary">
+      <MarkdownRenderer markdown={activity.content} />
+    </div>
+  );
 }

@@ -32,7 +32,8 @@ class ToolDefinition:
 @dataclass
 class ToolContext:
     """Execution context passed to every tool call."""
-    user: Any  # User model instance
+    user: Any  # User who authorized this action (for permission checks)
+    actor: Any  # User to attribute actions to (the agent's bot user)
     workspace: Any  # Workspace model instance
     run: Any  # AgentRun model instance
     project_id: Optional[UUID] = None  # set when run is project-scoped

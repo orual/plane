@@ -1,41 +1,35 @@
-# from uuid import UUID  # noqa: F401 - removed, unused
 from plane.hw.agent_tools.registry import tool, ToolParam, ToolContext
 from plane.hw.agent_tools.permissions import check_workspace_member
-from plane.db.models import WorkspaceMember  # noqa: F401
+from plane.db.models import WorkspaceMember
 from plane.app.permissions.base import ROLE
 
 
 @tool(
     name="users.list",
     description="List workspace members",
-    params=[
-        # No params - lists all active members
-    ],
-    return_type="List of workspace member objects",
+    params=[],
+    return_type="Array of {id, display_name, email, avatar, role, workspace_id}",
     requires_project=False
 )
 def list_users(params: dict, context: ToolContext) -> list:
     """List workspace members."""
-    # Check workspace membership
-    check_workspace_member(context, min_role=ROLE.GUEST)
+    check_workspace_member(context, min_role=ROLE.GUEST.value)
 
-    # Get active workspace members
     members = WorkspaceMember.objects.filter(
         workspace=context.workspace,
-        active=True
-    ).select_related("user").order_by("user__display_name")
+        is_active=True
+    ).select_related("member").order_by("member__display_name")
 
     result = []
-    for member in members:
-        # Exclude bot users
-        if member.user.bot_type is None:
+    for wm in members:
+        if wm.member.bot_type is None:
             result.append({
-                "id": str(member.user.id),
-                "display_name": member.user.display_name,
-                "email": member.user.email,
-                "avatar": member.user.avatar,
-                "role": member.role,
-                "workspace_id": str(member.workspace_id)
+                "id": str(wm.member.id),
+                "display_name": wm.member.display_name,
+                "email": wm.member.email,
+                "avatar": wm.member.avatar,
+                "role": wm.role,
+                "workspace_id": str(wm.workspace_id)
             })
 
     return result
@@ -47,47 +41,42 @@ def list_users(params: dict, context: ToolContext) -> list:
     params=[
         ToolParam(name="query", type="string", description="Search query text", required=True),
     ],
-    return_type="List of matching user objects",
+    return_type="Array of {id, display_name, email, avatar, role, workspace_id}",
     requires_project=False
 )
 def search_users(params: dict, context: ToolContext) -> list:
     """Search users by name or email."""
     query = params["query"]
 
-    # Check workspace membership
-    check_workspace_member(context, min_role=ROLE.GUEST)
+    check_workspace_member(context, min_role=ROLE.GUEST.value)
 
-    # Search for matching users
     members = WorkspaceMember.objects.filter(
         workspace=context.workspace,
-        active=True,
-        user__display_name__icontains=query
-    ).select_related("user")
+        is_active=True,
+        member__display_name__icontains=query
+    ).select_related("member")
 
-    # Also search by email
-    # from django.db.models import Q  # noqa: F401 - removed, unused
     members = members.union(
         WorkspaceMember.objects.filter(
             workspace=context.workspace,
-            active=True,
-            user__email__icontains=query
-        ).select_related("user")
+            is_active=True,
+            member__email__icontains=query
+        ).select_related("member")
     )
 
     result = []
     seen_ids = set()
-    for member in members:
-        user_id = str(member.user.id)
+    for wm in members:
+        user_id = str(wm.member.id)
         if user_id not in seen_ids:
-            # Exclude bot users
-            if member.user.bot_type is None:
+            if wm.member.bot_type is None:
                 result.append({
                     "id": user_id,
-                    "display_name": member.user.display_name,
-                    "email": member.user.email,
-                    "avatar": member.user.avatar,
-                    "role": member.role,
-                    "workspace_id": str(member.workspace_id)
+                    "display_name": wm.member.display_name,
+                    "email": wm.member.email,
+                    "avatar": wm.member.avatar,
+                    "role": wm.role,
+                    "workspace_id": str(wm.workspace_id)
                 })
             seen_ids.add(user_id)
 

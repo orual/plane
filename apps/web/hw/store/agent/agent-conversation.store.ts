@@ -17,12 +17,17 @@ import type {
   TAgentRunActivity,
 } from "../../types/agent";
 
+export const PANEL_MIN_WIDTH = 384;
+export const PANEL_MAX_WIDTH = 800;
+export const PANEL_DEFAULT_WIDTH = 384;
+
 export interface IAgentConversationStore {
   // observables
   conversations: Record<string, TAgentConversation> | null;
   messagesByConversationId: Record<string, TAgentConversationMessage[]>;
   activeConversationId: string | null;
   isPanelOpen: boolean;
+  panelWidth: number;
   isLoading: boolean;
 
   // computed helpers
@@ -38,6 +43,7 @@ export interface IAgentConversationStore {
   openPanel: () => void;
   closePanel: () => void;
   togglePanel: () => void;
+  setPanelWidth: (width: number) => void;
   setActiveConversation: (id: string | null) => void;
   appendActivity: (conversationId: string, activity: TAgentRunActivity) => void;
 }
@@ -48,6 +54,7 @@ export class AgentConversationStore implements IAgentConversationStore {
   messagesByConversationId: Record<string, TAgentConversationMessage[]> = {};
   activeConversationId: string | null = null;
   isPanelOpen = false;
+  panelWidth = PANEL_DEFAULT_WIDTH;
   loaderCount = 0;
 
   get isLoading(): boolean {
@@ -68,6 +75,7 @@ export class AgentConversationStore implements IAgentConversationStore {
       messagesByConversationId: observable,
       activeConversationId: observable,
       isPanelOpen: observable,
+      panelWidth: observable,
       loaderCount: observable,
 
       // actions
@@ -79,6 +87,7 @@ export class AgentConversationStore implements IAgentConversationStore {
       closePanel: action,
       togglePanel: action,
       setActiveConversation: action,
+      setPanelWidth: action,
       appendActivity: action,
 
       // computed
@@ -107,6 +116,10 @@ export class AgentConversationStore implements IAgentConversationStore {
 
   setActiveConversation = (id: string | null): void => {
     this.activeConversationId = id;
+  };
+
+  setPanelWidth = (width: number): void => {
+    this.panelWidth = Math.max(PANEL_MIN_WIDTH, Math.min(PANEL_MAX_WIDTH, width));
   };
 
   // ============================================================

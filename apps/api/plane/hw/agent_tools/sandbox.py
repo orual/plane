@@ -5,7 +5,9 @@ This module provides the SandboxExecutor class that manages the full lifecycle
 of sandboxed code execution, including constraint enforcement and IPC communication.
 """
 
+import logging
 import os
+import shutil
 import subprocess
 import tempfile
 import threading
@@ -21,6 +23,39 @@ from plane.hw.agent_tools.ipc import (
     ToolErrorMessage,
     validate_tool_call,
 )
+
+logger = logging.getLogger("plane.worker")
+
+_DENO_COMMON_PATHS = [
+    "/usr/local/bin/deno",
+    "/usr/bin/deno",
+    os.path.expanduser("~/.deno/bin/deno"),
+]
+
+
+def _find_deno() -> str:
+    """Resolve the absolute path to the deno binary.
+
+    Checks known container paths first, then falls back to PATH resolution.
+
+    Returns:
+        Absolute path to deno binary.
+
+    Raises:
+        FileNotFoundError: If deno cannot be found.
+    """
+    for candidate in _DENO_COMMON_PATHS:
+        if os.path.isfile(candidate) and os.access(candidate, os.X_OK):
+            return candidate
+
+    path = shutil.which("deno")
+    if path:
+        return path
+
+    raise FileNotFoundError(
+        "deno binary not found in common locations or on PATH "
+        f"(checked: {', '.join(_DENO_COMMON_PATHS)})"
+    )
 
 
 @dataclass
@@ -87,17 +122,29 @@ class SandboxExecutor:
                 with open(runtime_path, "r") as f:
                     runtime_code = f.read()
 
-                # Combine runtime and user code
-                combined_code = f"{runtime_code}\n\n// User code:\n{code}"
+                # Combine runtime and user code, wrapped so the process exits
+                # when done. Without this, readToolResults() keeps the Deno
+                # event loop alive indefinitely waiting on stdin.
+                combined_code = (
+                    f"{runtime_code}\n\n"
+                    f"// User code (wrapped for clean exit):\n"
+                    f"try {{\n{code}\n}} catch (e: any) {{\n"
+                    f"  error(`Execution error: ${{e?.message ?? e}}`);\n"
+                    f"}}\n"
+                    f"Deno.exit(0);\n"
+                )
 
                 # Write to temp file
                 temp_file = os.path.join(temp_dir, "user_code.ts")
                 with open(temp_file, "w") as f:
                     f.write(combined_code)
 
+                # Resolve deno binary path
+                deno_path = _find_deno()
+
                 # Build Deno command with restrictive permissions
                 cmd = [
-                    "deno",
+                    deno_path,
                     "run",
                     "--no-prompt",
                     "--deny-net",
@@ -167,8 +214,11 @@ class SandboxExecutor:
                 process.wait()
 
     def _ipc_loop(self, process: subprocess.Popen) -> SandboxResult:
-        """
-        Run the IPC loop to communicate with the sandbox.
+        """Run the IPC loop to communicate with the sandbox.
+
+        Reads stdout line-by-line until EOF (pipe closed), handling tool call
+        requests, output messages, and error messages. After the read loop
+        finishes, drains stderr and checks the exit code for failures.
 
         Args:
             process: Subprocess to communicate with
@@ -182,91 +232,82 @@ class SandboxExecutor:
         error = None
         timed_out = False
 
-        # Read stdout line by line
+        # Read stdout line-by-line until EOF. We use readline() rather than
+        # iterating the file object because Python's file iterator uses an
+        # internal read buffer that won't yield lines until the buffer fills,
+        # which deadlocks the IPC protocol.
         while True:
-            # Check if process has exited
-            return_code = process.poll()
-            if return_code is not None:
-                # Process has exited
-                break
-
-            # Read next line
             line = process.stdout.readline()
             if not line:
-                # EOF
                 break
 
             try:
-                # Parse the message
                 message = parse_sandbox_message(line)
 
-                # Handle different message types
                 if message["type"] == "tool_call":
-                    # Validate and check tool call count
                     validate_tool_call(message)
 
                     if tool_call_count >= self.constraints.max_tool_calls:
-                        # Too many tool calls - kill process
                         self._kill_process(process)
                         return SandboxResult(
                             output=output,
                             tool_calls=tool_calls,
                             error="Too many tool calls",
-                            timed_out=True
+                            timed_out=True,
                         )
 
-                    # Execute the tool
                     try:
-                        result = self.tool_registry.execute(
+                        registry_result = self.tool_registry.execute(
                             message["name"],
                             message["params"],
-                            self.context
+                            self.context,
                         )
 
-                        # Send result back
-                        result_msg = ToolResultMessage(
-                            id=message["id"],
-                            result=result
-                        )
-                        process.stdin.write(serialize_host_message(result_msg))
-                        process.stdin.flush()
+                        if "error" in registry_result:
+                            err_msg = ToolErrorMessage(
+                                id=message["id"],
+                                error=registry_result["error"],
+                            )
+                            process.stdin.write(serialize_host_message(err_msg))
+                            process.stdin.flush()
+                        else:
+                            result_msg = ToolResultMessage(
+                                id=message["id"],
+                                result=registry_result["result"],
+                            )
+                            process.stdin.write(serialize_host_message(result_msg))
+                            process.stdin.flush()
 
-                        # Log the tool call
                         tool_calls.append({
                             "id": message["id"],
                             "name": message["name"],
                             "params": message["params"],
-                            "result": result,
-                            "timestamp": time.time()
+                            "result": registry_result,
+                            "timestamp": time.time(),
                         })
                         tool_call_count += 1
 
                     except Exception as e:
-                        # Send error back
-                        error_msg = ToolErrorMessage(
+                        err_msg = ToolErrorMessage(
                             id=message["id"],
-                            error=str(e)
+                            error=str(e),
                         )
-                        process.stdin.write(serialize_host_message(error_msg))
+                        process.stdin.write(serialize_host_message(err_msg))
                         process.stdin.flush()
 
                 elif message["type"] == "output":
-                    # Accumulate output
                     output += message["content"]
-
-                    # Check output size
-                    output_size = len(output.encode('utf-8'))
+                    output_size = len(output.encode("utf-8"))
                     self.constraints.check_output_size(output_size)
 
                 elif message["type"] == "error":
-                    # Record error
                     error = message["message"]
 
             except Exception as e:
                 error = f"IPC error: {str(e)}"
                 break
 
-        # Wait for process to finish
+        # Wait for the process to finish
         try:
             process.wait(timeout=5)
             timed_out = False
@@ -274,9 +315,26 @@ class SandboxExecutor:
             timed_out = True
             self._kill_process(process)
 
+        # Check stderr and exit code for failures not reported via IPC
+        if not error and not timed_out:
+            stderr_output = process.stderr.read().strip() if process.stderr else ""
+            return_code = process.returncode
+            if return_code is not None and return_code < 0:
+                # Negative exit code means killed by signal (e.g. -9 = SIGKILL
+                # from the timeout timer)
+                import signal
+                sig = -return_code
+                if sig == signal.SIGKILL:
+                    timed_out = True
+                    error = None
+                else:
+                    error = f"Process killed by signal {sig}"
+            elif return_code and return_code != 0:
+                error = stderr_output or f"Process exited with code {return_code}"
+
         return SandboxResult(
             output=output,
             tool_calls=tool_calls,
             error=error,
-            timed_out=timed_out
+            timed_out=timed_out,
         )

@@ -1,3 +1,5 @@
+import logging
+
 from plane.hw.agent_tools.registry import ToolError
 
 # Import role constants and models from existing codebase
@@ -5,8 +7,10 @@ from plane.app.permissions.base import ROLE
 from plane.db.models.workspace import WorkspaceMember
 from plane.db.models.project import ProjectMember
 
+logger = logging.getLogger(__name__)
 
-def check_workspace_member(context, min_role: int = ROLE.GUEST) -> None:
+
+def check_workspace_member(context, min_role: int = ROLE.GUEST.value) -> None:
     """Verify that the user is an active workspace member with sufficient role.
 
     Args:
@@ -16,24 +20,24 @@ def check_workspace_member(context, min_role: int = ROLE.GUEST) -> None:
     Raises:
         ToolError: If user is not a workspace member or role is insufficient
     """
-    # WorkspaceMember already imported at module level
-
-    # Check if user is an active workspace member with sufficient role
     try:
         member = WorkspaceMember.objects.get(
             workspace=context.workspace,
-            user=context.user,
-            active=True
+            member=context.user,
+            is_active=True
         )
 
         if member.role < min_role:
             raise ToolError(f"User role {member.role} is below minimum required {min_role}")
 
     except WorkspaceMember.DoesNotExist:
-        raise ToolError(f"User is not a member of workspace {context.workspace.name}")
+        raise ToolError(
+            f"User is not a member of workspace {context.workspace.name}"
+            f" (user_id={getattr(context.user, 'id', '?')})"
+        )
 
 
-def check_project_member(context, project_id, min_role: int = ROLE.GUEST) -> None:
+def check_project_member(context, project_id, min_role: int = ROLE.GUEST.value) -> None:
     """Verify that the user is an active project member with sufficient role.
 
     Workspace admins (role=20) bypass this check.
@@ -52,11 +56,11 @@ def check_project_member(context, project_id, min_role: int = ROLE.GUEST) -> Non
     try:
         workspace_member = WorkspaceMember.objects.get(
             workspace=context.workspace,
-            user=context.user,
-            active=True
+            member=context.user,
+            is_active=True
         )
 
-        if workspace_member.role == ROLE.ADMIN:
+        if workspace_member.role == ROLE.ADMIN.value:
             # Workspace admin has access to all projects
             return
 
@@ -67,8 +71,8 @@ def check_project_member(context, project_id, min_role: int = ROLE.GUEST) -> Non
     try:
         member = ProjectMember.objects.get(
             project_id=project_id,
-            user=context.user,
-            active=True
+            member=context.user,
+            is_active=True
         )
 
         if member.role < min_role:

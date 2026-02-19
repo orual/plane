@@ -18,6 +18,7 @@ from rest_framework.response import Response
 from plane.app.permissions import ROLE, allow_permission
 from plane.app.serializers import ProjectLiteSerializer, WorkspaceLiteSerializer
 from plane.db.models import Project, Workspace
+from plane.license.utils.instance_value import get_configuration_value
 from plane.utils.exception_logger import log_exception
 
 from plane.utils.llm_config import get_llm_config, PROVIDER_MODELS

@@ -9,6 +9,7 @@ import { observer } from "mobx-react";
 // hooks
 import { useRootStore } from "@/hooks/store/use-root-store";
 // components
+import { MarkdownRenderer } from "@/components/ui/markdown-to-component";
 import { ElicitationCard } from "@/plane-web/components/issues/agent/elicitation-card";
 import {
   ThoughtRenderer,
@@ -86,7 +87,7 @@ function ChatMessageBubble({ message, workspaceSlug }: IChatMessageBubbleProps) 
   if (isUserMessage) {
     return (
       <div className="flex justify-end">
-        <div className="max-w-xs rounded-lg bg-blue-500 px-3 py-2 text-white">
+        <div className="max-w-[85%] rounded-lg bg-blue-500 px-3 py-2 text-white">
           <p className="text-13">{message.content}</p>
         </div>
       </div>
@@ -96,10 +97,11 @@ function ChatMessageBubble({ message, workspaceSlug }: IChatMessageBubbleProps) 
   // Agent message
   return (
     <div className="flex justify-start">
-      <div className="max-w-xs space-y-2">
+      <div className="max-w-[85%] space-y-2">
         {activity ? (
           // Render activity-based content
           <>
+            <div className="text-12 text-caption-sm-bold pb-2">Brigid</div>
             {activity.activity_type === "thought" && <ThoughtRenderer activity={activity} />}
             {activity.activity_type === "action" && <ActionRenderer activity={activity} />}
             {activity.activity_type === "error" && <ErrorRenderer activity={activity} />}
@@ -114,8 +116,14 @@ function ChatMessageBubble({ message, workspaceSlug }: IChatMessageBubbleProps) 
             )}
           </>
         ) : (
-          // Fallback: render as plain text
-          <p className="text-13 text-secondary">{message.content}</p>
+          // Fallback: render as markdown
+          // TODO: render the agent's name, if it's not the built-in one
+          <div className="text-13 text-secondary">
+            <div className="text-12 text-caption-sm-bold pb-2">Brigid</div>
+            <div className="pl-2 text-13 text-secondary">
+              <MarkdownRenderer markdown={message.content} />
+            </div>
+          </div>
         )}
       </div>
     </div>

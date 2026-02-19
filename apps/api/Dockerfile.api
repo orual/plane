@@ -1,48 +1,49 @@
 # Stage to extract Deno binary
 FROM denoland/deno:bin-2.6.9 AS deno-bin
 
-FROM python:3.12.10-alpine
+FROM python:3.12.10-slim
 
 # set environment variables
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
-ENV PIP_DISABLE_PIP_VERSION_CHECK=1 
+ENV PIP_DISABLE_PIP_VERSION_CHECK=1
 ENV INSTANCE_CHANGELOG_URL=https://sites.plane.so/pages/691ef037bcfe416a902e48cb55f59891/
 
 # Update system packages for security
-RUN apk update && apk upgrade
+RUN apt-get update && apt-get upgrade -y
 
 WORKDIR /code
 
-RUN apk add --no-cache --upgrade \
-    "libpq" \
-    "libxslt" \
-    "xmlsec" \
-    "ca-certificates" \
-    "openssl"
+RUN apt-get install -y --no-install-recommends \
+    iproute2 \
+    procps \
+    libpq5 \
+    libxslt1.1 \
+    libxmlsec1 \
+    ca-certificates \
+    openssl \
+    libffi-dev \
+    && rm -rf /var/lib/apt/lists/*
 
 COPY requirements.txt ./
 COPY requirements ./requirements
-RUN apk add --no-cache libffi-dev
-RUN apk add --no-cache --virtual .build-deps \
-    "bash~=5.2" \
-    "g++" \
-    "gcc" \
-    "cargo" \
-    "git" \
-    "make" \
-    "postgresql-dev" \
-    "libc-dev" \
-    "linux-headers" \
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    bash \
+    g++ \
+    gcc \
+    cargo \
+    git \
+    make \
+    libpq-dev \
+    libc-dev \
+    linux-headers-generic \
     && \
     pip install -r requirements.txt --compile --no-cache-dir \
     && \
-    apk del .build-deps \
-    && \
-    rm -rf /var/cache/apk/*
+    apt-get purge -y --auto-remove g++ gcc cargo git make linux-headers-generic \
+    && rm -rf /var/lib/apt/lists/*
 
-
-# Add Deno binary
+# Install Deno binary (glibc — works natively on Debian)
 COPY --from=deno-bin /deno /usr/local/bin/deno
 
 # Add in Django deps and generate Django's static files
@@ -51,7 +52,6 @@ COPY plane plane/
 COPY templates templates/
 COPY package.json package.json
 
-RUN apk --no-cache add "bash~=5.2"
 COPY ./bin ./bin/
 
 RUN mkdir -p /code/plane/logs

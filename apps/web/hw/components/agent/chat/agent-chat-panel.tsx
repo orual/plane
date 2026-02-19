@@ -4,9 +4,9 @@
  * See the LICENSE file for details.
  */
 
-import { useEffect } from "react";
+import { useEffect, useCallback, useRef } from "react";
 import { observer } from "mobx-react";
-import { X, Plus } from "lucide-react";
+import { X, Plus, GripVertical } from "lucide-react";
 // plane imports
 import { cn } from "@plane/utils";
 // hooks
@@ -53,10 +53,39 @@ export const AgentChatPanel = observer(function AgentChatPanel({ workspaceSlug }
     }
   }, [agentConversationStore?.activeConversationId, workspaceSlug, agentConversationStore]);
 
+  const isDragging = useRef(false);
+
+  const handleDragStart = useCallback(
+    (e: React.MouseEvent) => {
+      e.preventDefault();
+      isDragging.current = true;
+
+      const onMouseMove = (moveEvent: MouseEvent) => {
+        if (!isDragging.current) return;
+        const newWidth = window.innerWidth - moveEvent.clientX;
+        agentConversationStore?.setPanelWidth(newWidth);
+      };
+
+      const onMouseUp = () => {
+        isDragging.current = false;
+        document.removeEventListener("mousemove", onMouseMove);
+        document.removeEventListener("mouseup", onMouseUp);
+        document.body.style.cursor = "";
+        document.body.style.userSelect = "";
+      };
+
+      document.body.style.cursor = "col-resize";
+      document.body.style.userSelect = "none";
+      document.addEventListener("mousemove", onMouseMove);
+      document.addEventListener("mouseup", onMouseUp);
+    },
+    [agentConversationStore]
+  );
+
   if (!agentConversationStore) return null;
   if (!agentConversationStore.isPanelOpen) return null;
 
-  const { activeConversationId } = agentConversationStore;
+  const { activeConversationId, panelWidth } = agentConversationStore;
 
   const handleNewConversation = () => {
     void agentConversationStore.createConversation(workspaceSlug, { title: "New Conversation" });
@@ -79,7 +108,24 @@ export const AgentChatPanel = observer(function AgentChatPanel({ workspaceSlug }
   };
 
   return (
-    <div className="fixed right-0 top-0 h-screen w-96 bg-layer-1 border-l border-subtle flex flex-col z-40">
+    <div
+      className="fixed right-0 top-0 h-screen bg-layer-1 border-l border-subtle flex flex-col z-40"
+      style={{ width: panelWidth }}
+    >
+      {/* Drag handle — focusable separator is interactive per WAI-ARIA but jsx-a11y doesn't model that */}
+      {/* eslint-disable jsx-a11y/no-noninteractive-element-interactions, jsx-a11y/no-noninteractive-tabindex */}
+      <div
+        role="separator"
+        aria-orientation="vertical"
+        aria-label="Resize chat panel"
+        tabIndex={0}
+        className="absolute left-0 top-0 h-full w-1.5 cursor-col-resize hover:bg-accent-subtle/50 transition-colors z-10 flex items-center"
+        onMouseDown={handleDragStart}
+      >
+        <GripVertical size={12} className="text-tertiary -ml-1 opacity-0 hover:opacity-100 transition-opacity" />
+      </div>
+      {/* eslint-enable jsx-a11y/no-noninteractive-element-interactions, jsx-a11y/no-noninteractive-tabindex */}
+
       {/* Header */}
       <div className="border-b border-subtle px-4 py-3 flex items-center justify-between">
         <div className="flex items-center gap-2">

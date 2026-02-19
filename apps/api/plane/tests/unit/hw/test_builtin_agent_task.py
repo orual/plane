@@ -326,7 +326,7 @@ while(true) { }
         mock_sandbox_result = MagicMock()
         mock_sandbox_result.timed_out = True
         mock_sandbox_result.error = None
-        mock_sandbox_result.output = None
+        mock_sandbox_result.output = ""
 
         with (
             patch("plane.bgtasks.builtin_agent_task.AgentLLMClient") as mock_llm_client_class,
@@ -361,13 +361,15 @@ while(true) { }
 
 @pytest.mark.unit
 class TestBuiltinAgentTaskSandboxError:
-    """Test sandbox error handling."""
+    """Test sandbox error handling and retry behaviour."""
 
     @pytest.mark.django_db
-    def test_sandbox_error_marks_run_failed_and_creates_error_activity(
+    def test_sandbox_error_retries_and_eventually_fails(
         self, workspace, create_user, builtin_agent_profile
     ):
-        """Sandbox error transitions run to failed and creates error activity."""
+        """Sandbox errors trigger retries; after MAX_SANDBOX_ATTEMPTS the run fails."""
+        from plane.bgtasks.builtin_agent_task import MAX_SANDBOX_ATTEMPTS
+
         run = AgentRun.objects.create(
             agent=builtin_agent_profile,
             workspace=workspace,
@@ -381,11 +383,10 @@ class TestBuiltinAgentTaskSandboxError:
 throw new Error("Invalid API call");
 ```"""
 
-        # Mock SandboxExecutor to report error
         mock_sandbox_result = MagicMock()
         mock_sandbox_result.timed_out = False
         mock_sandbox_result.error = "RuntimeError: undefined function"
-        mock_sandbox_result.output = None
+        mock_sandbox_result.output = ""
 
         with (
             patch("plane.bgtasks.builtin_agent_task.AgentLLMClient") as mock_llm_client_class,
@@ -395,10 +396,7 @@ throw new Error("Invalid API call");
             mock_get_config.return_value = ("test-key", "test-model", "anthropic", "")
 
             mock_llm_client = MagicMock()
-            mock_llm_response_obj = MagicMock()
-            mock_llm_response_obj.reasoning_content = None
-            mock_llm_response_obj.content = mock_llm_response.content
-            mock_llm_client.call.return_value = mock_llm_response_obj
+            mock_llm_client.call.return_value = mock_llm_response
             mock_llm_client_class.return_value = mock_llm_client
 
             mock_sandbox = MagicMock()
@@ -407,15 +405,141 @@ throw new Error("Invalid API call");
 
             builtin_agent_execute_task(run.id, "conversation", "Run some code")
 
-        # Verify run is marked failed
         run.refresh_from_db()
         assert run.status == AgentRunStatus.FAILED
         assert run.completed_at is not None
 
-        # Verify error activity was created with the sandbox error
-        error_activities = AgentRunActivity.objects.filter(run=run, activity_type=AgentActivityType.ERROR)
+        # One ERROR activity per attempt
+        error_activities = AgentRunActivity.objects.filter(
+            run=run, activity_type=AgentActivityType.ERROR
+        )
+        assert error_activities.count() == MAX_SANDBOX_ATTEMPTS
+
+        # LLM was called once per attempt
+        assert mock_llm_client.call.call_count == MAX_SANDBOX_ATTEMPTS
+
+    @pytest.mark.django_db
+    def test_sandbox_error_retry_succeeds_on_second_attempt(
+        self, workspace, create_user, builtin_agent_profile
+    ):
+        """When sandbox fails on first attempt but succeeds on retry, run completes."""
+        run = AgentRun.objects.create(
+            agent=builtin_agent_profile,
+            workspace=workspace,
+            status=AgentRunStatus.CREATED,
+            created_by=create_user,
+        )
+
+        code_response = MagicMock()
+        code_response.reasoning_content = None
+        code_response.content = '```typescript\noutput("hello");\n```'
+
+        error_result = MagicMock()
+        error_result.timed_out = False
+        error_result.error = "SyntaxError: unexpected token"
+        error_result.output = ""
+
+        success_result = MagicMock()
+        success_result.timed_out = False
+        success_result.error = None
+        success_result.output = "hello"
+
+        with (
+            patch("plane.bgtasks.builtin_agent_task.AgentLLMClient") as mock_llm_client_class,
+            patch("plane.bgtasks.builtin_agent_task.SandboxExecutor") as mock_sandbox_class,
+            patch("plane.bgtasks.builtin_agent_task.get_llm_config") as mock_get_config,
+        ):
+            mock_get_config.return_value = ("test-key", "test-model", "anthropic", "")
+
+            mock_llm_client = MagicMock()
+            mock_llm_client.call.return_value = code_response
+            mock_llm_client_class.return_value = mock_llm_client
+
+            mock_sandbox = MagicMock()
+            mock_sandbox.execute.side_effect = [error_result, success_result]
+            mock_sandbox_class.return_value = mock_sandbox
+
+            builtin_agent_execute_task(run.id, "conversation", "Do something")
+
+        run.refresh_from_db()
+        assert run.status == AgentRunStatus.COMPLETED
+
+        # 2 LLM calls (original + 1 retry)
+        assert mock_llm_client.call.call_count == 2
+
+        # 1 ERROR from first attempt, then success
+        error_activities = AgentRunActivity.objects.filter(
+            run=run, activity_type=AgentActivityType.ERROR
+        )
         assert error_activities.count() == 1
-        assert "undefined function" in error_activities.first().content
+
+        # 2 ACTION activities (one per attempt) + 1 RESPONSE
+        action_activities = AgentRunActivity.objects.filter(
+            run=run, activity_type=AgentActivityType.ACTION
+        )
+        assert action_activities.count() == 2
+
+        response_activities = AgentRunActivity.objects.filter(
+            run=run, activity_type=AgentActivityType.RESPONSE
+        )
+        assert response_activities.count() == 1
+        assert response_activities.first().content == "hello"
+
+    @pytest.mark.django_db
+    def test_sandbox_error_retry_falls_back_to_plain_text(
+        self, workspace, create_user, builtin_agent_profile
+    ):
+        """When sandbox fails and LLM responds with plain text on retry, run completes."""
+        run = AgentRun.objects.create(
+            agent=builtin_agent_profile,
+            workspace=workspace,
+            status=AgentRunStatus.CREATED,
+            created_by=create_user,
+        )
+
+        code_response = MagicMock()
+        code_response.reasoning_content = None
+        code_response.content = '```typescript\noutput("hello");\n```'
+
+        text_response = MagicMock()
+        text_response.reasoning_content = None
+        text_response.content = "Sorry, I was unable to execute the code. Here is my answer instead."
+
+        error_result = MagicMock()
+        error_result.timed_out = False
+        error_result.error = "SyntaxError: unexpected token"
+        error_result.output = ""
+
+        with (
+            patch("plane.bgtasks.builtin_agent_task.AgentLLMClient") as mock_llm_client_class,
+            patch("plane.bgtasks.builtin_agent_task.SandboxExecutor") as mock_sandbox_class,
+            patch("plane.bgtasks.builtin_agent_task.get_llm_config") as mock_get_config,
+        ):
+            mock_get_config.return_value = ("test-key", "test-model", "anthropic", "")
+
+            mock_llm_client = MagicMock()
+            mock_llm_client.call.side_effect = [code_response, text_response]
+            mock_llm_client_class.return_value = mock_llm_client
+
+            mock_sandbox = MagicMock()
+            mock_sandbox.execute.return_value = error_result
+            mock_sandbox_class.return_value = mock_sandbox
+
+            builtin_agent_execute_task(run.id, "conversation", "Do something")
+
+        run.refresh_from_db()
+        assert run.status == AgentRunStatus.COMPLETED
+
+        # LLM called twice: code response, then plain text
+        assert mock_llm_client.call.call_count == 2
+        # Sandbox only called once (second LLM response had no code block)
+        assert mock_sandbox.execute.call_count == 1
+
+        response_activities = AgentRunActivity.objects.filter(
+            run=run, activity_type=AgentActivityType.RESPONSE
+        )
+        assert response_activities.count() == 1
+        assert "unable to execute" in response_activities.first().content
 
 
 @pytest.mark.unit

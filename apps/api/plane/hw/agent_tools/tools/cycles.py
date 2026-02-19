@@ -1,6 +1,7 @@
 from uuid import UUID
 from plane.hw.agent_tools.registry import tool, ToolParam, ToolContext
 from plane.hw.agent_tools.permissions import check_project_member
+from plane.hw.agent_tools.tools.resolve import resolve_project_id
 from plane.db.models import Cycle, CycleIssue  # noqa: F401
 from plane.app.permissions.base import ROLE
 
@@ -9,17 +10,20 @@ from plane.app.permissions.base import ROLE
     name="cycles.list",
     description="List cycles in a project",
     params=[
-        ToolParam(name="project_id", type="string", description="Project ID", required=True),
+        ToolParam(
+            name="project_id", type="string",
+            description="Project UUID or identifier (e.g. 'TP')", required=True,
+        ),
     ],
-    return_type="List of cycle objects",
+    return_type="Array of {id, name, start_date, end_date, owned_by, project_id}",
     requires_project=True
 )
 def list_cycles(params: dict, context: ToolContext) -> list:
     """List cycles in a project."""
-    project_id = UUID(params["project_id"])
+    project_id = resolve_project_id(params["project_id"], context.workspace)
 
     # Check permissions
-    check_project_member(context, project_id, min_role=ROLE.GUEST)
+    check_project_member(context, project_id, min_role=ROLE.GUEST.value)
 
     # Get cycles
     cycles = Cycle.objects.filter(
@@ -54,18 +58,21 @@ def list_cycles(params: dict, context: ToolContext) -> list:
     description="Get a single cycle by ID",
     params=[
         ToolParam(name="cycle_id", type="string", description="Cycle ID", required=True),
-        ToolParam(name="project_id", type="string", description="Project ID", required=True),
+        ToolParam(
+            name="project_id", type="string",
+            description="Project UUID or identifier (e.g. 'TP')", required=True,
+        ),
     ],
-    return_type="Cycle object with full detail",
+    return_type="{id, name, start_date, end_date, owned_by, project_id, issues: Array of {id, name, sequence_id}}",
     requires_project=True
 )
 def get_cycle(params: dict, context: ToolContext) -> dict:
     """Get a single cycle by ID."""
     cycle_id = UUID(params["cycle_id"])
-    project_id = UUID(params["project_id"])
+    project_id = resolve_project_id(params["project_id"], context.workspace)
 
     # Check permissions
-    check_project_member(context, project_id, min_role=ROLE.GUEST)
+    check_project_member(context, project_id, min_role=ROLE.GUEST.value)
 
     # Get cycle
     cycle = Cycle.objects.get(
@@ -112,7 +119,10 @@ def get_cycle(params: dict, context: ToolContext) -> dict:
     description="Add issues to a cycle",
     params=[
         ToolParam(name="cycle_id", type="string", description="Cycle ID", required=True),
-        ToolParam(name="project_id", type="string", description="Project ID", required=True),
+        ToolParam(
+            name="project_id", type="string",
+            description="Project UUID or identifier (e.g. 'TP')", required=True,
+        ),
         ToolParam(
             name="issue_ids",
             type="array",
@@ -127,10 +137,10 @@ def get_cycle(params: dict, context: ToolContext) -> dict:
 def add_issues_to_cycle(params: dict, context: ToolContext) -> list:
     """Add issues to a cycle."""
     cycle_id = UUID(params["cycle_id"])
-    project_id = UUID(params["project_id"])
+    project_id = resolve_project_id(params["project_id"], context.workspace)
 
     # Check permissions (must be member or higher)
-    check_project_member(context, project_id, min_role=ROLE.MEMBER)
+    check_project_member(context, project_id, min_role=ROLE.MEMBER.value)
 
     # Use bulk_create with ignore_conflicts to handle duplicates
     cycle_issues_to_create = []
@@ -138,9 +148,10 @@ def add_issues_to_cycle(params: dict, context: ToolContext) -> list:
         cycle_issues_to_create.append(CycleIssue(
             cycle_id=cycle_id,
             issue_id=UUID(issue_id),
+            project_id=project_id,
             workspace=context.workspace,
-            created_by=context.user,
-            updated_by=context.user
+            created_by=context.actor,
+            updated_by=context.actor
         ))
 
     # Bulk create, ignoring conflicts for duplicates
