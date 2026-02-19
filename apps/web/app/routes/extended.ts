@@ -18,6 +18,14 @@ export const extendedRoutes: RouteConfigEntry[] = [
             ":workspaceSlug/settings/issue-types",
             "./(all)/[workspaceSlug]/(settings)/settings/(workspace)/issue-types/page.tsx"
           ),
+          route(
+            ":workspaceSlug/settings/agents",
+            "./(all)/[workspaceSlug]/(settings)/settings/(workspace)/agents/page.tsx"
+          ),
+          route(
+            ":workspaceSlug/settings/agents/:agentId",
+            "./(all)/[workspaceSlug]/(settings)/settings/(workspace)/agents/[agentId]/page.tsx"
+          ),
         ]),
         // Project issue types settings (under project settings layout)
         layout("./(all)/[workspaceSlug]/(settings)/settings/projects/layout.tsx", [

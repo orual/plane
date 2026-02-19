@@ -58,6 +58,9 @@ temp/
 *.rdb
 *.rdb.gz
 
+# Homelab deployment data (bind-mounted volumes)
+data/
+
 # Misc
 *.pem
 *.key
