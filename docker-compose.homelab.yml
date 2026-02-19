@@ -57,9 +57,8 @@ x-proxy-env: &proxy-env
   LISTEN_HTTPS_PORT: "443"
   # Only trust docker-internal IPs for X-Forwarded-For, not the entire internet
   TRUSTED_PROXIES: "172.16.0.0/12 10.0.0.0/8 192.168.0.0/16"
-  CERT_EMAIL: ""
-  CERT_ACME_CA: ""
-  CERT_ACME_DNS: ""
+  # Leave cert vars unset — Caddyfile defaults handle them, and we don't need
+  # TLS anyway since the Cloudflare tunnel terminates it.
 
 services:
   web:
@@ -127,9 +126,9 @@ services:
       - ./data/logs/api:/code/plane/logs
     depends_on:
       plane-db:
-        condition: service_started
+        condition: service_healthy
       plane-redis:
-        condition: service_started
+        condition: service_healthy
       plane-mq:
         condition: service_started
 
@@ -150,9 +149,9 @@ services:
       api:
         condition: service_started
       plane-db:
-        condition: service_started
+        condition: service_healthy
       plane-redis:
-        condition: service_started
+        condition: service_healthy
       plane-mq:
         condition: service_started
 
@@ -173,9 +172,9 @@ services:
       api:
         condition: service_started
       plane-db:
-        condition: service_started
+        condition: service_healthy
       plane-redis:
-        condition: service_started
+        condition: service_healthy
       plane-mq:
         condition: service_started
 
@@ -194,9 +193,9 @@ services:
       - ./data/logs/migrator:/code/plane/logs
     depends_on:
       plane-db:
-        condition: service_started
+        condition: service_healthy
       plane-redis:
-        condition: service_started
+        condition: service_healthy
 
   plane-db:
     container_name: plane-db
@@ -207,6 +206,11 @@ services:
       <<: *db-env
     volumes:
       - ./data/postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-plane} -d ${POSTGRES_DB:-plane}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
 
   plane-redis:
     container_name: plane-redis
@@ -214,6 +218,11 @@ services:
     restart: unless-stopped
     volumes:
       - ./data/redis:/data
+    healthcheck:
+      test: ["CMD", "valkey-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
 
   plane-mq:
     container_name: plane-mq
