@@ -56,7 +56,7 @@ export const AgentChatPanel = observer(function AgentChatPanel({ workspaceSlug }
   if (!agentConversationStore) return null;
   if (!agentConversationStore.isPanelOpen) return null;
 
-  const { activeConversationId, isLoading } = agentConversationStore;
+  const { activeConversationId } = agentConversationStore;
 
   const handleNewConversation = () => {
     void agentConversationStore.createConversation(workspaceSlug, { title: "New Conversation" });
@@ -79,13 +79,7 @@ export const AgentChatPanel = observer(function AgentChatPanel({ workspaceSlug }
   };
 
   return (
-    <div
-      className={cn(
-        "fixed right-0 top-0 h-screen w-96 bg-layer-1 border-l border-subtle",
-        "flex flex-col transition-transform duration-300 ease-in-out z-40",
-        agentConversationStore.isPanelOpen ? "translate-x-0" : "translate-x-full"
-      )}
-    >
+    <div className="fixed right-0 top-0 h-screen w-96 bg-layer-1 border-l border-subtle flex flex-col z-40">
       {/* Header */}
       <div className="border-b border-subtle px-4 py-3 flex items-center justify-between">
         <div className="flex items-center gap-2">
@@ -141,7 +135,7 @@ export const AgentChatPanel = observer(function AgentChatPanel({ workspaceSlug }
       )}
 
       {/* Input */}
-      <ChatInput onSend={handleSendMessage} disabled={isLoading} placeholder="Send a message..." />
+      <ChatInput onSend={handleSendMessage} placeholder="Send a message..." />
     </div>
   );
 });

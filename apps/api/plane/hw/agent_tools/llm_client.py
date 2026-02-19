@@ -119,7 +119,6 @@ class AgentLLMClient:
             "model": self.litellm_model,
             "messages": [system_message] + messages,
             "max_tokens": max_tokens,
-            "reasoning_effort": reasoning_effort,
             "timeout": 60,
         }
 
@@ -127,18 +126,30 @@ class AgentLLMClient:
         if self.base_url:
             kwargs["api_base"] = self.base_url
 
-        # Add thinking configuration if budget is set
+        # Provider-specific reasoning/thinking configuration.
+        # An explicit thinking_budget always takes precedence.
         if thinking_budget is not None:
             kwargs["thinking"] = {
                 "type": "enabled",
                 "budget_tokens": thinking_budget
+            }
+        elif self.provider == "openai":
+            kwargs["reasoning_effort"] = reasoning_effort
+        elif self.provider == "gemini":
+            kwargs["reasoning_effort"] = reasoning_effort
+        elif self.provider == "anthropic":
+            budget_map = {"low": 1024, "medium": 4096, "high": 10240}
+            tokens = budget_map.get(reasoning_effort, 4096)
+            kwargs["thinking"] = {
+                "type": "enabled",
+                "budget_tokens": tokens
             }
 
         # Retry with exponential backoff
         max_retries = 3
         for attempt in range(max_retries + 1):
             try:
-                response = litellm.completion(**kwargs)
+                response = litellm.completion(**kwargs, drop_params=True)
 
                 # Extract response data
                 choice = response.choices[0]
