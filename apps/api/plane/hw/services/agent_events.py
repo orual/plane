@@ -15,6 +15,7 @@ SSE failures (Redis unavailable, publish fails) must never break execution.
 
 import json
 import logging
+import uuid
 
 from plane.hw.models import AgentRunActivity, AgentRun
 from plane.hw.serializers import AgentRunActivitySerializer
@@ -22,6 +23,15 @@ from plane.settings.redis import redis_instance
 
 
 logger = logging.getLogger("plane.worker")
+
+
+class _UUIDEncoder(json.JSONEncoder):
+    """JSON encoder that converts UUID objects to strings."""
+
+    def default(self, obj):
+        if isinstance(obj, uuid.UUID):
+            return str(obj)
+        return super().default(obj)
 
 
 def format_sse(event_type: str, data: str) -> str:
@@ -63,7 +73,7 @@ def emit_activity_event(activity: AgentRunActivity) -> None:
             "event_type": "activity_created",
             "data": activity_data,
         }
-        payload_json = json.dumps(event_payload)
+        payload_json = json.dumps(event_payload, cls=_UUIDEncoder)
 
         # Get Redis instance
         r = redis_instance()
@@ -105,7 +115,7 @@ def emit_run_status_event(run: AgentRun) -> None:
                 "completed_at": run.completed_at.isoformat() if run.completed_at else None,
             },
         }
-        payload_json = json.dumps(event_payload)
+        payload_json = json.dumps(event_payload, cls=_UUIDEncoder)
 
         r = redis_instance()
         if not r:

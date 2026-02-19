@@ -117,6 +117,7 @@ class AgentLLMClient:
         # Prepare call parameters
         kwargs = {
             "model": self.litellm_model,
+            "api_key": self.api_key,
             "messages": [system_message] + messages,
             "max_tokens": max_tokens,
             "timeout": 60,
