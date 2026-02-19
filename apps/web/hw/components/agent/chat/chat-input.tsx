@@ -69,8 +69,8 @@ export function ChatInput({ onSend, disabled = false, placeholder = "Send a mess
           value={content}
           onChange={(e) => setContent(e.target.value)}
           onKeyDown={(e) => handleKeyDown(e as unknown as React.KeyboardEvent<HTMLTextAreaElement>)}
-          disabled={disabled || isSending}
-          placeholder={isSending ? "Agent is thinking..." : placeholder}
+          disabled={disabled}
+          placeholder={placeholder}
           className={cn(
             "flex-1 resize-none rounded-lg border border-subtle bg-layer-1 px-3 py-2",
             "text-13 placeholder-tertiary focus:outline-none focus:ring-1 focus:ring-accent-primary",
