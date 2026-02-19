@@ -43,7 +43,6 @@ export const ChatMessageList = observer(function ChatMessageList({ workspaceSlug
   if (!agentConversationStore) return null;
 
   const messages = agentConversationStore.activeMessages;
-  const isLoading = agentConversationStore.isLoading;
 
   return (
     <div className="flex-1 overflow-y-auto px-4 py-3">
@@ -56,12 +55,6 @@ export const ChatMessageList = observer(function ChatMessageList({ workspaceSlug
           {messages.map((message: TAgentConversationMessage) => (
             <ChatMessageBubble key={message.id} message={message} workspaceSlug={workspaceSlug} />
           ))}
-          {isLoading && (
-            <div className="flex items-center gap-2">
-              <div className="h-2 w-2 rounded-full bg-tertiary animate-bounce" />
-              <p className="text-12 text-tertiary">Agent is thinking...</p>
-            </div>
-          )}
           <div ref={messagesEndRef} />
         </div>
       )}
