@@ -164,6 +164,13 @@ def builtin_agent_execute_task(
             emit_run_status_event(run)
             return
 
+        logger.info(
+            "LLM response received: content_len=%d, reasoning=%s, finish=%s",
+            len(llm_response.content),
+            bool(llm_response.reasoning_content),
+            llm_response.finish_reason,
+        )
+
         # Create thought activity if reasoning present
         if llm_response.reasoning_content:
             activity = AgentRunActivity.objects.create(
@@ -320,7 +327,7 @@ def builtin_agent_execute_task(
 
     except Exception as e:
         log_exception(e)
-        logger.error(f"Unexpected error in builtin_agent_execute_task: {e}")
+        logger.error("Unexpected error in builtin_agent_execute_task: %s", e, exc_info=True)
 
         # Try to update run with error activity
         try:
