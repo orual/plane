@@ -21,7 +21,7 @@ out/
 build/
 result/
 .react-router/
-
+data/
 # Misc
 .DS_Store
 *.pem
